@@ -1,0 +1,339 @@
+/* TAB-P
+ *
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "lex.h"
+#include "parse.h"
+
+static cell *expr(precedence lv);
+static cell *getlist(item *op, token sep_token, token end_token);
+static cell *binary(cell *left, precedence lv);
+
+static cell *badeof() {
+    // TODO error
+    fprintf(stderr, "Unexpected end of file\n");
+    return 0;
+}
+
+cell *expression() {
+    return expr(l_BOT);
+}
+
+static cell *expr(precedence lv) {
+    cell *pt = 0;
+    cell *p2 = 0;
+    item *it;
+    it = lexical();
+    if (!it) return 0; // end of file
+
+    switch (it->type) {
+    case it_SEMI: // special
+        dropitem(it);
+        return cell_symbol("#semi"); // TODO improve
+
+    case it_INTEGER:
+        pt = cell_integer(it->ivalue);
+        dropitem(it);
+        return binary(pt, lv);
+
+    case it_STRING:
+        pt = cell_string(it->svalue);
+        dropitem(it);
+        return binary(pt, lv);
+
+    case it_SYMBOL:
+        pt = cell_symbol(it->svalue);
+        dropitem(it);
+        return binary(pt, lv);
+
+    case it_NOT: // unary only
+        dropitem(it);
+        p2 = expr(l_UNARY);
+        if (!p2) return badeof();
+        return cell_cons(cell_symbol("#not"), cell_cons(p2, 0));
+
+    case it_MINS:
+        dropitem(it);
+        p2 = expr(l_UNARY);
+        if (!p2) return badeof();
+        return cell_cons(cell_symbol("#neg"), cell_cons(p2, 0));
+
+    case it_QUOT:
+        dropitem(it);
+        p2 = expr(l_UNARY);
+        if (!p2) return badeof();
+        return cell_cons(cell_symbol("#quote"), cell_cons(p2, 0));
+
+    case it_LPAR:
+        // read as list
+        pt = getlist(it, it_COMA, it_RPAR);
+        it = lexical();
+        if (pt && pt->type == c_CONS && !pt->cdr) {
+            // single item on list, not sure what it is
+            if (!it || it->type != it_LBRC) {
+                // not a function definition
+                cell *p2 = pt->car; // pick 1st item on list
+                pt->car = 0;
+                cell_drop(pt);
+                if (it) pushitem(it);
+                return binary(p2, lv);
+            }
+        } else {
+            // must be an anomymous function defintion
+            if (!it || it->type != it_LBRC) {
+                fprintf(stderr, "Expected function body (left curly bracket)\n");
+                if (it) pushitem(it);
+                // assume empty function body
+                return cell_cons(cell_symbol("#lambda"), cell_cons(pt, 0));
+            }
+        }
+        {
+            cell *body = getlist(it, it_SEMI, it_RBRC);
+            return cell_cons(cell_symbol("#lambda"), cell_cons(pt, body));
+        }
+
+    case it_LBRC:
+        pt = getlist(it, it_SEMI, it_RBRC);
+        // TODO implement optional final semicolon
+        return cell_cons(cell_symbol("#do"), pt);
+
+    case it_LBRK:
+        // TODO ellipsis cannot be treated exactly as comma
+        pt = getlist(it, it_ELIP, it_RBRK);
+        it = lexical();
+        if (!it || it->type != it_LBRC) {
+            fprintf(stderr, "Expected array initializer (left curly bracket)\n");
+            if (it) pushitem(it);
+            // assume empty initializer
+            return cell_cons(cell_symbol("#make-array"), cell_cons(pt, 0));
+        }
+        {
+            cell *init = getlist(it, it_COMA, it_RBRC);
+            return cell_cons(cell_symbol("#make-array"), cell_cons(pt, init));
+        }
+
+    case it_PLUS: // unary?
+    case it_MULT: // binary only
+    case it_DIVS:
+    case it_LT:
+    case it_GT:
+    case it_EQUL:
+    case it_LTEQ:
+    case it_GTEQ:
+    case it_NTEQ:
+    case it_EQEQ:
+    case it_AMP:
+    case it_AND:
+    case it_STOP:
+    case it_COMA:
+    case it_QEST: // ternary
+    case it_ELIP: // binary sometimes..
+    case it_RPAR: // cannot be used
+    case it_RBRK:
+    case it_RBRC:
+        // TODO error
+        fprintf(stderr, "Misplaced item, syntax error: %d\n", it->type);
+        dropitem(it);
+        return expr(lv);
+
+    default:
+        assert(0);
+    }
+
+    return 0;
+}
+
+static cell *binary(cell *left, precedence lv) {
+    precedence l2 = l_BOT;
+    char *s = 0;
+    cell *right = 0;
+    item *op = lexical();
+    if (!op) return left; // end of file
+
+    switch (op->type) {
+    case it_PLUS: // binary
+        if (!s) { l2 = l_ADD;     s = "#plus"; }
+    case it_MINS:
+        if (!s) { l2 = l_ADD;     s = "#minus"; }
+    case it_MULT:
+        if (!s) { l2 = l_MULT;    s = "#times"; }
+    case it_DIVS:
+        if (!s) { l2 = l_MULT;    s = "#div"; }
+    case it_LT:
+        if (!s) { l2 = l_REL;     s = "#lt"; }
+    case it_GT:
+        if (!s) { l2 = l_REL;     s = "#gt"; }
+    case it_LTEQ:
+        if (!s) { l2 = l_REL;     s = "#lteq"; }
+    case it_GTEQ:
+        if (!s) { l2 = l_REL;     s = "#gteq"; }
+    case it_NTEQ:
+        if (!s) { l2 = l_EQ;      s = "#noteq"; }
+    case it_EQEQ:
+        if (!s) { l2 = l_EQ;      s = "#eq"; }
+    case it_AMP:
+        if (!s) { l2 = l_AMP;     s = "#amp"; }
+    case it_AND:
+        if (!s) { l2 = l_AND;     s = "#and"; }
+    case it_STOP:
+        if (!s) { l2 = l_POST;    s = "#dot"; }
+    case it_EQUL:
+        if (!s) { l2 = l_DEF;     s = "#def"; }
+
+        if (lv >= l2) { // TODO left-to-right
+            // look no further
+            pushitem(op);
+            return left;
+        }
+        dropitem(op);
+        right = expr(l2);
+        if (!right) {
+            badeof(); // end of file
+            return left;
+        }
+        return binary(cell_cons(cell_symbol(s), cell_cons(left, cell_cons(right, 0))), lv);
+
+    case it_QEST: // ternary
+        if (lv >= l_COND) { // TODO right to left
+            // look no further
+            pushitem(op);
+            return left;
+        }
+        dropitem(op);
+        right = expr(l_COND);
+        if (!right) {
+            badeof(); // end of file
+            return left;
+        }
+        op = lexical();
+        if (!op || op->type != it_COLO) {
+            // "if" without an "else"
+            // TODO should that be allowed?
+            if (op) pushitem(op);
+            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, 0))), lv);
+        }
+        dropitem(op);
+        {
+            cell *third;
+            third = expr(l_COND);
+            if (!third) {
+                badeof(); // end of file
+                return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, 0))), lv);
+            }
+            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, cell_cons(third, 0)))), lv);
+        }
+
+    case it_LPAR: // function
+        if (lv >= l_POST) { // TODO left-to-right
+            // look no further
+            pushitem(op);
+            return left;
+        }
+        return cell_cons(left, getlist(op, it_COMA, it_RPAR));
+
+    case it_LBRK: // array
+        if (lv >= l_POST) { // TODO left-to-right
+            // look no further
+            pushitem(op);
+            return left;
+        }
+        dropitem(op);
+        // TODO argument list, not expression
+        right = expr(l_BOT);
+        if (!right) {
+            badeof(); // end of file
+            return left;
+        }
+        op = lexical();
+        if (op->type == it_RBRK) {
+            dropitem(op);
+        } else {
+            // TODO error
+            fprintf(stderr, "Expected matching right bracket for array\n");
+            if (op) pushitem(op);
+        }
+        return binary(cell_cons(cell_symbol("#array-ref"), cell_cons(left, cell_cons(right, 0))), lv);
+
+    case it_SEMI:
+    case it_RPAR:
+    case it_RBRK:
+    case it_RBRC:
+    case it_COLO:
+    case it_COMA:
+    case it_ELIP:
+        // parse no more
+        pushitem(op);
+        return left;
+
+
+    case it_NOT: // unary only
+    case it_QUOT:
+    case it_LBRC:
+    case it_INTEGER:
+    case it_STRING:
+    case it_SYMBOL:
+        break;
+    default:
+        fprintf(stderr, "ASSERT operator: %d\n", op->type);
+        assert(0);
+    }
+    // TODO error
+    fprintf(stderr, "Misplaced operator, syntax error: %d\n", op->type);
+    dropitem(op);
+    return left;
+}
+
+
+//
+// parse list of function arguments or parameters
+//
+static cell *getlist(item *op, token sep_token, token end_token) {
+    cell *arglist = 0;
+    cell **nextp = &arglist;
+    cell *arg;
+
+    // assume left parenthesis is current
+    dropitem(op);
+    op = lexical();
+    if (!op) {
+        badeof();
+        return arglist;
+    }
+    if (op->type == end_token) {
+        // special case: zero arguments
+        dropitem(op);
+        return arglist;
+    }
+    pushitem(op);
+    for (;;) {
+        arg = expr(l_BOT);            // TODO what about comma?
+        if (!arg) {
+            badeof(); // end of file
+            return arglist;
+        }
+        *nextp = cell_cons(arg, 0);
+        nextp = &((*nextp)->cdr);
+        op = lexical();
+        if (!op) {
+            badeof();
+            return arglist;
+        }
+        if (op->type != sep_token) break;
+        dropitem(op);
+    }
+    if (op->type != end_token) {
+        // TODO error
+        fprintf(stderr, "Expected matching right parenthesis for function\n");
+        pushitem(op);
+        return arglist;
+    }
+    dropitem(op);
+    return arglist;
+}
+
+
+
