@@ -4,9 +4,10 @@
  *  Or only symbols that have been defined? Probably
  */
 
-//#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "oblist.h"
 
@@ -25,14 +26,19 @@ static struct ob_entry* ob_table[OBLIST_HASH_SIZE];
 
 static unsigned int oblist_hash(const char *sym) {
     unsigned int hash = 0;
+    assert(sym);
     while (*sym) {
 	hash = (hash >> 10) ^ (hash << 3) ^ *sym++;
     }
     return hash % OBLIST_HASH_SIZE;
 }
 
-// assume symbol is malloc()'d
 cell *oblist(char *sym) {
+    return oblista(strdup(sym));
+}
+
+// assume symbol is malloc()'d
+cell *oblista(char *sym) {
     struct ob_entry **pp;
     int hash = oblist_hash(sym);
     pp = &(ob_table[hash]);
@@ -48,7 +54,7 @@ cell *oblist(char *sym) {
     *pp = malloc(sizeof(struct ob_entry));
     (*pp)->next = 0;
     (*pp)->namdef.type = c_SYMBOL;
-    (*pp)->namdef._.symbol.val = 0; // TODO should probably be #void instead
+    (*pp)->namdef._.symbol.val = NIL; // TODO should probably be #void instead
     (*pp)->namdef._.symbol.nam = sym;
     return &((*pp)->namdef);
 }
@@ -57,19 +63,19 @@ cell *oblist(char *sym) {
 void oblist_drop() {
     int h;
     struct ob_entry *p;
-    //printf("\n\noblist:\n");
+    printf("\n\noblist:\n");
     for (h = 0; h < OBLIST_HASH_SIZE; ++h) {
 	p = ob_table[h];
 	ob_table[h] = 0;
 	while (p) {
 	    struct ob_entry *q = p->next;
-	    //printf("%s ", p->symbol);
+	    printf("%s\n", p->namdef._.symbol.nam);
 	    cell_drop(p->namdef._.symbol.val);
             free(p->namdef._.symbol.nam);
 	    free(p);
 	    p = q;
 	}
     }
-    //printf("\n");
+    printf("\n");
 }
 

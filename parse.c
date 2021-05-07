@@ -6,8 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
 #include "lex.h"
 #include "parse.h"
+#include "cfun.h"
 
 static cell *expr(precedence lv);
 static cell *getlist(item *op, token sep_token, token end_token);
@@ -33,7 +35,7 @@ static cell *expr(precedence lv) {
     switch (it->type) {
     case it_SEMI: // special
         dropitem(it);
-        return cell_symbol("#semi"); // TODO improve
+        return hash_semi; // TODO is this really required
 
     case it_INTEGER:
         pt = cell_integer(it->ivalue);
@@ -56,19 +58,19 @@ static cell *expr(precedence lv) {
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
-        return cell_cons(cell_symbol("#not"), cell_cons(p2, 0));
+        return cell_cons(hash_not, cell_cons(p2, NIL));
 
     case it_MINS:
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
-        return cell_cons(cell_symbol("#neg"), cell_cons(p2, 0));
+        return cell_cons(hash_minus, cell_cons(p2, NIL));
 
     case it_QUOT:
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
-        return cell_cons(cell_symbol("#quote"), cell_cons(p2, 0));
+        return cell_cons(cell_symbol("#quote"), cell_cons(p2, NIL));
 
     case it_LPAR:
         // read as list
@@ -90,7 +92,7 @@ static cell *expr(precedence lv) {
                 fprintf(stderr, "Expected function body (left curly bracket)\n");
                 if (it) pushitem(it);
                 // assume empty function body
-                return cell_cons(cell_symbol("#lambda"), cell_cons(pt, 0));
+                return cell_cons(cell_symbol("#lambda"), cell_cons(pt, NIL));
             }
         }
         {
@@ -111,7 +113,7 @@ static cell *expr(precedence lv) {
             fprintf(stderr, "Expected array initializer (left curly bracket)\n");
             if (it) pushitem(it);
             // assume empty initializer
-            return cell_cons(cell_symbol("#make-array"), cell_cons(pt, 0));
+            return cell_cons(cell_symbol("#make-array"), cell_cons(pt, NIL));
         }
         {
             cell *init = getlist(it, it_COMA, it_RBRC);
@@ -151,40 +153,40 @@ static cell *expr(precedence lv) {
 
 static cell *binary(cell *left, precedence lv) {
     precedence l2 = l_BOT;
-    char *s = 0;
+    cell *s = 0;
     cell *right = 0;
     item *op = lexical();
     if (!op) return left; // end of file
 
     switch (op->type) {
     case it_PLUS: // binary
-        if (!s) { l2 = l_ADD;     s = "#plus"; }
+        if (!s) { l2 = l_ADD;     s = hash_plus; }
     case it_MINS:
-        if (!s) { l2 = l_ADD;     s = "#minus"; }
+        if (!s) { l2 = l_ADD;     s = hash_minus; }
     case it_MULT:
-        if (!s) { l2 = l_MULT;    s = "#times"; }
+        if (!s) { l2 = l_MULT;    s = hash_times; }
     case it_DIVS:
-        if (!s) { l2 = l_MULT;    s = "#div"; }
+        if (!s) { l2 = l_MULT;    s = hash_div; }
     case it_LT:
-        if (!s) { l2 = l_REL;     s = "#lt"; }
+        if (!s) { l2 = l_REL;     s = cell_symbol("#lt"); }
     case it_GT:
-        if (!s) { l2 = l_REL;     s = "#gt"; }
+        if (!s) { l2 = l_REL;     s = cell_symbol("#gt"); }
     case it_LTEQ:
-        if (!s) { l2 = l_REL;     s = "#lteq"; }
+        if (!s) { l2 = l_REL;     s = cell_symbol("#lteq"); }
     case it_GTEQ:
-        if (!s) { l2 = l_REL;     s = "#gteq"; }
+        if (!s) { l2 = l_REL;     s = cell_symbol("#gteq"); }
     case it_NTEQ:
-        if (!s) { l2 = l_EQ;      s = "#noteq"; }
+        if (!s) { l2 = l_EQ;      s = cell_symbol("#noteq"); }
     case it_EQEQ:
-        if (!s) { l2 = l_EQ;      s = "#eq"; }
+        if (!s) { l2 = l_EQ;      s = cell_symbol("#eq"); }
     case it_AMP:
-        if (!s) { l2 = l_AMP;     s = "#amp"; }
+        if (!s) { l2 = l_AMP;     s = cell_symbol("#amp"); }
     case it_AND:
-        if (!s) { l2 = l_AND;     s = "#and"; }
+        if (!s) { l2 = l_AND;     s = cell_symbol("#and"); }
     case it_STOP:
-        if (!s) { l2 = l_POST;    s = "#dot"; }
+        if (!s) { l2 = l_POST;    s = cell_symbol("#dot"); }
     case it_EQUL:
-        if (!s) { l2 = l_DEF;     s = "#def"; }
+        if (!s) { l2 = l_DEF;     s = hash_defq; }
 
         if (lv >= l2) { // TODO left-to-right
             // look no further
@@ -197,7 +199,7 @@ static cell *binary(cell *left, precedence lv) {
             badeof(); // end of file
             return left;
         }
-        return binary(cell_cons(cell_symbol(s), cell_cons(left, cell_cons(right, 0))), lv);
+        return binary(cell_cons(s, cell_cons(left, cell_cons(right, NIL))), lv);
 
     case it_QEST: // ternary
         if (lv >= l_COND) { // TODO right to left
@@ -216,7 +218,7 @@ static cell *binary(cell *left, precedence lv) {
             // "if" without an "else"
             // TODO should that be allowed?
             if (op) pushitem(op);
-            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, 0))), lv);
+            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, NIL))), lv);
         }
         dropitem(op);
         {
@@ -224,9 +226,9 @@ static cell *binary(cell *left, precedence lv) {
             third = expr(l_COND);
             if (!third) {
                 badeof(); // end of file
-                return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, 0))), lv);
+                return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, NIL))), lv);
             }
-            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, cell_cons(third, 0)))), lv);
+            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, cell_cons(third, NIL)))), lv);
         }
 
     case it_LPAR: // function
@@ -258,7 +260,7 @@ static cell *binary(cell *left, precedence lv) {
             fprintf(stderr, "Expected matching right bracket for array\n");
             if (op) pushitem(op);
         }
-        return binary(cell_cons(cell_symbol("#array-ref"), cell_cons(left, cell_cons(right, 0))), lv);
+        return binary(cell_cons(cell_symbol("#array-ref"), cell_cons(left, cell_cons(right, NIL))), lv);
 
     case it_SEMI:
     case it_RPAR:
@@ -317,7 +319,7 @@ static cell *getlist(item *op, token sep_token, token end_token) {
             badeof(); // end of file
             return arglist;
         }
-        *nextp = cell_cons(arg, 0);
+        *nextp = cell_cons(arg, NIL);
         nextp = &((*nextp)->_.cons.cdr);
         op = lexical();
         if (!op) {

@@ -35,6 +35,8 @@ struct cell_s {
 
 typedef enum cell_t celltype;
 
+#define NIL ((cell *)0)
+
 typedef struct cell_s cell;
 
 cell *cell_cons(cell *car, cell *cdr);
@@ -43,6 +45,13 @@ cell *cell_asymbol(char *symbol);
 cell *cell_astring(char *string);
 cell *cell_integer(long int integer);
 cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *));
+
+int cell_is_cons(cell *cp);
+cell *cell_car(cell *cp);
+cell *cell_cdr(cell *cp);
+int cell_split(cell *cp, cell **carp, cell **cdrp);
+
+int cell_is_symbol(cell *cp);
 
 void cell_print(cell *ct);
 

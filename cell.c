@@ -24,15 +24,50 @@ cell *cell_cons(cell *car, cell *cdr) {
     return node;
 }
 
+// TODO inline
+int cell_is_cons(cell *cp) {
+    return cp && cp->type == c_CONS;
+}
+
+// TODO in use?
+cell *cell_car(cell *cp) {
+    assert(cell_is_cons(cp));
+    return cp->_.cons.car;
+}
+
+// TODO in use?
+cell *cell_cdr(cell *cp) {
+    assert(cell_is_cons(cp));
+    return cp->_.cons.cdr;
+}
+
+// TODO inline
+int cell_is_symbol(cell *cp) {
+    return cp && cp->type == c_SYMBOL;
+}
+
+int cell_split(cell *cp, cell **carp, cell **cdrp) {
+    if (cell_is_cons(cp)) {
+        *carp = cp->_.cons.car;
+        *cdrp = cp->_.cons.cdr;
+        cp->_.cons.car = NIL;
+        cp->_.cons.cdr = NIL;
+        free(cp); // TODO garbage collection
+        return 1;
+     } else {
+        *carp = NIL;
+        *cdrp = NIL;
+        return 0;
+     }
+}
+
 cell *cell_symbol(char *symbol) {
-    char *sym = strdup(symbol);
-    assert(sym);
-    return oblist(sym);
+    return oblist(symbol);
 }
 
 // symbol that is malloc'd already
 cell *cell_asymbol(char *symbol) {
-    return oblist(symbol);
+    return oblista(symbol);
 }
 
 cell *cell_astring(char *string) {
@@ -71,6 +106,9 @@ void cell_drop(cell *node) {
     case c_INTEGER:
         free(node);
         break;
+    case c_CFUN:
+        free(node);
+        break;
     default:
         assert(0);
     }
@@ -107,6 +145,9 @@ void cell_print(cell *ct) {
         break;
     case c_SYMBOL:
         printf("%s ", ct->_.symbol.nam);
+        break;
+    case c_CFUN:
+        printf("#fundef "); // TODO something better
         break;
     default:
         assert(0);
