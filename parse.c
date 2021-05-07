@@ -41,12 +41,14 @@ static cell *expr(precedence lv) {
         return binary(pt, lv);
 
     case it_STRING:
-        pt = cell_string(it->svalue);
+        pt = cell_astring(it->svalue);
+        it->svalue = 0;
         dropitem(it);
         return binary(pt, lv);
 
     case it_SYMBOL:
-        pt = cell_symbol(it->svalue);
+        pt = cell_asymbol(it->svalue);
+        it->svalue = 0;
         dropitem(it);
         return binary(pt, lv);
 
@@ -72,12 +74,12 @@ static cell *expr(precedence lv) {
         // read as list
         pt = getlist(it, it_COMA, it_RPAR);
         it = lexical();
-        if (pt && pt->type == c_CONS && !pt->cdr) {
+        if (pt && pt->type == c_CONS && !pt->_.cons.cdr) {
             // single item on list, not sure what it is
             if (!it || it->type != it_LBRC) {
                 // not a function definition
-                cell *p2 = pt->car; // pick 1st item on list
-                pt->car = 0;
+                cell *p2 = pt->_.cons.car; // pick 1st item on list
+                pt->_.cons.car = 0;
                 cell_drop(pt);
                 if (it) pushitem(it);
                 return binary(p2, lv);
@@ -316,7 +318,7 @@ static cell *getlist(item *op, token sep_token, token end_token) {
             return arglist;
         }
         *nextp = cell_cons(arg, 0);
-        nextp = &((*nextp)->cdr);
+        nextp = &((*nextp)->_.cons.cdr);
         op = lexical();
         if (!op) {
             badeof();
