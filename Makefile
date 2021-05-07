@@ -2,7 +2,7 @@
 #
 #
 
-fun2: fun2.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c
+fun2: fun2.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c oblist.h cfun.c cfun.h
 	gcc -g fun2.c lex.c parse.c cell.c oblist.c -o fun2
 
 test: fun2 test.f2

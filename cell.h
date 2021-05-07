@@ -2,11 +2,14 @@
  *
  */
 
+#ifndef CELL_H
+
 enum cell_t {
    c_CONS,
    c_SYMBOL,
    c_STRING,
-   c_INTEGER
+   c_INTEGER,
+   c_CFUN
 } ;
 
 struct cell_s {
@@ -21,8 +24,12 @@ struct cell_s {
             char *str;
         } string;
         struct {
+            struct cell_s *val; // all symbols have values
             char *nam;
         } symbol;
+        struct {
+            struct cell_s *(*def)(struct cell_s *);
+        } cfun;
     } _;
 } ;
 
@@ -35,4 +42,12 @@ cell *cell_symbol(char *symbol);
 cell *cell_asymbol(char *symbol);
 cell *cell_astring(char *string);
 cell *cell_integer(long int integer);
+cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *));
+
+void cell_print(cell *ct);
+
 void cell_drop(cell *node);
+
+#endif
+
+#define CELL_H
