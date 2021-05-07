@@ -16,11 +16,11 @@ int main() {
 
     while ((ct = expression())) {
         cell_print(ct);
-        printf("\n -> \n");
+        printf(" --> ");
         ct = cfun_eval(ct);
         cell_print(ct);
         printf("\n");
-        cell_drop(ct);
+        cell_unref(ct);
     }
     oblist_drop();
     return 0;

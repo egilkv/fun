@@ -13,7 +13,8 @@ enum cell_t {
 } ;
 
 struct cell_s {
-    enum cell_t type; // TODO inefficient
+    enum cell_t type : 3;
+    unsigned ref     : 32; // TODO tricky
     union {
         struct {
             struct cell_s *car;
@@ -39,6 +40,9 @@ typedef enum cell_t celltype;
 
 typedef struct cell_s cell;
 
+cell * cell_ref(cell *cp);
+void cell_unref(cell *cp);
+
 cell *cell_cons(cell *car, cell *cdr);
 cell *cell_symbol(char *symbol);
 cell *cell_asymbol(char *symbol);
@@ -54,8 +58,6 @@ int cell_split(cell *cp, cell **carp, cell **cdrp);
 int cell_is_symbol(cell *cp);
 
 void cell_print(cell *ct);
-
-void cell_drop(cell *node);
 
 #endif
 

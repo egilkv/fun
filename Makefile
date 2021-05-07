@@ -2,23 +2,23 @@
 #
 #
 
-fun2: fun2.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c oblist.h cfun.c cfun.h
-	gcc -g fun2.c lex.c parse.c cell.c oblist.c cfun.c -o fun2
+fun: fun.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c oblist.h cfun.c cfun.h
+	gcc -g fun.c lex.c parse.c cell.c oblist.c cfun.c -o fun
 
-test: fun2 test.f2
+test: fun test.fun
 	valgrind --leak-check=full \
 		--show-leak-kinds=all \
 		--track-origins=yes \
 		--log-file=out.txt \
-		./fun2 < test.f2
+		./fun < test.fun
 
 #		--verbose \
 
-grind: fun2
+grind: fun
 	valgrind --leak-check=full \
 		--show-leak-kinds=all \
 		--track-origins=yes \
-		./fun2
+		./fun
 
 clean:
-	rm *~ fun2 a.out
+	rm *~ fun a.out

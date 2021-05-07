@@ -35,7 +35,7 @@ static cell *expr(precedence lv) {
     switch (it->type) {
     case it_SEMI: // special
         dropitem(it);
-        return hash_semi; // TODO is this really required
+        return expr(lv); // TODO end recursion in C is a problem
 
     case it_INTEGER:
         pt = cell_integer(it->ivalue);
@@ -58,19 +58,19 @@ static cell *expr(precedence lv) {
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
-        return cell_cons(hash_not, cell_cons(p2, NIL));
+	return cell_cons(cell_ref(hash_not), cell_cons(p2, NIL));
 
     case it_MINS:
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
-        return cell_cons(hash_minus, cell_cons(p2, NIL));
+	return cell_cons(cell_ref(hash_minus), cell_cons(p2, NIL));
 
     case it_QUOT:
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
-        return cell_cons(cell_symbol("#quote"), cell_cons(p2, NIL));
+	return cell_cons(cell_ref(hash_quote), cell_cons(p2, NIL));
 
     case it_LPAR:
         // read as list
@@ -82,7 +82,7 @@ static cell *expr(precedence lv) {
                 // not a function definition
                 cell *p2 = pt->_.cons.car; // pick 1st item on list
                 pt->_.cons.car = 0;
-                cell_drop(pt);
+		cell_unref(pt);
                 if (it) pushitem(it);
                 return binary(p2, lv);
             }
@@ -160,17 +160,17 @@ static cell *binary(cell *left, precedence lv) {
 
     switch (op->type) {
     case it_PLUS: // binary
-        if (!s) { l2 = l_ADD;     s = hash_plus; }
+	if (!s) { l2 = l_ADD;     s = cell_ref(hash_plus); }
     case it_MINS:
-        if (!s) { l2 = l_ADD;     s = hash_minus; }
+	if (!s) { l2 = l_ADD;     s = cell_ref(hash_minus); }
     case it_MULT:
-        if (!s) { l2 = l_MULT;    s = hash_times; }
+	if (!s) { l2 = l_MULT;    s = cell_ref(hash_times); }
     case it_DIVS:
-        if (!s) { l2 = l_MULT;    s = hash_div; }
+	if (!s) { l2 = l_MULT;    s = cell_ref(hash_div); }
     case it_LT:
         if (!s) { l2 = l_REL;     s = cell_symbol("#lt"); }
     case it_GT:
-        if (!s) { l2 = l_REL;     s = cell_symbol("#gt"); }
+        if (!s) { l2 = l_REL;     s = cell_ref(hash_gt); }
     case it_LTEQ:
         if (!s) { l2 = l_REL;     s = cell_symbol("#lteq"); }
     case it_GTEQ:
@@ -186,7 +186,7 @@ static cell *binary(cell *left, precedence lv) {
     case it_STOP:
         if (!s) { l2 = l_POST;    s = cell_symbol("#dot"); }
     case it_EQUL:
-        if (!s) { l2 = l_DEF;     s = hash_defq; }
+	if (!s) { l2 = l_DEF;     s = cell_ref(hash_defq); }
 
         if (lv >= l2) { // TODO left-to-right
             // look no further

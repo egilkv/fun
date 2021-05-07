@@ -12,8 +12,9 @@
 static  cell *newcell(celltype t) {
     cell *node = malloc(sizeof(cell));
     assert(node);
-    memset(node, 0, sizeof(cell));
+    memset(node, 0, sizeof(cell)); // TODO improve
     node->type = t;
+    node->ref = 1;
     return node;
 }
 
@@ -22,6 +23,12 @@ cell *cell_cons(cell *car, cell *cdr) {
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
+}
+
+// TODO inline
+cell * cell_ref(cell *cp) {
+    if (cp) ++(cp->ref);
+    return cp;
 }
 
 // TODO inline
@@ -89,28 +96,30 @@ cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *)) {
 }
 
 // TODO this will soon enough collapse
-void cell_drop(cell *node) {
-    if (node) switch (node->type) {
-    case c_CONS:
-        cell_drop(node->_.cons.car);
-        cell_drop(node->_.cons.cdr);
-        free(node);
-        break;
-    case c_SYMBOL:
-        // cell is on oblist
-        break;
-    case c_STRING:
-        free(node->_.string.str);
-        free(node);
-        break;
-    case c_INTEGER:
-        free(node);
-        break;
-    case c_CFUN:
-        free(node);
-        break;
-    default:
-        assert(0);
+void cell_unref(cell *node) {
+    if (node) {
+        if (--(node->ref) == 0) switch (node->type) {
+        case c_CONS:
+            cell_unref(node->_.cons.car);
+            cell_unref(node->_.cons.cdr);
+            free(node);
+            break;
+        case c_SYMBOL:
+            // cell is on oblist TODO special case, odd...
+            break;
+        case c_STRING:
+            free(node->_.string.str);
+            free(node);
+            break;
+        case c_INTEGER:
+            free(node);
+            break;
+        case c_CFUN:
+            free(node);
+            break;
+        default:
+            assert(0);
+        }
     }
 }
 

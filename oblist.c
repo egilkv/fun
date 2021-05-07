@@ -54,6 +54,7 @@ cell *oblista(char *sym) {
     *pp = malloc(sizeof(struct ob_entry));
     (*pp)->next = 0;
     (*pp)->namdef.type = c_SYMBOL;
+    (*pp)->namdef.ref = 1;
     (*pp)->namdef._.symbol.val = NIL; // TODO should probably be #void instead
     (*pp)->namdef._.symbol.nam = sym;
     return &((*pp)->namdef);
@@ -70,7 +71,7 @@ void oblist_drop() {
 	while (p) {
 	    struct ob_entry *q = p->next;
 	    printf("%s\n", p->namdef._.symbol.nam);
-	    cell_drop(p->namdef._.symbol.val);
+	    cell_unref(p->namdef._.symbol.val);
             free(p->namdef._.symbol.nam);
 	    free(p);
 	    p = q;
