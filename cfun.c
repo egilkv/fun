@@ -14,6 +14,7 @@ cell *hash_div;
 cell *hash_eval;
 cell *hash_f;
 cell *hash_gt;
+cell *hash_if;
 cell *hash_minus;
 cell *hash_not;
 cell *hash_plus;
@@ -72,17 +73,43 @@ static int arg2(cell *args, cell **a1p, cell **a2p) {
     return 0;
 }
 
-static int verify_numeric(cell *a) {
-    if (a) switch (a->type) {
-        case c_INTEGER: // TODO bad stuff, make a new cell instead
-        // TODO pick value too   a->_.ivalue
-        return 1;
-    } else {
-        printf("Error: Not a number: "); // TODO error message
-	cell_print(a);
-	printf("\n");
-        return 0;
+// a in always unreffed
+// dump is unreffed only if error
+static int pick_numeric(cell *a, long int *valuep, cell *dump) {
+    if (a) {
+        switch (a->type) {
+        case c_INTEGER:
+            *valuep = a->_.ivalue;
+            cell_unref(a);
+            return 1;
+        }
     }
+    printf("Error: Not a number: "); // TODO error message
+    cell_print(a);
+    printf("\n");
+    cell_unref(a);
+    cell_unref(dump);
+    return 0;
+}
+
+// a in always unreffed
+// dump is unreffed only if error
+static int pick_boolean(cell *a, int *boolp, cell *dump) {
+    if (a == hash_t) {
+        *boolp = 1;
+        cell_unref(a);
+        return 1;
+    } else if (a == hash_f) {
+        *boolp = 0;
+        cell_unref(a);
+        return 1;
+    }
+    printf("Error: Not a Boolean: "); // TODO error message
+    cell_print(a);
+    printf("\n");
+    cell_unref(a);
+    cell_unref(dump);
+    return 0;
 }
 
 static int verify_nul(cell *a) {
@@ -118,22 +145,55 @@ static cell *cfun_defq(cell *args) {
 
 static cell *cfun_not(cell *args) {
     cell *a;
+    int bool;
     if (arg1(args, &a)) {
 	a = cfun_eval(a);
-	if (a == hash_t) {
-	    cell_unref(a);
-	    return cell_ref(hash_f);
-	} else if (a == hash_f) {
-	    cell_unref(a);
-	    return cell_ref(hash_t);
-        } else {
-            printf("Error: Not a Boolean: "); // TODO error message
-            cell_print(a);
-            printf("\n");
-	    cell_unref(a);
+        if (pick_boolean(a, &bool, NIL)) {
+	    return bool ? cell_ref(hash_f) : cell_ref(hash_t);
         }
     }
     return cell_ref(hash_void); // error
+}
+
+static cell *cfun_if(cell *args) {
+    int bool;
+    cell *a;
+    if (cell_split(args, &a, &args)) {
+	a = cfun_eval(a);
+        if (!pick_boolean(a, &bool, args)) return cell_ref(hash_void); // error
+    }
+    // second argument must be present
+    if (!cell_split(args, &a, &args)) {
+        printf("Error: missing body for if statement: "); // TODO error message
+        cell_print(args);
+        printf("\n");
+        cell_unref(args);
+        return cell_ref(hash_void); // error
+    }
+    if (bool) { // true?
+        cell_unref(args);
+        return cfun_eval(a);
+    } 
+    // else
+    cell_unref(a);
+    if (!args) {
+        // no else part given, value is void
+        return cell_ref(hash_void);
+    } else if (!cell_split(args, &a, &args)) {
+        printf("Error: missing body for else statement: "); // TODO error message
+        cell_print(args);
+        printf("\n");
+        cell_unref(args);
+        return cell_ref(hash_void); // error
+    }
+    if (args) {
+        printf("Error: extra argument for if ignored: "); // TODO error message
+        cell_print(args);
+        printf("\n");
+        cell_unref(args);
+    }
+    // finally, else proper
+    return cfun_eval(a);
 }
 
 static cell *cfun_quote(cell *args) {
@@ -146,16 +206,12 @@ static cell *cfun_quote(cell *args) {
 
 static cell *cfun_plus(cell *args) {
     long int result = 0;
+    long int operand;
     cell *a;
     while (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return NIL;
-        }
-        result += a->_.ivalue; // TODO overflow etc
-	cell_unref(a);
+        if (!pick_numeric(a, &operand, args)) return cell_ref(hash_void); // error
+        result += operand; // TODO overflow etc
     }
     if (!verify_nul(args)) return cell_ref(hash_void); // error
     return cell_integer(result);
@@ -163,30 +219,20 @@ static cell *cfun_plus(cell *args) {
 
 static cell *cfun_minus(cell *args) {
     long int result = 0;
+    long int operand;
     cell *a;
     if (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return cell_ref(hash_void); // error
-        }
-        result = a->_.ivalue;
+        if (!pick_numeric(a, &result, args)) return cell_ref(hash_void); // error
 	if (args == NIL) {
             // special case, one argument
             result = -result; // TODO overflow
         }
-	cell_unref(a);
     }
     while (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return cell_ref(hash_void); // error
-        }
-        result -= a->_.ivalue; // TODO overflow etc
-	cell_unref(a);
+        if (!pick_numeric(a, &operand, args)) return cell_ref(hash_void); // error
+        result -= operand; // TODO overflow etc
     }
     if (!verify_nul(args)) return cell_ref(hash_void); // error
     return cell_integer(result);
@@ -194,16 +240,12 @@ static cell *cfun_minus(cell *args) {
 
 static cell *cfun_times(cell *args) {
     long int result = 1;
+    long int operand;
     cell *a;
     while (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return cell_ref(hash_void); // error
-        }
-        result *= a->_.ivalue; // TODO overflow etc
-	cell_unref(a);
+        if (!pick_numeric(a, &operand, args)) return cell_ref(hash_void); // error
+        result *= operand; // TODO overflow etc
     }
     if (!verify_nul(args)) return cell_ref(hash_void); // error
     return cell_integer(result);
@@ -211,29 +253,23 @@ static cell *cfun_times(cell *args) {
 
 static cell *cfun_div(cell *args) {
     long int result = 0;
+    long int operand;
     cell *a;
     // TODO must have two arguments?
     if (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return cell_ref(hash_void); // error
-        }
-        result = a->_.ivalue;
-	cell_unref(a);
+        if (!pick_numeric(a, &result, args)) return cell_ref(hash_void); // error
     }
     while (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return cell_ref(hash_void); // error
+        if (!pick_numeric(a, &operand, args)) return cell_ref(hash_void); // error
+        if (operand == 0) {
+            printf("Error: Division by zero\n"); // TODO error message
+            cell_unref(args);
+            return cell_ref(hash_void); // error
         }
-        // TODO what about division by zero
         // TODO should rather create a quotient
-        result /= a->_.ivalue;
-	cell_unref(a);
+        result /= operand;
     }
     if (!verify_nul(args)) return cell_ref(hash_void); // error
     return cell_integer(result);
@@ -241,29 +277,18 @@ static cell *cfun_div(cell *args) {
 
 static cell *cfun_gt(cell *args) {
     long int value;
+    long int operand;
     cell *a;
     if (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return cell_ref(hash_void); // error
-        }
-	value = a->_.ivalue;
-	cell_unref(a);
+        if (!pick_numeric(a, &value, args)) return cell_ref(hash_void); // error
     }
     while (cell_split(args, &a, &args)) {
 	a = cfun_eval(a);
-	if (!verify_numeric(a)) {
-	    cell_unref(a);
-	    cell_unref(args);
-	    return cell_ref(hash_void); // error
-        }
-	if (value > a->_.ivalue) { // condition satisfied?
-	    value = a->_.ivalue;
-	    cell_unref(a);
+        if (!pick_numeric(a, &operand, args)) return cell_ref(hash_void); // error
+        if (value > operand) { // condition satisfied?
+            value = operand;
 	} else {
-	    cell_unref(a);
 	    cell_unref(args);
 	    return cell_ref(hash_f); // false
 	}
@@ -324,6 +349,7 @@ void cfun_init() {
     (hash_div   = oblist("#div"))   ->_.symbol.val = cell_cfun(cfun_div);
     (hash_eval  = oblist("#eval"))  ->_.symbol.val = cell_cfun(cfun_eval);
     (hash_gt    = oblist("#gt"))    ->_.symbol.val = cell_cfun(cfun_gt);
+    (hash_if    = oblist("#if"))    ->_.symbol.val = cell_cfun(cfun_if);
     (hash_minus = oblist("#minus")) ->_.symbol.val = cell_cfun(cfun_minus);
     (hash_not   = oblist("#not"))   ->_.symbol.val = cell_cfun(cfun_not);
     (hash_plus  = oblist("#plus"))  ->_.symbol.val = cell_cfun(cfun_plus);

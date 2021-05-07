@@ -218,7 +218,7 @@ static cell *binary(cell *left, precedence lv) {
             // "if" without an "else"
             // TODO should that be allowed?
             if (op) pushitem(op);
-            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, NIL))), lv);
+            return binary(cell_cons(cell_ref(hash_if), cell_cons(left, cell_cons(right, NIL))), lv);
         }
         dropitem(op);
         {
@@ -226,9 +226,9 @@ static cell *binary(cell *left, precedence lv) {
             third = expr(l_COND);
             if (!third) {
                 badeof(); // end of file
-                return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, NIL))), lv);
+                return binary(cell_cons(cell_ref(hash_if), cell_cons(left, cell_cons(right, NIL))), lv);
             }
-            return binary(cell_cons(cell_symbol("#if"), cell_cons(left, cell_cons(right, cell_cons(third, NIL)))), lv);
+            return binary(cell_cons(cell_ref(hash_if), cell_cons(left, cell_cons(right, cell_cons(third, NIL)))), lv);
         }
 
     case it_LPAR: // function
