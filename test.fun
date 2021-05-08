@@ -1,9 +1,16 @@
 
+a = 1;
+b = 2;
+c = a > b;
 a + b;
 (a + b);
 #plus(a, b);
-// comment
-(){5};
+
+// assign f to a lambda
+f = (){5};
+f();
+
+[]{5};
 module.symbol;
 list[0];
 "abc" & "def";

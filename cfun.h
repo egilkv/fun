@@ -10,6 +10,7 @@ extern cell *hash_eval;
 extern cell *hash_f;
 extern cell *hash_gt;
 extern cell *hash_if;
+extern cell *hash_lambda;
 extern cell *hash_minus;
 extern cell *hash_not;
 extern cell *hash_plus;

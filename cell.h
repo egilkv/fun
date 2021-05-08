@@ -9,6 +9,7 @@ enum cell_t {
    c_SYMBOL,
    c_STRING,
    c_INTEGER,
+   c_LAMBDA,
    c_CFUN
 } ;
 

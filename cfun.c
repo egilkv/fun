@@ -15,6 +15,7 @@ cell *hash_eval;
 cell *hash_f;
 cell *hash_gt;
 cell *hash_if;
+cell *hash_lambda;
 cell *hash_minus;
 cell *hash_not;
 cell *hash_plus;
@@ -204,6 +205,21 @@ static cell *cfun_quote(cell *args) {
     return cell_ref(hash_void); // error
 }
 
+static cell *cfun_lambda(cell *args) {
+    cell *arglist;
+    cell *cp;
+    if (!cell_split(args, &arglist, &args)) {
+        printf("Error: missing argument list: "); // TODO error message
+        cell_print(args);
+        printf("\n");
+        cell_unref(args);
+        return cell_ref(hash_void); // error
+    }
+    cp = cell_cons(arglist, args);
+    cp->type = c_LAMBDA;
+    return cp;
+}
+
 static cell *cfun_plus(cell *args) {
     long int result = 0;
     long int operand;
@@ -297,11 +313,31 @@ static cell *cfun_gt(cell *args) {
     return cell_ref(hash_t);
 }
 
+static cell *apply(cell *fun, cell* arglist) {
+    cell *body;
+    cell *expr;
+    cell *result = NIL; // TODO should be void...
+    //TODO assuming def is a lambda
+    assert(body->type == c_LAMBDA);
+    body = cell_ref(fun->_.cons.cdr);
+    cell_unref(fun);
+    cell_unref(arglist);
+
+    // evaluate one expression at a time
+    while (cell_split(body, &expr, &body)) {
+        cell_unref(result);
+        result = cfun_eval(expr);
+    }
+    verify_nul(body); // error
+    return result;
+}
+
 cell *cfun_eval(cell *a) {
     if (a) switch (a->type) {
     case c_INTEGER: // value is itself
     case c_STRING:
     case c_CFUN:    // TODO maybe #void
+    case c_LAMBDA:  // TODO not certain what this does
         return a;
 
     case c_SYMBOL:  // evaluate symbol
@@ -321,6 +357,11 @@ cell *cfun_eval(cell *a) {
                 def = fun->_.cfun.def;
                 cell_unref(fun);
                 return (*def)(arg);
+
+	    case c_LAMBDA:
+                // TODO perhaps
+                return apply(fun, arg);
+
             case c_INTEGER: // not a function
             case c_STRING:
             case c_SYMBOL:
@@ -345,18 +386,19 @@ cell *cfun_eval(cell *a) {
 }
 
 void cfun_init() {
-    (hash_defq  = oblist("#defq"))  ->_.symbol.val = cell_cfun(cfun_defq);
-    (hash_div   = oblist("#div"))   ->_.symbol.val = cell_cfun(cfun_div);
-    (hash_eval  = oblist("#eval"))  ->_.symbol.val = cell_cfun(cfun_eval);
-    (hash_gt    = oblist("#gt"))    ->_.symbol.val = cell_cfun(cfun_gt);
-    (hash_if    = oblist("#if"))    ->_.symbol.val = cell_cfun(cfun_if);
-    (hash_minus = oblist("#minus")) ->_.symbol.val = cell_cfun(cfun_minus);
-    (hash_not   = oblist("#not"))   ->_.symbol.val = cell_cfun(cfun_not);
-    (hash_plus  = oblist("#plus"))  ->_.symbol.val = cell_cfun(cfun_plus);
-    (hash_quote = oblist("#quote")) ->_.symbol.val = cell_cfun(cfun_quote);
-    (hash_times = oblist("#times")) ->_.symbol.val = cell_cfun(cfun_times);
+    (hash_defq   = oblist("#defq"))   ->_.symbol.val = cell_cfun(cfun_defq);
+    (hash_div    = oblist("#div"))    ->_.symbol.val = cell_cfun(cfun_div);
+    (hash_eval   = oblist("#eval"))   ->_.symbol.val = cell_cfun(cfun_eval);
+    (hash_gt     = oblist("#gt"))     ->_.symbol.val = cell_cfun(cfun_gt);
+    (hash_if     = oblist("#if"))     ->_.symbol.val = cell_cfun(cfun_if);
+    (hash_minus  = oblist("#minus"))  ->_.symbol.val = cell_cfun(cfun_minus);
+    (hash_lambda = oblist("#lambda")) ->_.symbol.val = cell_cfun(cfun_lambda);
+    (hash_not    = oblist("#not"))    ->_.symbol.val = cell_cfun(cfun_not);
+    (hash_plus   = oblist("#plus"))   ->_.symbol.val = cell_cfun(cfun_plus);
+    (hash_quote  = oblist("#quote"))  ->_.symbol.val = cell_cfun(cfun_quote);
+    (hash_times  = oblist("#times"))  ->_.symbol.val = cell_cfun(cfun_times);
 
-    hash_f      = oblist("#f");
-    hash_t      = oblist("#t");
-    hash_void   = oblist("#void");
+    hash_f       = oblist("#f");
+    hash_t       = oblist("#t");
+    hash_void    = oblist("#void");
 }

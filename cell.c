@@ -100,6 +100,7 @@ void cell_unref(cell *node) {
     if (node) {
         if (--(node->ref) == 0) switch (node->type) {
         case c_CONS:
+        case c_LAMBDA:
             cell_unref(node->_.cons.car);
             cell_unref(node->_.cons.cdr);
             free(node);
@@ -155,8 +156,11 @@ void cell_print(cell *ct) {
     case c_SYMBOL:
         printf("%s ", ct->_.symbol.nam);
         break;
+    case c_LAMBDA:
+        printf("#lambda "); // TODO something better
+        break;
     case c_CFUN:
-        printf("#fundef "); // TODO something better
+        printf("#cdef "); // TODO something better
         break;
     default:
         assert(0);

@@ -92,12 +92,12 @@ static cell *expr(precedence lv) {
                 fprintf(stderr, "Expected function body (left curly bracket)\n");
                 if (it) pushitem(it);
                 // assume empty function body
-                return cell_cons(cell_symbol("#lambda"), cell_cons(pt, NIL));
+                return cell_cons(cell_ref(hash_lambda), cell_cons(pt, NIL));
             }
         }
         {
             cell *body = getlist(it, it_SEMI, it_RBRC);
-            return cell_cons(cell_symbol("#lambda"), cell_cons(pt, body));
+            return cell_cons(cell_ref(hash_lambda), cell_cons(pt, body));
         }
 
     case it_LBRC:
