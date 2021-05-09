@@ -57,15 +57,11 @@ int cell_is_symbol(cell *cp) {
     return cp && cp->type == c_SYMBOL;
 }
 
-// TODO very dangerous
 int cell_split(cell *cp, cell **carp, cell **cdrp) {
     if (cell_is_cons(cp)) {
-        *carp = cp->_.cons.car;
-	if (cdrp) *cdrp = cp->_.cons.cdr;
-        else cell_unref(cp->_.cons.cdr);
-        cp->_.cons.car = NIL;
-        cp->_.cons.cdr = NIL;
-        free(cp); // TODO garbage collection
+        *carp = cell_ref(cp->_.cons.car);
+        if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
+        cell_unref(cp);
         return 1;
      } else {
         *carp = NIL;
@@ -168,6 +164,12 @@ int vector_get(cell *node, index_t index, cell **valuep) {
     return 1;
 }
 
+cell *cell_assoc() {
+    cell *node = newcell(c_ASSOC);
+    // no table required when empty
+    return node;
+}
+
 // TODO this will soon enough collapse
 void cell_unref(cell *node) {
     if (node) {
@@ -196,7 +198,8 @@ void cell_unref(cell *node) {
             free(node);
             break;
         case c_ASSOC:
-            assert(0);
+            assoc_drop(node);
+            free(node);
             break;
         }
     }

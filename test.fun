@@ -10,8 +10,10 @@ a + b;
 f = (){5};
 f();
 
-v = []{7};
+v = []{7, 8, "hello"};
 v[0];
+v[2];
+#(1, 2, 3);
 module.symbol;
 list[0];
 "abc" & "def";
@@ -25,3 +27,4 @@ c ? a : b;
 // (a) { a<=1 ? a : a*.(a-1) } (5);
 
 factorial = (n) { n<2 ? 1 : n*factorial(n-1) };
+factorial(10);

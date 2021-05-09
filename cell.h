@@ -4,6 +4,8 @@
 
 #ifndef CELL_H
 
+#include "assoc.h"
+
 enum cell_t {
    c_CONS,
    c_SYMBOL,
@@ -32,8 +34,8 @@ struct cell_s {
             index_t len; // length of vector
         } vector;
         struct {
-            struct cell_s **table; // pointer to hash
-            index_t size; // size of hash table
+	    struct assoc_s **table; // pointer to hash table
+            // index_t size; // TODO not used size of hash table
         } assoc;
         struct {
             char *str;
@@ -63,6 +65,7 @@ cell *cell_asymbol(char *symbol);
 cell *cell_astring(char *string);
 cell *cell_integer(long int integer);
 cell *cell_vector(index_t length);
+cell *cell_assoc();
 cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct cell_s *));
 
 int cell_is_cons(cell *cp);

@@ -10,6 +10,7 @@
 #include "oblist.h"
 #include "err.h"
 
+cell *hash_assoc;
 cell *hash_defq;
 cell *hash_div;
 cell *hash_eval;
@@ -17,6 +18,7 @@ cell *hash_f;
 cell *hash_gt;
 cell *hash_if;
 cell *hash_lambda;
+cell *hash_list;
 cell *hash_minus;
 cell *hash_not;
 cell *hash_plus;
@@ -273,6 +275,18 @@ static cell *cfun_eval(cell *args, cell* env) {
     return eval(a, env);
 }
 
+static cell *cfun_list(cell *args, cell* env) {
+    cell *list = NIL;
+    cell **pp = &list;
+    cell *a;
+    while (cell_split(args, &a, &args)) {
+	*pp = cell_cons(eval(a, env), NIL);
+	pp = &((*pp)->_.cons.cdr);
+    }
+    cell_unref(verify_nil(args, NIL));
+    return list;
+}
+
 static cell *cfun_vector(cell *args, cell* env) {
     cell *length;
     cell *vector;
@@ -318,6 +332,54 @@ static cell *cfun_vector(cell *args, cell* env) {
     return vector;
 }
 
+static cell *cfun_assoc(cell *args, cell* env) {
+    cell *assoc;
+    assoc = cell_assoc(); // empty
+#if 0 // TODO implement
+    cell *length;
+    cell *a;
+    index_t len;
+    if (!cell_split(args, &length, &args)) {
+	return error_rt1("missing vector length", args);
+    }
+    if (length) {
+        // vector of specified length
+	// TODO index_t check > 0
+	index_t index = 0;
+	if (!eval_index(length, &len, args, env)) return cell_ref(hash_void); // error
+        vector = cell_vector(len);
+
+        while (cell_split(args, &a, &args)) {
+            if (!vector_set(vector, index, eval(a, env))) {
+                // TODO should include a
+                cell_unref(error_rt1("excess initialization data ignored", args));
+                cell_unref(args);
+                args = NIL;
+                break;
+            }
+            ++index;
+        }
+        cell_unref(verify_nil(args, NIL));
+        if (index < len) {
+            // TODO repeat initialization???
+        }
+    } else {
+        // vector of unknown length
+        len = 0;
+        vector = cell_vector(0);
+        // TODO rather inefficient
+        while (cell_split(args, &a, &args)) {
+            vector_resize(vector, ++len);
+            if (!vector_set(vector, len-1, eval(a, env))) {
+                assert(0); // out of bounds should not happen
+            }
+        }
+    }
+#endif
+    cell_unref(verify_nil(args, NIL));
+    return assoc;
+}
+
 static cell *cfun_ref(cell *args, cell* env) {
     cell *a, *b;
     cell *value;
@@ -326,27 +388,67 @@ static cell *cfun_ref(cell *args, cell* env) {
         cell_ref(hash_void); // error
     }
     a = eval(a, env);
-    if (!cell_is_vector(a)) {
-        cell_unref(b);
-        return error_rt1("not a vector", a);
+    if (a) switch (a->type) {
+    case c_VECTOR:
+	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	if (!vector_get(a, index, &value)) {
+	    cell_unref(a);
+	    return error_rti("vector index out of bounds", index);
+	}
+	cell_unref(a);
+	return value;
+
+    case c_ASSOC:
+	{
+	    cell *value;
+	    if (!assoc_get(a, eval(b, env), &value)) {
+		cell_unref(a);
+		return error_rt1("assoc key does not exist", b);
+	    }
+	    cell_unref(a);
+	    return value;
+	}
+
+    case c_CONS:
+	{
+	    index_t i = 0;
+	    value = NIL;
+	    if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	    do {
+		cell_unref(value);
+		if (a == NIL) {
+		    return error_rti("list index out of bounds", index);
+		}
+		if (!cell_split(a, &value, &a)) {
+		    return error_rt1("not a proper list", a);
+		}
+	    } while (i++ < index);
+	}
+	cell_unref(a);
+        return value;
+
+    case c_LAMBDA:
+    case c_CFUN:
+    // TODO ref should work for functions ??
+    default:
+	    break;
     }
-    if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
-    if (!vector_get(a, index, &value)) {
-        cell_unref(a);
-	return error_rti("index out of bounds", index);
-    }
-    cell_unref(a);
-    return value;
+    cell_unref(b);
+    return error_rt1("cannot referrence", a);
+    return 0;
+
 }
 
 void cfun_init() {
+    (hash_assoc  = oblist("#assoc"))  ->_.symbol.val = cell_cfun(cfun_assoc);
     (hash_defq   = oblist("#defq"))   ->_.symbol.val = cell_cfun(cfun_defq);
     (hash_div    = oblist("#div"))    ->_.symbol.val = cell_cfun(cfun_div);
     (hash_eval   = oblist("#eval"))   ->_.symbol.val = cell_cfun(cfun_eval);
     (hash_gt     = oblist("#gt"))     ->_.symbol.val = cell_cfun(cfun_gt);
     (hash_if     = oblist("#if"))     ->_.symbol.val = cell_cfun(cfun_if);
-    (hash_minus  = oblist("#minus"))  ->_.symbol.val = cell_cfun(cfun_minus);
     (hash_lambda = oblist("#lambda")) ->_.symbol.val = cell_cfun(cfun_lambda);
+    (hash_list   = oblist("#"))       ->_.symbol.val = cell_cfun(cfun_list);
+    (hash_minus  = oblist("#minus"))  ->_.symbol.val = cell_cfun(cfun_minus);
     (hash_not    = oblist("#not"))    ->_.symbol.val = cell_cfun(cfun_not);
     (hash_plus   = oblist("#plus"))   ->_.symbol.val = cell_cfun(cfun_plus);
     (hash_quote  = oblist("#quote"))  ->_.symbol.val = cell_cfun(cfun_quote);
@@ -358,3 +460,7 @@ void cfun_init() {
     hash_t       = oblist("#t");
     hash_void    = oblist("#void");
 }
+
+
+
+

@@ -8,6 +8,7 @@
 #include <ctype.h>
 #include <string.h>
 #include "lex.h"
+#include "err.h"
 
 #define pushchar(c) ungetc(c,stdin)
 
@@ -104,9 +105,9 @@ static item *gotstring(char c, item *it) {
         if (iscntrl(c)) {
             // TODO error
             if (c == '\r' || c == '\n') {
-                fprintf(stderr, "String missing trailing quote\n");
+                error_lex("string missing trailing quote", -1);
             } else {
-                fprintf(stderr, "Bad control character in string: %02x\n", c);
+                error_lex("bad control character in string", c);
             }
             return gotchar(getchar(), 0);
         }
@@ -132,12 +133,7 @@ static item *gotspace(char c, item *it) {
 }
 
 static item *gotdefault(char c, item *it) {
-    // TODO error
-    if (iscntrl(c)) {
-        fprintf(stderr, "Bad control character in input: %02x\n", c);
-    } else {
-        fprintf(stderr, "Bad character in input: \"%c\"\n", c);
-    }
+    error_lex("bad character, ignored", c);
     return it ? it : gotchar(getchar(), 0);
 }
 

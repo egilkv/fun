@@ -10,14 +10,14 @@
 #include "lex.h"
 #include "parse.h"
 #include "cfun.h"
+#include "err.h"
 
 static cell *expr(precedence lv);
 static cell *getlist(item *op, token sep_token, token end_token);
 static cell *binary(cell *left, precedence lv);
 
 static cell *badeof() {
-    // TODO error
-    fprintf(stderr, "Unexpected end of file\n");
+    error_par("unexpected end of file");
     return 0;
 }
 
@@ -89,7 +89,7 @@ static cell *expr(precedence lv) {
         } else {
             // must be an anomymous function defintion
             if (!it || it->type != it_LBRC) {
-                fprintf(stderr, "Expected function body (left curly bracket)\n");
+		error_par("expected function body (left curly bracket)");
                 if (it) pushitem(it);
                 // assume empty function body
                 return cell_cons(cell_ref(hash_lambda), cell_cons(pt, NIL));
@@ -110,7 +110,7 @@ static cell *expr(precedence lv) {
         pt = getlist(it, it_ELIP, it_RBRK);
         it = lexical();
         if (!it || it->type != it_LBRC) {
-            fprintf(stderr, "Expected array initializer (left curly bracket)\n");
+	    error_par("expected array initializer (left curly bracket)");
             if (it) pushitem(it);
             // assume empty initializer
             return cell_cons(cell_ref(hash_vector), cell_cons(pt, NIL));
@@ -144,8 +144,7 @@ static cell *expr(precedence lv) {
     case it_RPAR: // cannot be used
     case it_RBRK:
     case it_RBRC:
-        // TODO error
-        fprintf(stderr, "Misplaced item, syntax error: %d\n", it->type);
+	error_pat("misplaced item, syntax error", it->type);
         dropitem(it);
         return expr(lv);
 
@@ -261,8 +260,7 @@ static cell *binary(cell *left, precedence lv) {
         if (op->type == it_RBRK) {
             dropitem(op);
         } else {
-            // TODO error
-            fprintf(stderr, "Expected matching right bracket for array\n");
+	    error_par("expected matching right bracket for array");
             if (op) pushitem(op);
         }
         return binary(cell_cons(cell_ref(hash_ref), cell_cons(left, cell_cons(right, NIL))), lv);
@@ -287,11 +285,10 @@ static cell *binary(cell *left, precedence lv) {
     case it_SYMBOL:
         break;
     default:
-        fprintf(stderr, "ASSERT operator: %d\n", op->type);
+	error_pat("ASSERT operator", op->type); // TODO
         assert(0);
     }
-    // TODO error
-    fprintf(stderr, "Misplaced operator, syntax error: %d\n", op->type);
+    error_pat("misplaced operator, syntax error", op->type);
     dropitem(op);
     return left;
 }
@@ -335,8 +332,7 @@ static cell *getlist(item *op, token sep_token, token end_token) {
         dropitem(op);
     }
     if (op->type != end_token) {
-        // TODO error
-        fprintf(stderr, "Expected matching right parenthesis\n");
+	error_par("expected matching right parenthesis");
         pushitem(op);
         return arglist;
     }
