@@ -2,7 +2,6 @@
  *
  */
 
-#include <stdio.h> // for cell_print()
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -58,10 +57,12 @@ int cell_is_symbol(cell *cp) {
     return cp && cp->type == c_SYMBOL;
 }
 
+// TODO very dangerous
 int cell_split(cell *cp, cell **carp, cell **cdrp) {
     if (cell_is_cons(cp)) {
         *carp = cp->_.cons.car;
-        *cdrp = cp->_.cons.cdr;
+	if (cdrp) *cdrp = cp->_.cons.cdr;
+        else cell_unref(cp->_.cons.cdr);
         cp->_.cons.car = NIL;
         cp->_.cons.cdr = NIL;
         free(cp); // TODO garbage collection
@@ -100,7 +101,7 @@ cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct cell_s *)) {
     return node;
 }
 
-cell *cell_vector(arraylen_t length) {
+cell *cell_vector(index_t length) {
     cell *node = newcell(c_VECTOR);
     node->_.vector.len = length;
     if (length > 0) { // if length==0 table is NULL
@@ -109,16 +110,17 @@ cell *cell_vector(arraylen_t length) {
         assert(node->_.vector.table);
         memset(node->_.vector.table, 0, length * sizeof(cell *));
     }
+    return node;
 }
 
-void vector_resize(cell* node, arraylen_t newlen) {
+void vector_resize(cell* node, index_t newlen) {
     // TODO have some sanity check on new vector length
-    arraylen_t oldlen;
+    index_t oldlen;
     assert(cell_is_vector(node));
     oldlen = node->_.vector.len;
 
     if (oldlen > 0 && oldlen > newlen) {
-	arraylen_t i;
+        index_t i;
 	for (i = newlen; i < oldlen; ++i) {
 	    cell_unref(node->_.vector.table[i]);
 	    node->_.vector.table[i] = NIL; // TODO not really needed
@@ -142,7 +144,7 @@ void vector_resize(cell* node, arraylen_t newlen) {
 }
 
 // consume value, but not vector
-int vector_set(cell *node, arraylen_t index, cell *value) {
+int vector_set(cell *node, index_t index, cell *value) {
     assert(cell_is_vector(node));
     if (index < 0 || index >= node->_.vector.len) {
         // out of bounds
@@ -151,10 +153,11 @@ int vector_set(cell *node, arraylen_t index, cell *value) {
     }
     cell_unref(node->_.vector.table[index]);
     node->_.vector.table[index] = value;
+    return 1;
 }
 
 // ref value, leave vector
-int vector_get(cell *node, arraylen_t index, cell **valuep) {
+int vector_get(cell *node, index_t index, cell **valuep) {
     assert(cell_is_vector(node));
     if (index < 0 || index >= node->_.vector.len) {
         // out of bounds
@@ -192,54 +195,9 @@ void cell_unref(cell *node) {
             vector_resize(node, 0);
             free(node);
             break;
-        default:
+        case c_ASSOC:
             assert(0);
+            break;
         }
-    }
-}
-
-static void show_list(cell *ct) {
-    if (!ct) {
-        // end of list
-    } else if (ct->type == c_CONS) {
-        cell_print(ct->_.cons.car); // TODO recursion?
-        show_list(ct->_.cons.cdr);
-    } else {
-        printf(" . ");
-        cell_print(ct);
-    }
-}
-
-void cell_print(cell *ct) {
-
-    if (!ct) {
-        printf("{} ");
-    } else switch (ct->type) {
-    case c_CONS:
-        printf("{ ");
-	cell_print(ct->_.cons.car); // TODO recursion?
-        show_list(ct->_.cons.cdr);
-        printf("} ");
-        break;
-    case c_INTEGER:
-        printf("%ld ", ct->_.ivalue);
-        break;
-    case c_STRING:
-        printf("\"%s\" ",ct->_.string.str);
-        break;
-    case c_SYMBOL:
-        printf("%s ", ct->_.symbol.nam);
-        break;
-    case c_LAMBDA:
-        printf("#lambda "); // TODO something better
-        break;
-    case c_CFUN:
-        printf("#cdef "); // TODO something better
-        break;
-    case c_VECTOR:
-        printf("#vector[%ld] ", ct->_.vector.len); // TODO something better
-        break;
-    default:
-        assert(0);
     }
 }

@@ -3,7 +3,6 @@
  * TODO should evaluation happen in functions? perhaps
  */
 
-//#include <stdio.h> // debug
 #include <assert.h>
 
 #include "cfun.h"
@@ -26,7 +25,7 @@ static cell *apply(cell *fun, cell* arglist, cell *env) {
     cell *expr;
     cell *result = NIL; // TODO should be void...
     //TODO assuming def is a lambda
-    assert(body->type == c_LAMBDA);
+    assert(fun->type == c_LAMBDA);
     body = cell_ref(fun->_.cons.cdr);
     cell_unref(fun);
     cell_unref(arglist);
@@ -42,10 +41,7 @@ static cell *apply(cell *fun, cell* arglist, cell *env) {
 cell *eval(cell *arg, cell* env) {
 
     if (arg) switch (arg->type) {
-    case c_INTEGER: // value is itself
-    case c_STRING:
-    case c_CFUN:    // TODO maybe #void
-    case c_LAMBDA:  // TODO not certain what this does
+    default:        // value is itself
 	return arg;
 
     case c_SYMBOL:  // evaluate symbol
@@ -69,10 +65,7 @@ cell *eval(cell *arg, cell* env) {
                 // TODO perhaps
 		return apply(fun, arg, env);
 
-            case c_INTEGER: // not a function
-            case c_STRING:
-            case c_SYMBOL:
-            case c_CONS:
+	    default: // not a function
 		// TODO show item before eval
 		cell_unref(arg);
 		return error_rt1("not a function", fun);

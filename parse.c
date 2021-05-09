@@ -117,6 +117,11 @@ static cell *expr(precedence lv) {
         }
         {
             cell *init = getlist(it, it_COMA, it_RBRC);
+	    // TODO vector of straight length is special case
+            if (cell_is_cons(pt) && cell_cdr(pt) == NIL) {
+		// have number, not a list
+		cell_split(pt, &pt, NULL);
+	    }
             return cell_cons(cell_ref(hash_vector), cell_cons(pt, init));
         }
 
@@ -331,7 +336,7 @@ static cell *getlist(item *op, token sep_token, token end_token) {
     }
     if (op->type != end_token) {
         // TODO error
-        fprintf(stderr, "Expected matching right parenthesis for function\n");
+        fprintf(stderr, "Expected matching right parenthesis\n");
         pushitem(op);
         return arglist;
     }

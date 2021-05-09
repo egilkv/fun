@@ -9,6 +9,7 @@
 #include "oblist.h"
 #include "cfun.h"
 #include "eval.h"
+#include "io.h"
 
 int main() {
     cell *ct;
@@ -16,10 +17,10 @@ int main() {
     cfun_init();
 
     while ((ct = expression())) {
-        cell_print(ct);
+        cell_print(stdout, ct);
         printf(" --> ");
         ct = eval(ct, NIL);
-        cell_print(ct);
+        cell_print(stdout, ct);
         printf("\n");
         cell_unref(ct);
     }

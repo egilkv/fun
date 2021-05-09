@@ -74,11 +74,25 @@ static int eval_numeric(cell *a, integer_t *valuep, cell *dump, cell* env) {
             *valuep = a->_.ivalue;
             cell_unref(a);
             return 1;
+	default:
+	    break;
         }
     }
     cell_unref(dump);
     cell_unref(error_rt1("not a number", a));
     return 0;
+}
+
+static int eval_index(cell *a, index_t *indexp, cell *dump, cell* env) {
+    integer_t value;
+    if (!eval_numeric(a, &value, dump, env)) return 0;
+    if (value < 0) {
+	cell_unref(dump);
+	cell_unref(error_rti("cannot be negative", value));
+	return 0;
+    }
+    *indexp = (index_t)value;
+    return 1;
 }
 
 // a in always unreffed
@@ -263,15 +277,15 @@ static cell *cfun_vector(cell *args, cell* env) {
     cell *length;
     cell *vector;
     cell *a;
-    arraylen_t len;
+    index_t len;
     if (!cell_split(args, &length, &args)) {
 	return error_rt1("missing vector length", args);
     }
     if (length) {
         // vector of specified length
-        // TODO arraylen_t check > 0
-        arraylen_t index = 0;
-	if (!eval_numeric(length, &len, args, env)) return cell_ref(hash_void); // error
+	// TODO index_t check > 0
+	index_t index = 0;
+	if (!eval_index(length, &len, args, env)) return cell_ref(hash_void); // error
         vector = cell_vector(len);
 
         while (cell_split(args, &a, &args)) {
@@ -307,7 +321,7 @@ static cell *cfun_vector(cell *args, cell* env) {
 static cell *cfun_ref(cell *args, cell* env) {
     cell *a, *b;
     cell *value;
-    arraylen_t index;
+    index_t index;
     if (!arg2(args, &a, &b)) {
         cell_ref(hash_void); // error
     }
@@ -316,11 +330,10 @@ static cell *cfun_ref(cell *args, cell* env) {
         cell_unref(b);
         return error_rt1("not a vector", a);
     }
-    if (!eval_numeric(b, &index, NIL, env)) return cell_ref(hash_void); // error
+    if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
     if (!vector_get(a, index, &value)) {
         cell_unref(a);
-        // TODO should report bad index
-        return error_rt0("index out of bounds");
+	return error_rti("index out of bounds", index);
     }
     cell_unref(a);
     return value;

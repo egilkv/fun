@@ -15,7 +15,7 @@ enum cell_t {
    c_CFUN
 } ;
 
-typedef unsigned long int arraylen_t; // TODO 64 bit
+typedef unsigned long int index_t; // TODO 64 bit
 typedef long int integer_t; // TODO 64 bit
 
 struct cell_s {
@@ -29,11 +29,11 @@ struct cell_s {
         integer_t ivalue;
         struct {
             struct cell_s **table; // pointer to vector
-            arraylen_t len; // length of vector
+            index_t len; // length of vector
         } vector;
         struct {
             struct cell_s **table; // pointer to hash
-            arraylen_t size; // size of hash table
+            index_t size; // size of hash table
         } assoc;
         struct {
             char *str;
@@ -62,7 +62,7 @@ cell *cell_symbol(char *symbol);
 cell *cell_asymbol(char *symbol);
 cell *cell_astring(char *string);
 cell *cell_integer(long int integer);
-cell *cell_vector(arraylen_t length);
+cell *cell_vector(index_t length);
 cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct cell_s *));
 
 int cell_is_cons(cell *cp);
@@ -71,13 +71,11 @@ cell *cell_cdr(cell *cp);
 int cell_split(cell *cp, cell **carp, cell **cdrp);
 
 int cell_is_vector(cell *cp);
-int vector_set(cell *vector, arraylen_t index, cell *value);
-int vector_get(cell *node, arraylen_t index, cell **valuep);
-void vector_resize(cell *vector, arraylen_t newlen);
+int vector_set(cell *vector, index_t index, cell *value);
+int vector_get(cell *node, index_t index, cell **valuep);
+void vector_resize(cell *vector, index_t newlen);
 
 int cell_is_symbol(cell *cp);
-
-void cell_print(cell *ct);
 
 #endif
 
