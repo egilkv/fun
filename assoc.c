@@ -49,7 +49,7 @@ void assoc_set(cell *anode, cell* key, cell* val) {
     (*pp)->val = val;
 }
 
-// key is consumed, but not anode TODO
+// neither key nor anode is consumed TODO evaluate
 // false if not found
 int assoc_get(cell *anode, cell* key, cell **valuep) {
     assert(anode->type == c_ASSOC);
@@ -60,7 +60,6 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
 	pp = &(anode->_.assoc.table[hash]);
 	while (*pp) {
 	    if ((*pp)->key == key) {
-		cell_unref(key); 
 		*valuep = cell_ref((*pp)->val);
 		return 1;
 	    }
@@ -68,7 +67,6 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
 	}
     }
     // not found
-    cell_unref(key);
     return 0;
 }
 

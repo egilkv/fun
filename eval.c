@@ -20,21 +20,50 @@ cell *verify_nil(cell *a, cell *value) {
 }
 
 // TODO check is this is right...
-static cell *apply(cell *fun, cell* arglist, cell *env) {
+static cell *apply_lambda(cell *fun, cell* args, cell *env) {
+    cell *result = NIL; // TODO should be void
     cell *body;
-    cell *expr;
-    cell *result = NIL; // TODO should be void...
-    //TODO assuming def is a lambda
     assert(fun->type == c_LAMBDA);
-    body = cell_ref(fun->_.cons.cdr);
-    cell_unref(fun);
-    cell_unref(arglist);
+    // add one level to environment
 
-    // evaluate one expression at a time
-    while (cell_split(body, &expr, &body)) {
-        cell_unref(result);
-	result = eval(expr, env);
+    // pick up arguments one by one and add to assoc
+    {
+	cell *nam;
+        cell *assoc = cell_assoc();
+        cell *argnames = cell_ref(fun->_.cons.car);
+        while (cell_split(argnames, &nam, &argnames)) {
+            cell *val;
+	    assert(cell_is_symbol(nam));
+            if (!cell_split(args, &val, &args)) {
+                // TODO if more than one, have one message
+		cell_unref(error_rt1("missing value for", cell_ref(nam)));
+                val = cell_ref(hash_void);
+            } else {
+                val = eval(val, env);
+            }
+            // TODO start with assoc = NIL
+            assoc_set(assoc, nam, val);
+        }
+        if (args != NIL) {
+            cell_unref(error_rt1("excess arguments ignored", args));
+        }
+        // add one level of environment
+        env = cell_cons(assoc, env);
     }
+    {
+        cell *expr;
+	body = cell_ref(fun->_.cons.cdr);
+        cell_unref(fun);
+
+        // evaluate one expression at a time
+        while (cell_split(body, &expr, &body)) {
+            cell_unref(result);
+            result = eval(expr, env);
+        }
+        // TODO end recursion
+    }
+    // drop one level of environment
+    cell_split(env, (cell **)0, &env);
     return verify_nil(body, result);
 }
 
@@ -45,7 +74,21 @@ cell *eval(cell *arg, cell* env) {
 	return arg;
 
     case c_SYMBOL:  // evaluate symbol
-	return cell_ref(arg->_.symbol.val);
+	{
+	    cell *val;
+	    while (env) {
+		assert(cell_is_cons(env));
+		if (assoc_get(env->_.cons.car, arg, &val)) {
+		    cell_unref(arg);
+		    return val;
+		}
+		env = env->_.cons.cdr;
+	    }
+	    // global
+	    val = cell_ref(arg->_.symbol.val);
+	    cell_unref(arg);
+	    return val;
+	}
 
     case c_CONS:    
         {
@@ -63,7 +106,7 @@ cell *eval(cell *arg, cell* env) {
 
 	    case c_LAMBDA:
                 // TODO perhaps
-		return apply(fun, arg, env);
+                return apply_lambda(fun, arg, env);
 
 	    default: // not a function
 		// TODO show item before eval

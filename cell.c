@@ -59,7 +59,7 @@ int cell_is_symbol(cell *cp) {
 
 int cell_split(cell *cp, cell **carp, cell **cdrp) {
     if (cell_is_cons(cp)) {
-        *carp = cell_ref(cp->_.cons.car);
+        if (carp) *carp = cell_ref(cp->_.cons.car);
         if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
         cell_unref(cp);
         return 1;

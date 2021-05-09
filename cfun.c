@@ -15,10 +15,10 @@ cell *hash_defq;
 cell *hash_div;
 cell *hash_eval;
 cell *hash_f;
-cell *hash_gt;
 cell *hash_if;
 cell *hash_lambda;
 cell *hash_list;
+cell *hash_lt;
 cell *hash_minus;
 cell *hash_not;
 cell *hash_plus;
@@ -250,7 +250,7 @@ static cell *cfun_div(cell *args, cell* env) {
     return verify_nil(args, cell_integer(result));
 }
 
-static cell *cfun_gt(cell *args, cell* env) {
+static cell *cfun_lt(cell *args, cell* env) {
     integer_t value;
     integer_t operand;
     cell *a;
@@ -259,7 +259,7 @@ static cell *cfun_gt(cell *args, cell* env) {
     }
     while (cell_split(args, &a, &args)) {
 	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void); // error
-        if (value > operand) { // condition satisfied?
+	if (value < operand) { // condition satisfied?
             value = operand;
 	} else {
 	    cell_unref(args);
@@ -444,9 +444,9 @@ void cfun_init() {
     (hash_defq   = oblist("#defq"))   ->_.symbol.val = cell_cfun(cfun_defq);
     (hash_div    = oblist("#div"))    ->_.symbol.val = cell_cfun(cfun_div);
     (hash_eval   = oblist("#eval"))   ->_.symbol.val = cell_cfun(cfun_eval);
-    (hash_gt     = oblist("#gt"))     ->_.symbol.val = cell_cfun(cfun_gt);
     (hash_if     = oblist("#if"))     ->_.symbol.val = cell_cfun(cfun_if);
     (hash_lambda = oblist("#lambda")) ->_.symbol.val = cell_cfun(cfun_lambda);
+    (hash_lt     = oblist("#lt"))     ->_.symbol.val = cell_cfun(cfun_lt);
     (hash_list   = oblist("#"))       ->_.symbol.val = cell_cfun(cfun_list);
     (hash_minus  = oblist("#minus"))  ->_.symbol.val = cell_cfun(cfun_minus);
     (hash_not    = oblist("#not"))    ->_.symbol.val = cell_cfun(cfun_not);
@@ -456,6 +456,7 @@ void cfun_init() {
     (hash_times  = oblist("#times"))  ->_.symbol.val = cell_cfun(cfun_times);
     (hash_vector = oblist("#vector")) ->_.symbol.val = cell_cfun(cfun_vector);
 
+    // TODO value should be themselves
     hash_f       = oblist("#f");
     hash_t       = oblist("#t");
     hash_void    = oblist("#void");

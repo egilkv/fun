@@ -172,9 +172,9 @@ static cell *binary(cell *left, precedence lv) {
     case it_DIVS:
 	if (!s) { l2 = l_MULT;    s = cell_ref(hash_div); }
     case it_LT:
-        if (!s) { l2 = l_REL;     s = cell_symbol("#lt"); }
+        if (!s) { l2 = l_REL;     s = cell_ref(hash_lt); }
     case it_GT:
-        if (!s) { l2 = l_REL;     s = cell_ref(hash_gt); }
+        if (!s) { l2 = l_REL;     s = cell_symbol("#gt"); }
     case it_LTEQ:
         if (!s) { l2 = l_REL;     s = cell_symbol("#lteq"); }
     case it_GTEQ:
