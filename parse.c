@@ -113,11 +113,11 @@ static cell *expr(precedence lv) {
             fprintf(stderr, "Expected array initializer (left curly bracket)\n");
             if (it) pushitem(it);
             // assume empty initializer
-            return cell_cons(cell_symbol("#make-array"), cell_cons(pt, NIL));
+            return cell_cons(cell_ref(hash_vector), cell_cons(pt, NIL));
         }
         {
             cell *init = getlist(it, it_COMA, it_RBRC);
-            return cell_cons(cell_symbol("#make-array"), cell_cons(pt, init));
+            return cell_cons(cell_ref(hash_vector), cell_cons(pt, init));
         }
 
     case it_PLUS: // unary?
@@ -260,7 +260,7 @@ static cell *binary(cell *left, precedence lv) {
             fprintf(stderr, "Expected matching right bracket for array\n");
             if (op) pushitem(op);
         }
-        return binary(cell_cons(cell_symbol("#array-ref"), cell_cons(left, cell_cons(right, NIL))), lv);
+        return binary(cell_cons(cell_ref(hash_ref), cell_cons(left, cell_cons(right, NIL))), lv);
 
     case it_SEMI:
     case it_RPAR:

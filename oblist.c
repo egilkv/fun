@@ -11,10 +11,6 @@
 
 #include "oblist.h"
 
-// add symbol to oblist
-// assume it is malloc()-ed
-// if it exists already, free()
-
 #define OBLIST_HASH_SIZE 256
 
 struct ob_entry {
@@ -33,6 +29,8 @@ static unsigned int oblist_hash(const char *sym) {
     return hash % OBLIST_HASH_SIZE;
 }
 
+// add symbol to oblist
+// sumbol is alloc'd
 cell *oblist(char *sym) {
     return oblista(strdup(sym));
 }

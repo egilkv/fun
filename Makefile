@@ -2,8 +2,8 @@
 #
 #
 
-fun: fun.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c oblist.h cfun.c cfun.h
-	gcc -g fun.c lex.c parse.c cell.c oblist.c cfun.c -o fun
+fun: fun.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c oblist.h cfun.c cfun.h eval.c eval.h err.c err.h
+	  gcc -g fun.c lex.c parse.c cell.c oblist.c cfun.c eval.c err.c -o fun
 
 test: fun test.fun
 	valgrind --leak-check=full \

@@ -36,6 +36,11 @@ int cell_is_cons(cell *cp) {
     return cp && cp->type == c_CONS;
 }
 
+// TODO inline
+int cell_is_vector(cell *cp) {
+    return cp && cp->type == c_VECTOR;
+}
+
 // TODO in use?
 cell *cell_car(cell *cp) {
     assert(cell_is_cons(cp));
@@ -83,16 +88,81 @@ cell *cell_astring(char *string) {
     return node;
 }
 
-cell *cell_integer(long int integer) {
+cell *cell_integer(integer_t integer) {
     cell *node = newcell(c_INTEGER);
     node->_.ivalue = integer;
     return node;
 }
 
-cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *)) {
+cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct cell_s *)) {
     cell *node = newcell(c_CFUN);
     node->_.cfun.def = fun;
     return node;
+}
+
+cell *cell_vector(arraylen_t length) {
+    cell *node = newcell(c_VECTOR);
+    node->_.vector.len = length;
+    if (length > 0) { // if length==0 table is NULL
+        // TODO have some sanity check on vector length
+        node->_.vector.table = malloc(length * sizeof(cell *));
+        assert(node->_.vector.table);
+        memset(node->_.vector.table, 0, length * sizeof(cell *));
+    }
+}
+
+void vector_resize(cell* node, arraylen_t newlen) {
+    // TODO have some sanity check on new vector length
+    arraylen_t oldlen;
+    assert(cell_is_vector(node));
+    oldlen = node->_.vector.len;
+
+    if (oldlen > 0 && oldlen > newlen) {
+	arraylen_t i;
+	for (i = newlen; i < oldlen; ++i) {
+	    cell_unref(node->_.vector.table[i]);
+	    node->_.vector.table[i] = NIL; // TODO not really needed
+	}
+    }
+    if (newlen > 0 && newlen != oldlen) {
+	// realloc works also with NULL
+        node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
+	assert(node->_.vector.table);
+	if (newlen > oldlen) {
+	    memset(&(node->_.vector.table[oldlen]), 0, (newlen-oldlen) * sizeof(cell *));
+	}
+
+    } else if (oldlen > 0) {
+	free(node->_.vector.table);
+	node->_.vector.table = NULL;
+    } else {
+	assert(node->_.vector.table == NULL);
+    }
+    node->_.vector.len = newlen;
+}
+
+// consume value, but not vector
+int vector_set(cell *node, arraylen_t index, cell *value) {
+    assert(cell_is_vector(node));
+    if (index < 0 || index >= node->_.vector.len) {
+        // out of bounds
+        cell_unref(value);
+        return 0;
+    }
+    cell_unref(node->_.vector.table[index]);
+    node->_.vector.table[index] = value;
+}
+
+// ref value, leave vector
+int vector_get(cell *node, arraylen_t index, cell **valuep) {
+    assert(cell_is_vector(node));
+    if (index < 0 || index >= node->_.vector.len) {
+        // out of bounds
+        *valuep = NIL;
+        return 0;
+    }
+    *valuep = cell_ref(node->_.vector.table[index]);
+    return 1;
 }
 
 // TODO this will soon enough collapse
@@ -116,6 +186,10 @@ void cell_unref(cell *node) {
             free(node);
             break;
         case c_CFUN:
+            free(node);
+            break;
+        case c_VECTOR:
+            vector_resize(node, 0);
             free(node);
             break;
         default:
@@ -161,6 +235,9 @@ void cell_print(cell *ct) {
         break;
     case c_CFUN:
         printf("#cdef "); // TODO something better
+        break;
+    case c_VECTOR:
+        printf("#vector[%ld] ", ct->_.vector.len); // TODO something better
         break;
     default:
         assert(0);

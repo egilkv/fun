@@ -10,7 +10,8 @@ a + b;
 f = (){5};
 f();
 
-[]{5};
+v = []{7};
+v[0];
 module.symbol;
 list[0];
 "abc" & "def";
