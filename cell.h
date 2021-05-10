@@ -75,7 +75,8 @@ int cell_is_list(cell *cp);
 int cell_is_pair(cell *cp);
 cell *cell_car(cell *cp);
 cell *cell_cdr(cell *cp);
-int cell_split(cell *cp, cell **carp, cell **cdrp);
+int list_split(cell *cp, cell **carp, cell **cdrp);
+int pair_split(cell *cp, cell **carp, cell **cdrp);
 
 int cell_is_vector(cell *cp);
 int vector_set(cell *vector, index_t index, cell *value);
@@ -83,6 +84,8 @@ int vector_get(cell *node, index_t index, cell **valuep);
 void vector_resize(cell *vector, index_t newlen);
 
 int cell_is_symbol(cell *cp);
+
+int cell_is_string(cell *cp);
 
 #endif
 

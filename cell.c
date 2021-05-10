@@ -56,6 +56,11 @@ int cell_is_symbol(cell *cp) {
     return cp && cp->type == c_SYMBOL;
 }
 
+// TODO inline
+int cell_is_string(cell *cp) {
+    return cp && cp->type == c_STRING;
+}
+
 cell *cell_car(cell *cp) {
     assert(cell_is_list(cp) || cell_is_pair(cp));
     return cp->_.cons.car;
@@ -66,9 +71,21 @@ cell *cell_cdr(cell *cp) {
     return cp->_.cons.cdr;
 }
 
-// only applies to lists
-int cell_split(cell *cp, cell **carp, cell **cdrp) {
+int list_split(cell *cp, cell **carp, cell **cdrp) {
     if (cell_is_list(cp)) {
+        if (carp) *carp = cell_ref(cp->_.cons.car);
+        if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
+        cell_unref(cp);
+        return 1;
+     } else {
+        *carp = NIL;
+        *cdrp = NIL;
+        return 0;
+     }
+}
+
+int pair_split(cell *cp, cell **carp, cell **cdrp) {
+    if (cell_is_pair(cp)) {
         if (carp) *carp = cell_ref(cp->_.cons.car);
         if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
         cell_unref(cp);

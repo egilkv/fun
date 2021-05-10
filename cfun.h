@@ -4,6 +4,8 @@
 
 #include "cell.h"
 
+extern cell *hash_amp;
+extern cell *hash_assoc;
 extern cell *hash_defq;
 extern cell *hash_div;
 extern cell *hash_eval;

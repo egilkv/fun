@@ -25,15 +25,20 @@ a = []{
    two : 2,
    three : 3
 };
+a['two];
 
-#(1, 2, 3);  // a list
-module.symbol;
+"LIST:";
+list = #(1, 2, 3);
 list[0];
+// TODO module.symbol;
 "abc" & "def";
+"abcdef"[2];
 array1 = [6]{ 0 };
-array2 = [0..5]{ 0 };
+array1[0];
 array1[3];
 array1[3..4];
+
+array2 = [0..5]{ 0 };
 // list[1 ..];
 a[0..j-1] & []{#f} & a[j+1..N];
 c ? a : b;

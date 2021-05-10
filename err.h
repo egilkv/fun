@@ -9,5 +9,6 @@ cell *error_rt1(const char *msg, cell *arg);
 
 void error_par(const char *msg);
 void error_pat(const char *msg, int type);
+void error_pa1(const char *msg, cell *arg);
 
 void error_lex(const char *msg, int c);

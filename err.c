@@ -44,6 +44,15 @@ void error_pat(const char *msg, int type) {
     fprintf(stderr,"error; %s: type is %d\n", msg, type);
 }
 
+// parsing error, 1 argument
+// arg is consumed
+void error_pa1(const char *msg, cell *arg) {
+    fprintf(stderr,"error; %s: ", msg);
+    cell_print(stderr, arg);
+    fprintf(stderr,"\n");
+    cell_unref(arg);
+}
+
 // lexical error, show character or -1 if none
 void error_lex(const char *msg, int c) {
     fprintf(stderr,"error; %s", msg);

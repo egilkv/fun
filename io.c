@@ -55,9 +55,11 @@ void cell_print(FILE *out, cell *ct) {
         break;
     case c_LAMBDA:
         fprintf(out, "#lambda"); // TODO something better
+        cell_print(out, ct->_.cons.car);
         break;
     case c_CFUN:
-        fprintf(out, "#cdef"); // TODO something better
+        fprintf(out, "#cfun"); // TODO something better
+        fprintf(out, "()");
         break;
     case c_VECTOR:
         fprintf(out, "#vector[%ld]", ct->_.vector.len); // TODO something better

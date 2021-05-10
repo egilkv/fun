@@ -4,11 +4,14 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cfun.h"
 #include "oblist.h"
 #include "err.h"
 
+cell *hash_amp;
 cell *hash_assoc;
 cell *hash_defq;
 cell *hash_div;
@@ -30,7 +33,7 @@ cell *hash_void;
 
 // function with 1 argument
 static int arg1(cell *args, cell **a1p) {
-    if (cell_split(args, a1p, &args)) {
+    if (list_split(args, a1p, &args)) {
         if (args) {
 	    cell_unref(error_rt1("excess argument(s) ignored", args));
         }
@@ -48,8 +51,8 @@ static int arg1(cell *args, cell **a1p) {
 
 // function with 2 arguments
 static int arg2(cell *args, cell **a1p, cell **a2p) {
-    if (cell_split(args, a1p, &args)) {
-        if (cell_split(args, a2p, &args)) {
+    if (list_split(args, a1p, &args)) {
+	if (list_split(args, a2p, &args)) {
             if (args) {
 		cell_unref(error_rt1("excess argument(s) ignored", args));
             }
@@ -177,12 +180,12 @@ static cell *cfun_if(cell *args, environment *env) {
     return a;
 #else
     cell *a;
-    if (cell_split(args, &a, &args)) {
+    if (list_split(args, &a, &args)) {
 	a = eval(a, env);
         if (!pick_boolean(a, &bool, args)) return cell_ref(hash_void); // error
     }
     // second argument must be present
-    if (!cell_split(args, &a, &args)) {
+    if (!list_split(args, &a, &args)) {
 	return error_rt1("missing body for if statement", args); // TODO rephrase
     }
     if (bool) { // true?
@@ -194,7 +197,7 @@ static cell *cfun_if(cell *args, environment *env) {
     if (!args) {
         // no else part given, value is void
         return cell_ref(hash_void);
-    } else if (!cell_split(args, &a, &args)) {
+    } else if (!list_split(args, &a, &args)) {
 	return error_rt1("missing body for else statement", args); // TODO rephrase
     }
     if (args) {
@@ -216,7 +219,7 @@ static cell *cfun_quote(cell *args, environment *env) {
 static cell *cfun_lambda(cell *args, environment *env) {
     cell *arglist;
     cell *cp;
-    if (!cell_split(args, &arglist, &args)) {
+    if (!list_split(args, &arglist, &args)) {
         return error_rt1("Missing function argument list", args);
     }
     cp = cell_list(arglist, args);
@@ -228,7 +231,7 @@ static cell *cfun_plus(cell *args, environment *env) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
-    while (cell_split(args, &a, &args)) {
+    while (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void); // error
         result += operand; // TODO overflow etc
     }
@@ -239,14 +242,14 @@ static cell *cfun_minus(cell *args, environment *env) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
-    if (cell_split(args, &a, &args)) {
+    if (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &result, args, env)) return cell_ref(hash_void); // error
 	if (args == NIL) {
             // special case, one argument
             result = -result; // TODO overflow
         }
     }
-    while (cell_split(args, &a, &args)) {
+    while (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void);
         result -= operand; // TODO overflow etc
     }
@@ -257,7 +260,7 @@ static cell *cfun_times(cell *args, environment *env) {
     integer_t result = 1;
     integer_t operand;
     cell *a;
-    while (cell_split(args, &a, &args)) {
+    while (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void);
         result *= operand; // TODO overflow etc
     }
@@ -269,10 +272,10 @@ static cell *cfun_div(cell *args, environment *env) {
     integer_t operand;
     cell *a;
     // TODO must have two arguments?
-    if (cell_split(args, &a, &args)) {
+    if (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &result, args, env)) return cell_ref(hash_void); // error
     }
-    while (cell_split(args, &a, &args)) {
+    while (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void); // error
         if (operand == 0) {
             cell_unref(args);
@@ -288,10 +291,10 @@ static cell *cfun_lt(cell *args, environment *env) {
     integer_t value;
     integer_t operand;
     cell *a;
-    if (cell_split(args, &a, &args)) {
+    if (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &value, args, env)) return cell_ref(hash_void); // error
     }
-    while (cell_split(args, &a, &args)) {
+    while (list_split(args, &a, &args)) {
 	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void); // error
 	if (value < operand) { // condition satisfied?
             value = operand;
@@ -313,7 +316,7 @@ static cell *cfun_list(cell *args, environment *env) {
     cell *list = NIL;
     cell **pp = &list;
     cell *a;
-    while (cell_split(args, &a, &args)) {
+    while (list_split(args, &a, &args)) {
 	*pp = cell_list(eval(a, env), NIL);
 	pp = &((*pp)->_.cons.cdr);
     }
@@ -326,7 +329,7 @@ static cell *cfun_vector(cell *args, environment *env) {
     cell *vector;
     cell *a;
     index_t len;
-    if (!cell_split(args, &length, &args)) {
+    if (!list_split(args, &length, &args)) {
 	return error_rt1("missing vector length", args);
     }
     if (length) {
@@ -336,7 +339,7 @@ static cell *cfun_vector(cell *args, environment *env) {
 	if (!eval_index(length, &len, args, env)) return cell_ref(hash_void); // error
         vector = cell_vector(len);
 
-        while (cell_split(args, &a, &args)) {
+	while (list_split(args, &a, &args)) {
             if (!vector_set(vector, index, eval(a, env))) {
                 // TODO should include a
                 cell_unref(error_rt1("excess initialization data ignored", args));
@@ -355,7 +358,7 @@ static cell *cfun_vector(cell *args, environment *env) {
         len = 0;
         vector = cell_vector(0);
         // TODO rather inefficient
-        while (cell_split(args, &a, &args)) {
+	while (list_split(args, &a, &args)) {
             vector_resize(vector, ++len);
             if (!vector_set(vector, len-1, eval(a, env))) {
                 assert(0); // out of bounds should not happen
@@ -367,51 +370,82 @@ static cell *cfun_vector(cell *args, environment *env) {
 }
 
 static cell *cfun_assoc(cell *args, environment *env) {
-    cell *assoc;
-    assoc = cell_assoc(); // empty
-#if 0 // TODO implement
-    cell *length;
     cell *a;
-    index_t len;
-    if (!cell_split(args, &length, &args)) {
-	return error_rt1("missing vector length", args);
+    cell *b;
+    cell *assoc = cell_assoc();
+    while (list_split(args, &a, &args)) {
+        if (!pair_split(a, &a, &b)) {
+	    cell_unref(error_rt1("initialization item not in form of key colon value", a));
+        } else {
+            b = eval(b, env);
+	    if (!assoc_set(assoc, a, b)) {
+		cell_unref(b);
+		cell_unref(error_rt1("duplicate key ignored", a));
+	    }
+	}
     }
-    if (length) {
-        // vector of specified length
-	// TODO index_t check > 0
-	index_t index = 0;
-	if (!eval_index(length, &len, args, env)) return cell_ref(hash_void); // error
-        vector = cell_vector(len);
-
-        while (cell_split(args, &a, &args)) {
-            if (!vector_set(vector, index, eval(a, env))) {
-                // TODO should include a
-                cell_unref(error_rt1("excess initialization data ignored", args));
-                cell_unref(args);
-                args = NIL;
-                break;
-            }
-            ++index;
-        }
-        cell_unref(verify_nil(args, NIL));
-        if (index < len) {
-            // TODO repeat initialization???
-        }
-    } else {
-        // vector of unknown length
-        len = 0;
-        vector = cell_vector(0);
-        // TODO rather inefficient
-        while (cell_split(args, &a, &args)) {
-            vector_resize(vector, ++len);
-            if (!vector_set(vector, len-1, eval(a, env))) {
-                assert(0); // out of bounds should not happen
-            }
-        }
-    }
-#endif
     cell_unref(verify_nil(args, NIL));
     return assoc;
+}
+
+static cell *cfun_amp(cell *args, environment *env) {
+    cell *a;
+    cell *result = NIL;
+    while (list_split(args, &a, &args)) {
+        a = eval(a, env);
+        switch (a ? a->type : c_LIST) {
+
+        case c_STRING:
+            if (result == NIL) {
+                result = a; // TODO somewhat cheeky
+            } else if (!cell_is_string(result)) {
+                cell_unref(result);
+                cell_unref(args);
+		return error_rt1("& applied to non-string and string", a);
+            } else {
+                // TODO handle alen or rlen zero
+                // TODO optimize for case of more than two arguments
+                index_t rlen = strlen(result->_.string.str);
+                index_t alen = strlen(a->_.string.str);
+                char *newstr = malloc(rlen + alen + 1);
+                assert(newstr);
+                if (rlen > 0) memcpy(newstr,result->_.string.str,rlen);
+                if (alen > 0) memcpy(newstr+rlen,a->_.string.str,alen);
+                newstr[rlen+alen] = '\0';
+                cell_unref(result);
+                cell_unref(a);
+                result = cell_astring(newstr);
+            }
+            break;
+
+        case c_VECTOR:
+            cell_unref(result);
+            cell_unref(args);
+	    return error_rt1("vector & not yet implemented", a);
+
+        case c_ASSOC:
+            cell_unref(result);
+            cell_unref(args);
+	    return error_rt1("assoc & not yet implemented", a);
+
+        case c_LIST:
+            if (result == NIL) {
+                result = a;
+            } else {
+                cell_unref(result);
+                cell_unref(args);
+		return error_rt1("list & not yet implemented", a);
+            }
+            break;
+
+        default:
+            cell_unref(result);
+            cell_unref(args);
+	    return error_rt1("operator & cannot be applied", a);
+        }
+    }
+    cell_unref(verify_nil(args, NIL));
+    return result;
 }
 
 static cell *cfun_ref(cell *args, environment *env) {
@@ -423,11 +457,24 @@ static cell *cfun_ref(cell *args, environment *env) {
     }
     a = eval(a, env);
     if (a) switch (a->type) {
+
     case c_VECTOR:
 	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
 	if (!vector_get(a, index, &value)) {
-	    cell_unref(a);
-	    return error_rti("vector index out of bounds", index);
+            value = error_rti("vector index out of bounds", index);
+	}
+	cell_unref(a);
+	return value;
+
+    case c_STRING:
+	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	if (a->_.string.str && index < strlen(a->_.string.str)) {
+            char s[2];
+            s[0] = a->_.string.str[index];
+            s[1] = '\0';
+            value = cell_astring(s);
+        } else {
+            return error_rti("string index out of bounds", index);
 	}
 	cell_unref(a);
 	return value;
@@ -453,7 +500,7 @@ static cell *cfun_ref(cell *args, environment *env) {
 		if (a == NIL) {
 		    return error_rti("list index out of bounds", index);
 		}
-		if (!cell_split(a, &value, &a)) {
+		if (!list_split(a, &value, &a)) {
 		    return error_rt1("not a proper list", a);
 		}
 	    } while (i++ < index);
@@ -490,6 +537,7 @@ static cell *cfun_ref(cell *args, environment *env) {
 }
 
 void cfun_init() {
+    (hash_amp    = oblist("#amp"))    ->_.symbol.val = cell_cfun(cfun_amp);
     (hash_assoc  = oblist("#assoc"))  ->_.symbol.val = cell_cfun(cfun_assoc);
     (hash_defq   = oblist("#defq"))   ->_.symbol.val = cell_cfun(cfun_defq);
     (hash_div    = oblist("#div"))    ->_.symbol.val = cell_cfun(cfun_div);

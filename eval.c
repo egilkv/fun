@@ -35,9 +35,9 @@ void apply_lambda(cell *fun, cell* args, environment **envp) {
     cell_unref(fun);
 
     // pick up arguments one by one and add to assoc
-    while (cell_split(argnames, &nam, &argnames)) {
+    while (list_split(argnames, &nam, &argnames)) {
 	assert(cell_is_symbol(nam));
-	if (!cell_split(args, &val, &args)) {
+	if (!list_split(args, &val, &args)) {
 	    // TODO if more than one, have one message
 	    cell_unref(error_rt1("missing value for", cell_ref(nam)));
 	    val = cell_ref(hash_void);
@@ -83,7 +83,7 @@ cell *eval(cell *arg, environment *env) {
         {
             cell *fun;
 	    struct cell_s *(*def)(struct cell_s *, struct env_s *);
-	    cell_split(arg, &fun, &arg);
+	    list_split(arg, &fun, &arg);
 	    fun = eval(fun, env);
 	    // TODO may consider moving evaluation out of functions
 
@@ -104,7 +104,7 @@ cell *eval(cell *arg, environment *env) {
 		    cell *expr;
 
 		    // evaluate one expression at a time
-		    while (cell_split(env->prog, &expr, &(env->prog))) {
+		    while (list_split(env->prog, &expr, &(env->prog))) {
 			cell_unref(result);
 			// TODO C recursion
 			result = eval(expr, env);
