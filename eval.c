@@ -79,7 +79,7 @@ cell *eval(cell *arg, environment *env) {
 	    return val;
 	}
 
-    case c_CONS:    
+    case c_LIST:
         {
             cell *fun;
 	    struct cell_s *(*def)(struct cell_s *, struct env_s *);
@@ -87,7 +87,7 @@ cell *eval(cell *arg, environment *env) {
 	    fun = eval(fun, env);
 	    // TODO may consider moving evaluation out of functions
 
-	    switch (fun ? fun->type : c_CONS) {
+            switch (fun ? fun->type : c_LIST) {
             case c_CFUN:
                 def = fun->_.cfun.def;
                 cell_unref(fun);
@@ -128,6 +128,9 @@ cell *eval(cell *arg, environment *env) {
 		return error_rt1("not a function", fun);
 	    }
         }
+
+    case c_PAIR:
+        return error_rt1("pair cannot be evaluated", arg);
     }
     assert(0);
     return NIL;

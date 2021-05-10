@@ -10,10 +10,11 @@
 // all associate left to right except where noted
 enum prec_ {
     l_BOT,
-    l_COMMA,    // , TODO
+    l_COMMA,    // ,            TODO
     l_DEF,      // =            TODO right to left
-    l_COND,     // ? :          TODO right to left
-    l_OR ,      // || TODO
+    l_COND,     // ?            TODO right to left, in C ? : are same
+    l_COLO,     // :            TODO
+    l_OR ,      // ||           TODO
     l_AND,      // &&
     l_AMP,      // & TODO revise
     l_EQ,       // == !=

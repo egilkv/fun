@@ -11,10 +11,10 @@
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
         // end of list
-    } else if (cell_is_cons(ct)) {
+    } else if (cell_is_list(ct)) {
         cell_print(out, cell_car(ct)); // TODO recursion?
         if (cell_cdr(ct)) {
-            if (cell_is_cons(cell_cdr(ct))) {
+            if (cell_is_list(cell_cdr(ct))) {
                 fprintf(out, ", ");
                 show_list(out, cell_cdr(ct));
             } else {
@@ -32,11 +32,16 @@ void cell_print(FILE *out, cell *ct) {
     if (!ct) {
         fprintf(out, "#()");
     } else switch (ct->type) {
-    case c_CONS:
+    case c_LIST:
         fprintf(out, "#(");
-        // cell_print(out, ct->_.cons.car);
-        // show_list(out, ct->_.cons.cdr);
         show_list(out, ct);
+        fprintf(out, ")");
+        break;
+    case c_PAIR:
+        fprintf(out, "(");
+        cell_print(out, cell_car(ct));
+        fprintf(out, " : ");
+        cell_print(out, cell_cdr(ct));
         fprintf(out, ")");
         break;
     case c_INTEGER:

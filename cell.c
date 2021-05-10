@@ -1,10 +1,10 @@
 /* TAB-P
- *
+ *                                                // TODO superflous
  */
 
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include <assert.h>                               // TODO superflous
 
 #include "oblist.h"
 
@@ -17,8 +17,15 @@ static  cell *newcell(celltype t) {
     return node;
 }
 
-cell *cell_cons(cell *car, cell *cdr) {
-    cell *node = newcell(c_CONS);
+cell *cell_list(cell *car, cell *cdr) {
+    cell *node = newcell(c_LIST);
+    node->_.cons.car = car;
+    node->_.cons.cdr = cdr;
+    return node;
+}
+
+cell *cell_pair(cell *car, cell *cdr) {
+    cell *node = newcell(c_PAIR);
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
@@ -31,8 +38,12 @@ cell * cell_ref(cell *cp) {
 }
 
 // TODO inline
-int cell_is_cons(cell *cp) {
-    return cp && cp->type == c_CONS;
+int cell_is_list(cell *cp) {
+    return cp && cp->type == c_LIST;
+}
+
+int cell_is_pair(cell *cp) {
+    return cp && cp->type == c_PAIR;
 }
 
 // TODO inline
@@ -40,25 +51,24 @@ int cell_is_vector(cell *cp) {
     return cp && cp->type == c_VECTOR;
 }
 
-// TODO in use?
-cell *cell_car(cell *cp) {
-    assert(cell_is_cons(cp));
-    return cp->_.cons.car;
-}
-
-// TODO in use?
-cell *cell_cdr(cell *cp) {
-    assert(cell_is_cons(cp));
-    return cp->_.cons.cdr;
-}
-
 // TODO inline
 int cell_is_symbol(cell *cp) {
     return cp && cp->type == c_SYMBOL;
 }
 
+cell *cell_car(cell *cp) {
+    assert(cell_is_list(cp) || cell_is_pair(cp));
+    return cp->_.cons.car;
+}
+
+cell *cell_cdr(cell *cp) {
+    assert(cell_is_list(cp) || cell_is_pair(cp));
+    return cp->_.cons.cdr;
+}
+
+// only applies to lists
 int cell_split(cell *cp, cell **carp, cell **cdrp) {
-    if (cell_is_cons(cp)) {
+    if (cell_is_list(cp)) {
         if (carp) *carp = cell_ref(cp->_.cons.car);
         if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
         cell_unref(cp);
@@ -174,7 +184,8 @@ cell *cell_assoc() {
 void cell_unref(cell *node) {
     if (node) {
         if (--(node->ref) == 0) switch (node->type) {
-        case c_CONS:
+        case c_LIST:
+        case c_PAIR:
         case c_LAMBDA:
             cell_unref(node->_.cons.car);
             cell_unref(node->_.cons.cdr);

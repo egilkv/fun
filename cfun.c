@@ -116,7 +116,7 @@ static int pick_boolean(cell *a, int *boolp, cell *dump) {
 static cell *cfun_defq(cell *args, environment *env) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
-        cell_ref(hash_void); // error
+        return cell_ref(hash_void); // error
     }
     if (!cell_is_symbol(a)) {
         cell_unref(b);
@@ -151,6 +151,31 @@ static cell *cfun_not(cell *args, environment *env) {
 
 static cell *cfun_if(cell *args, environment *env) {
     int bool;
+#if 1
+    cell *a, *b;
+    if (!arg2(args, &a, &b)) {
+        return cell_ref(hash_void); // error
+    }
+    a = eval(a, env);
+    if (!pick_boolean(a, &bool, b)) {
+        return cell_ref(hash_void); // error
+    }
+    if (cell_is_pair(b)) { // if/else present
+        if (bool) {
+            a = eval(cell_ref(cell_car(b)), env);
+        } else {
+            a = eval(cell_ref(cell_cdr(b)), env);
+        }
+        cell_unref(b);
+
+    } else if (bool) {
+        a = b;
+    } else {
+        cell_unref(b);
+        a = cell_ref(hash_void);
+    }
+    return a;
+#else
     cell *a;
     if (cell_split(args, &a, &args)) {
 	a = eval(a, env);
@@ -177,14 +202,15 @@ static cell *cfun_if(cell *args, environment *env) {
     }
     // finally, else proper
     return eval(a, env);
+#endif
 }
 
 static cell *cfun_quote(cell *args, environment *env) {
     cell *a;
-    if (arg1(args, &a)) {
-	return a;
+    if (!arg1(args, &a)) {
+        return cell_ref(hash_void); // error
     }
-    return cell_ref(hash_void); // error
+    return a;
 }
 
 static cell *cfun_lambda(cell *args, environment *env) {
@@ -193,7 +219,7 @@ static cell *cfun_lambda(cell *args, environment *env) {
     if (!cell_split(args, &arglist, &args)) {
         return error_rt1("Missing function argument list", args);
     }
-    cp = cell_cons(arglist, args);
+    cp = cell_list(arglist, args);
     cp->type = c_LAMBDA;
     return cp;
 }
@@ -288,7 +314,7 @@ static cell *cfun_list(cell *args, environment *env) {
     cell **pp = &list;
     cell *a;
     while (cell_split(args, &a, &args)) {
-	*pp = cell_cons(eval(a, env), NIL);
+	*pp = cell_list(eval(a, env), NIL);
 	pp = &((*pp)->_.cons.cdr);
     }
     cell_unref(verify_nil(args, NIL));
@@ -393,7 +419,7 @@ static cell *cfun_ref(cell *args, environment *env) {
     cell *value;
     index_t index;
     if (!arg2(args, &a, &b)) {
-        cell_ref(hash_void); // error
+        return cell_ref(hash_void); // error
     }
     a = eval(a, env);
     if (a) switch (a->type) {
@@ -417,7 +443,7 @@ static cell *cfun_ref(cell *args, environment *env) {
 	    return value;
 	}
 
-    case c_CONS:
+    case c_LIST:
 	{
 	    index_t i = 0;
 	    value = NIL;
@@ -431,6 +457,22 @@ static cell *cfun_ref(cell *args, environment *env) {
 		    return error_rt1("not a proper list", a);
 		}
 	    } while (i++ < index);
+	}
+	cell_unref(a);
+        return value;
+
+    case c_PAIR:
+	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	switch (index) {
+	case 0:
+	    value = cell_ref(cell_car(a));
+	    break;
+	case 1:
+	    value = cell_ref(cell_cdr(a));
+	    break;
+	default:
+	    value = error_rti("pair index out of bounds", index);
+	    break;
 	}
 	cell_unref(a);
         return value;

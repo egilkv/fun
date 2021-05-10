@@ -10,3 +10,5 @@ assocs should probably also work for numbers
 Implement function call without use of C stack
 
 Implement non-mutable 'variables'
+
+verify_nil can possibly be replace by assert

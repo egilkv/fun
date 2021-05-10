@@ -8,7 +8,8 @@
 #include "eval.h"
 
 enum cell_t {
-   c_CONS,
+   c_LIST,
+   c_PAIR,
    c_SYMBOL,
    c_STRING,
    c_INTEGER,
@@ -23,7 +24,7 @@ typedef long int integer_t; // TODO 64 bit
 
 struct cell_s {
     unsigned ref     : 32; // TODO tricky 64bit
-    enum cell_t type : 3;
+    enum cell_t type : 4;
     union {
         struct {
             struct cell_s *car;
@@ -60,7 +61,8 @@ typedef struct cell_s cell;
 cell * cell_ref(cell *cp);
 void cell_unref(cell *cp);
 
-cell *cell_cons(cell *car, cell *cdr);
+cell *cell_list(cell *car, cell *cdr);
+cell *cell_pair(cell *car, cell *cdr);
 cell *cell_symbol(char *symbol);
 cell *cell_asymbol(char *symbol);
 cell *cell_astring(char *string);
@@ -69,7 +71,8 @@ cell *cell_vector(index_t length);
 cell *cell_assoc();
 cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct env_s *));
 
-int cell_is_cons(cell *cp);
+int cell_is_list(cell *cp);
+int cell_is_pair(cell *cp);
 cell *cell_car(cell *cp);
 cell *cell_cdr(cell *cp);
 int cell_split(cell *cp, cell **carp, cell **cdrp);
