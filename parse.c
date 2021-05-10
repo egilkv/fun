@@ -202,7 +202,7 @@ static cell *binary(cell *left, precedence lv) {
     case it_AND:
         if (!s) { l2 = l_AND;     s = cell_symbol("#and"); }
     case it_STOP:
-        if (!s) { l2 = l_POST;    s = cell_symbol("#dot"); }
+        if (!s) { l2 = l_POST;    s = cell_ref(hash_refq); }
     case it_EQUL:
 	if (!s) { l2 = l_DEF;     s = cell_ref(hash_defq); }
 

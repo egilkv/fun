@@ -19,6 +19,7 @@ extern cell *hash_not;
 extern cell *hash_plus;
 extern cell *hash_quote;
 extern cell *hash_ref;
+extern cell *hash_refq;
 extern cell *hash_t;
 extern cell *hash_times;
 extern cell *hash_vector;

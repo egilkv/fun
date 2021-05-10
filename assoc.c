@@ -11,7 +11,7 @@
 
 #include "cell.h"
 
-static unsigned int assoc_hash(cell *key) {
+static unsigned int hash_cons(cell *key) {
     // TODO 64bit
     // TODO improve...
     return ((((unsigned long)key) >> 3)
@@ -22,7 +22,7 @@ static unsigned int assoc_hash(cell *key) {
 // return false if already defined, and do not consume key and val
 int assoc_set(cell *anode, cell* key, cell* val) {
     struct assoc_s **pp;
-    int hash = assoc_hash(key);
+    int hash = hash_cons(key);
     assert(anode->type == c_ASSOC);
 
     if (anode->_.assoc.table == NULL) {
@@ -58,7 +58,7 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
 
     if (anode->_.assoc.table != NULL) {
 	struct assoc_s **pp;
-	int hash = assoc_hash(key);
+	int hash = hash_cons(key);
 	pp = &(anode->_.assoc.table[hash]);
 	while (*pp) {
 	    if ((*pp)->key == key) {

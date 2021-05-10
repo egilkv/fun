@@ -20,7 +20,7 @@ struct ob_entry {
 
 static struct ob_entry* ob_table[OBLIST_HASH_SIZE];
 
-static unsigned int oblist_hash(const char *sym) {
+static unsigned int hash_string(const char *sym) {
     unsigned int hash = 0;
     assert(sym);
     while (*sym) {
@@ -38,7 +38,7 @@ cell *oblist(char *sym) {
 // assume symbol is malloc()'d
 cell *oblista(char *sym) {
     struct ob_entry **pp;
-    int hash = oblist_hash(sym);
+    int hash = hash_string(sym);
     pp = &(ob_table[hash]);
     while (*pp) {
         if (strcmp((*pp)->namdef._.symbol.nam, sym) == 0) {

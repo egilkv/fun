@@ -26,6 +26,7 @@ cell *hash_not;
 cell *hash_plus;
 cell *hash_quote;
 cell *hash_ref;
+cell *hash_refq;
 cell *hash_t;
 cell *hash_times;
 cell *hash_vector;
@@ -71,25 +72,23 @@ static int arg2(cell *args, cell **a1p, cell **a2p) {
 
 // a in always unreffed
 // dump is unreffed only if error
-static int eval_numeric(cell *a, integer_t *valuep, cell *dump, environment *env) {
-    if ((a = eval(a, env))) {
-        switch (a->type) {
-        case c_INTEGER:
-            *valuep = a->_.ivalue;
-            cell_unref(a);
-            return 1;
-	default:
-	    break;
-        }
+static int get_numeric(cell *a, integer_t *valuep, cell *dump) {
+    if (a) switch (a->type) {
+    case c_INTEGER:
+	*valuep = a->_.ivalue;
+	cell_unref(a);
+	return 1;
+    default:
+	break;
     }
     cell_unref(dump);
     cell_unref(error_rt1("not a number", a));
     return 0;
 }
 
-static int eval_index(cell *a, index_t *indexp, cell *dump, environment *env) {
+static int get_index(cell *a, index_t *indexp, cell *dump) {
     integer_t value;
-    if (!eval_numeric(a, &value, dump, env)) return 0;
+    if (!get_numeric(a, &value, dump)) return 0;
     if (value < 0) {
 	cell_unref(dump);
 	cell_unref(error_rti("cannot be negative", value));
@@ -232,7 +231,7 @@ static cell *cfun_plus(cell *args, environment *env) {
     integer_t operand;
     cell *a;
     while (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void); // error
+	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void); // error
         result += operand; // TODO overflow etc
     }
     return verify_nil(args, cell_integer(result));
@@ -243,14 +242,14 @@ static cell *cfun_minus(cell *args, environment *env) {
     integer_t operand;
     cell *a;
     if (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &result, args, env)) return cell_ref(hash_void); // error
+	if (!get_numeric(eval(a, env), &result, args)) return cell_ref(hash_void); // error
 	if (args == NIL) {
             // special case, one argument
             result = -result; // TODO overflow
         }
     }
     while (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void);
+	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void);
         result -= operand; // TODO overflow etc
     }
     return verify_nil(args, cell_integer(result));
@@ -261,7 +260,7 @@ static cell *cfun_times(cell *args, environment *env) {
     integer_t operand;
     cell *a;
     while (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void);
+	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void);
         result *= operand; // TODO overflow etc
     }
     return verify_nil(args, cell_integer(result));
@@ -273,10 +272,10 @@ static cell *cfun_div(cell *args, environment *env) {
     cell *a;
     // TODO must have two arguments?
     if (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &result, args, env)) return cell_ref(hash_void); // error
+	if (!get_numeric(eval(a, env), &result, args)) return cell_ref(hash_void); // error
     }
     while (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void); // error
+	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void); // error
         if (operand == 0) {
             cell_unref(args);
 	    return error_rt0("attempted division by zero");
@@ -292,10 +291,10 @@ static cell *cfun_lt(cell *args, environment *env) {
     integer_t operand;
     cell *a;
     if (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &value, args, env)) return cell_ref(hash_void); // error
+	if (!get_numeric(eval(a, env), &value, args)) return cell_ref(hash_void); // error
     }
     while (list_split(args, &a, &args)) {
-	if (!eval_numeric(a, &operand, args, env)) return cell_ref(hash_void); // error
+	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void); // error
 	if (value < operand) { // condition satisfied?
             value = operand;
 	} else {
@@ -336,7 +335,7 @@ static cell *cfun_vector(cell *args, environment *env) {
         // vector of specified length
 	// TODO index_t check > 0
 	index_t index = 0;
-	if (!eval_index(length, &len, args, env)) return cell_ref(hash_void); // error
+	if (!get_index(eval(length, env), &len, args)) return cell_ref(hash_void); // error
         vector = cell_vector(len);
 
         // TODO can be optimized
@@ -453,18 +452,13 @@ static cell *cfun_amp(cell *args, environment *env) {
     return result;
 }
 
-static cell *cfun_ref(cell *args, environment *env) {
-    cell *a, *b;
+static cell *common_ref(cell *a, cell *b) {
     cell *value;
     index_t index;
-    if (!arg2(args, &a, &b)) {
-        return cell_ref(hash_void); // error
-    }
-    a = eval(a, env);
     if (a) switch (a->type) {
 
     case c_VECTOR:
-	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	if (!vector_get(a, index, &value)) {
             value = error_rti("vector index out of bounds", index);
 	}
@@ -472,7 +466,7 @@ static cell *cfun_ref(cell *args, environment *env) {
 	return value;
 
     case c_STRING:
-	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	if (index < a->_.string.len) {
 	    char_t *s = malloc(1 + 1);
 	    assert(s);
@@ -488,7 +482,7 @@ static cell *cfun_ref(cell *args, environment *env) {
     case c_ASSOC:
 	{
 	    cell *value;
-	    if (!assoc_get(a, eval(b, env), &value)) {
+	    if (!assoc_get(a, b, &value)) {
 		cell_unref(a);
 		return error_rt1("assoc key does not exist", b);
 	    }
@@ -500,7 +494,7 @@ static cell *cfun_ref(cell *args, environment *env) {
 	{
 	    index_t i = 0;
 	    value = NIL;
-	    if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	    if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	    do {
 		cell_unref(value);
 		if (a == NIL) {
@@ -515,7 +509,7 @@ static cell *cfun_ref(cell *args, environment *env) {
         return value;
 
     case c_PAIR:
-	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
+	if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	switch (index) {
 	case 0:
 	    value = cell_ref(cell_car(a));
@@ -539,7 +533,22 @@ static cell *cfun_ref(cell *args, environment *env) {
     cell_unref(b);
     return error_rt1("cannot referrence", a);
     return 0;
+}
 
+static cell *cfun_ref(cell *args, environment *env) {
+    cell *a, *b;
+    if (!arg2(args, &a, &b)) {
+        return cell_ref(hash_void); // error
+    }
+    return common_ref(eval(a, env), eval(b, env));
+}
+
+static cell *cfun_refq(cell *args, environment *env) {
+    cell *a, *b;
+    if (!arg2(args, &a, &b)) {
+        return cell_ref(hash_void); // error
+    }
+    return common_ref(eval(a, env), b);
 }
 
 void cfun_init() {
@@ -557,6 +566,7 @@ void cfun_init() {
     (hash_plus   = oblist("#plus"))   ->_.symbol.val = cell_cfun(cfun_plus);
     (hash_quote  = oblist("#quote"))  ->_.symbol.val = cell_cfun(cfun_quote);
     (hash_ref    = oblist("#ref"))    ->_.symbol.val = cell_cfun(cfun_ref);
+    (hash_refq   = oblist("#refq"))   ->_.symbol.val = cell_cfun(cfun_refq);
     (hash_times  = oblist("#times"))  ->_.symbol.val = cell_cfun(cfun_times);
     (hash_vector = oblist("#vector")) ->_.symbol.val = cell_cfun(cfun_vector);
 

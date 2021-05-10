@@ -38,7 +38,7 @@ struct cell_s {
             // index_t size; // TODO not used size of hash table
         } assoc;
         struct {
-            char_t *ptr;
+            char_t *ptr; // includes a trailing '\0' for easy conversion to C
             index_t len;
         } string;
         struct {

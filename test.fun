@@ -21,16 +21,20 @@ ft(50,5);
 v = []{7, 8, "hello"};
 v[0];
 v[2];
-a = []{
+aa = []{
    one : 1,
    two : 2,
    three : 3
 };
-a['two];
+aa['two];
+aa.one;
+aa.two;
+aa.three;
 
 "LIST:";
 list = #(1, 2, 3);
 list[0];
+list.0; // strange stuff
 // TODO module.symbol;
 "abc" & "def";
 "abcdef"[2];

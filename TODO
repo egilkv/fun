@@ -16,3 +16,7 @@ verify_nil can possibly be replace by assert
 []{} is an empty assoc
 
 Function invocation and lists should be separate things. Really
+
+Assoc keys can be symbols, strings or integers
+
+Have === operator in addition to ==, to require more equality of sorts
