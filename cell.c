@@ -97,10 +97,6 @@ int pair_split(cell *cp, cell **carp, cell **cdrp) {
      }
 }
 
-cell *cell_symbol(char *symbol) {
-    return oblist(symbol);
-}
-
 // symbol that is malloc'd already
 cell *cell_asymbol(char *symbol) {
     return oblista(symbol);

@@ -3,10 +3,6 @@
 
     if (oldlen > 0 && oldlen > newlen) {
 
-rewrite cell_split(cell *cp, cell **carp, cell **cdrp) {
-
-assocs should probably also work for numbers
-
 Implement function call without use of C stack
 
 Implement non-mutable 'variables'

@@ -132,8 +132,8 @@ static cell *cfun_defq(cell *args, environment *env) {
 	    cell_unref(error_rt1("cannot redefine immutable", a));
 	}
     } else {
-	cell_unref(a->_.symbol.val);
-	a->_.symbol.val = cell_ref(b);
+	// TODO mutable
+	oblist_set(a, cell_ref(b));
 	cell_unref(a);
     }
     return b;
@@ -552,30 +552,36 @@ static cell *cfun_refq(cell *args, environment *env) {
 }
 
 void cfun_init() {
-    (hash_amp    = oblist("#amp"))    ->_.symbol.val = cell_cfun(cfun_amp);
-    (hash_assoc  = oblist("#assoc"))  ->_.symbol.val = cell_cfun(cfun_assoc);
-    (hash_defq   = oblist("#defq"))   ->_.symbol.val = cell_cfun(cfun_defq);
-    (hash_div    = oblist("#div"))    ->_.symbol.val = cell_cfun(cfun_div);
-    (hash_eval   = oblist("#eval"))   ->_.symbol.val = cell_cfun(cfun_eval);
-    (hash_if     = oblist("#if"))     ->_.symbol.val = cell_cfun(cfun_if);
-    (hash_lambda = oblist("#lambda")) ->_.symbol.val = cell_cfun(cfun_lambda);
-    (hash_lt     = oblist("#lt"))     ->_.symbol.val = cell_cfun(cfun_lt);
-    (hash_list   = oblist("#"))       ->_.symbol.val = cell_cfun(cfun_list);
-    (hash_minus  = oblist("#minus"))  ->_.symbol.val = cell_cfun(cfun_minus);
-    (hash_not    = oblist("#not"))    ->_.symbol.val = cell_cfun(cfun_not);
-    (hash_plus   = oblist("#plus"))   ->_.symbol.val = cell_cfun(cfun_plus);
-    (hash_quote  = oblist("#quote"))  ->_.symbol.val = cell_cfun(cfun_quote);
-    (hash_ref    = oblist("#ref"))    ->_.symbol.val = cell_cfun(cfun_ref);
-    (hash_refq   = oblist("#refq"))   ->_.symbol.val = cell_cfun(cfun_refq);
-    (hash_times  = oblist("#times"))  ->_.symbol.val = cell_cfun(cfun_times);
-    (hash_vector = oblist("#vector")) ->_.symbol.val = cell_cfun(cfun_vector);
+    hash_amp     = oblist("#amp",     cell_cfun(cfun_amp));
+    hash_assoc   = oblist("#assoc",   cell_cfun(cfun_assoc));
+    hash_defq    = oblist("#defq",    cell_cfun(cfun_defq));
+    hash_div     = oblist("#div",     cell_cfun(cfun_div));
+    hash_eval    = oblist("#eval",    cell_cfun(cfun_eval));
+    hash_if      = oblist("#if",      cell_cfun(cfun_if));
+    hash_lambda  = oblist("#lambda",  cell_cfun(cfun_lambda));
+    hash_lt      = oblist("#lt",      cell_cfun(cfun_lt));
+    hash_list    = oblist("#",        cell_cfun(cfun_list));
+    hash_minus   = oblist("#minus",   cell_cfun(cfun_minus));
+    hash_not     = oblist("#not",     cell_cfun(cfun_not));
+    hash_plus    = oblist("#plus",    cell_cfun(cfun_plus));
+    hash_quote   = oblist("#quote",   cell_cfun(cfun_quote));
+    hash_ref     = oblist("#ref",     cell_cfun(cfun_ref));
+    hash_refq    = oblist("#refq",    cell_cfun(cfun_refq));
+    hash_times   = oblist("#times",   cell_cfun(cfun_times));
+    hash_vector  = oblist("#vector",  cell_cfun(cfun_vector));
 
-    // TODO value should be themselves
-    hash_f       = oblist("#f");
-    hash_t       = oblist("#t");
-    hash_void    = oblist("#void");
+    // values are themselves
+    hash_f       = oblist("#f",       NIL);
+    hash_t       = oblist("#t",       NIL);
+    hash_void    = oblist("#void",    NIL);
+    oblist_set(hash_f,    cell_ref(hash_f));
+    oblist_set(hash_t,    cell_ref(hash_t));
+    oblist_set(hash_void, cell_ref(hash_void));
 }
 
-
-
-
+void cfun_drop() {
+    // loose circular definitions
+    oblist_set(hash_f, NIL);
+    oblist_set(hash_t, NIL);
+    oblist_set(hash_void, NIL);
+}

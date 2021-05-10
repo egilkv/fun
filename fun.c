@@ -23,6 +23,7 @@ int main() {
         printf("\n");
         cell_unref(ct);
     }
+    cfun_drop();
     oblist_drop();
     return 0;
 }

@@ -12,6 +12,14 @@
 #include "cfun.h"
 #include "err.h"
 
+#include "oblist.h"
+
+// TODO remove when all is done
+static cell *cell_symbol(char *symbol) {
+    return oblist(symbol, NIL);
+}
+
+
 static cell *expr(precedence lv);
 static cell *getlist(item *op, token sep_token, token end_token);
 static cell *binary(cell *left, precedence lv);

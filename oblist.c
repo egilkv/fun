@@ -29,13 +29,18 @@ static unsigned int hash_string(const char *sym) {
     return hash % OBLIST_HASH_SIZE;
 }
 
-// add symbol to oblist
-// sumbol is alloc'd
-cell *oblist(char *sym) {
-    return oblista(strdup(sym));
+// add symbol to oblist, with value
+// symbol is alloc'd
+// val is consumed
+cell *oblist(char *sym, cell *val) {
+    cell *ob = oblista(strdup(sym));
+    oblist_set(ob, val);
+    return ob;
 }
 
+// find or create symbol
 // assume symbol is malloc()'d
+// TODO if created, state should be "not yet defined"
 cell *oblista(char *sym) {
     struct ob_entry **pp;
     int hash = hash_string(sym);
@@ -56,6 +61,14 @@ cell *oblista(char *sym) {
     (*pp)->namdef._.symbol.val = NIL; // TODO should probably be #void instead
     (*pp)->namdef._.symbol.nam = sym;
     return &((*pp)->namdef);
+}
+
+// define value of variable
+// val is consumed
+void oblist_set(cell *sym, cell *val) {
+    assert(cell_is_symbol(sym));
+    cell_unref(sym->_.symbol.val);
+    sym->_.symbol.val = val;
 }
 
 // clean up on exit
