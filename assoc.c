@@ -18,8 +18,9 @@ static unsigned int assoc_hash(cell *key) {
           ^ (((unsigned long)key) >> 10)) % ASSOC_HASH_SIZE;
 }
 
-// key and val are consumed, but not anode TODO
-void assoc_set(cell *anode, cell* key, cell* val) {
+// on success, key and val are consumed, but not anode
+// return false if already defined, and do not consume key and val
+int assoc_set(cell *anode, cell* key, cell* val) {
     struct assoc_s **pp;
     int hash = assoc_hash(key);
     assert(anode->type == c_ASSOC);
@@ -34,11 +35,11 @@ void assoc_set(cell *anode, cell* key, cell* val) {
     pp = &(anode->_.assoc.table[hash]);
     while (*pp) {
 	if ((*pp)->key == key) {
-	    // exists already TODO should not be allowed
-	    free((*pp)->val);
-	    (*pp)->val = val;
-            cell_unref(key);
-	    return;
+	    // exists already
+	    // cell_unref((*pp)->val);
+	    // (*pp)->val = val;
+	    // cell_unref(key);
+	    return 0;
 	}
 	pp = &(*pp)->next;
     }
@@ -47,6 +48,7 @@ void assoc_set(cell *anode, cell* key, cell* val) {
     (*pp)->next = 0;
     (*pp)->key = key;
     (*pp)->val = val;
+    return 1;
 }
 
 // neither key nor anode is consumed TODO evaluate

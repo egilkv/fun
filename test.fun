@@ -1,7 +1,7 @@
 
 a = 1;
 b = 2;
-c = a > b;
+c = a < b;
 a + b;
 (a + b);
 #plus(a, b);
@@ -9,9 +9,13 @@ a + b;
 factorial = (n) { n<2 ? 1 : n*factorial(n-1) };
 factorial(10);
 
-// assign f to a lambda
-f = (){5};
-f();
+ft = (a, b) {
+    c = a;
+    d = b;
+    c + d
+};
+// NOTE: final semicolon required, not after c+d
+ft(50,5);
 
 v = []{7, 8, "hello"};
 v[0];
@@ -22,7 +26,7 @@ a = []{
    three : 3
 };
 
-#(1, 2, 3);
+#(1, 2, 3);  // a list
 module.symbol;
 list[0];
 "abc" & "def";

@@ -45,8 +45,10 @@ void apply_lambda(cell *fun, cell* args, environment **envp) {
 	    // TODO C recursion, should be avoided
 	    val = eval(val, *envp);
 	}
-	// TODO may start with assoc = NIL
-	assoc_set(newenv->assoc, nam, val);
+	if (!assoc_set(newenv->assoc, nam, val)) {
+	    cell_unref(val);
+	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
+	}
     }
     if (args != NIL) {
 	cell_unref(error_rt1("excess arguments ignored", args));

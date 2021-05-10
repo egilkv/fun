@@ -125,8 +125,10 @@ static cell *cfun_defq(cell *args, environment *env) {
     b = eval(b, env);
     if (env) {
 	assert(env->assoc);
-	// TODO should not be allowed to redefine
-	assoc_set(env->assoc, a, cell_ref(b));
+	if (!assoc_set(env->assoc, a, cell_ref(b))) {
+	    cell_unref(b);
+	    cell_unref(error_rt1("cannot redefine immutable", a));
+	}
     } else {
 	cell_unref(a->_.symbol.val);
 	a->_.symbol.val = cell_ref(b);
