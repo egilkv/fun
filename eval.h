@@ -1,8 +1,14 @@
 /* TAB P
  */
 
-#include "cell.h"
+struct env_s {
+    struct env_s *prev;
+    struct cell_s *assoc; // locals
+    struct cell_s *prog;
+} ;
 
-cell *verify_nil(cell *a, cell *value);
+typedef struct env_s environment;
 
-cell *eval(cell *arg, cell* env);
+struct cell_s *verify_nil(struct cell_s *a, struct cell_s *value);
+
+struct cell_s *eval(struct cell_s *arg, environment *env);

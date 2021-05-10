@@ -8,7 +8,6 @@
 #include "parse.h"
 #include "oblist.h"
 #include "cfun.h"
-#include "eval.h"
 #include "io.h"
 
 int main() {
@@ -19,7 +18,7 @@ int main() {
     while ((ct = expression())) {
         cell_print(stdout, ct);
         printf(" --> ");
-        ct = eval(ct, NIL);
+        ct = eval(ct, NULL);
         cell_print(stdout, ct);
         printf("\n");
         cell_unref(ct);

@@ -6,7 +6,6 @@
 #include <assert.h>
 
 #include "cfun.h"
-#include "eval.h"
 #include "oblist.h"
 #include "err.h"
 
@@ -69,7 +68,7 @@ static int arg2(cell *args, cell **a1p, cell **a2p) {
 
 // a in always unreffed
 // dump is unreffed only if error
-static int eval_numeric(cell *a, integer_t *valuep, cell *dump, cell* env) {
+static int eval_numeric(cell *a, integer_t *valuep, cell *dump, environment *env) {
     if ((a = eval(a, env))) {
         switch (a->type) {
         case c_INTEGER:
@@ -85,7 +84,7 @@ static int eval_numeric(cell *a, integer_t *valuep, cell *dump, cell* env) {
     return 0;
 }
 
-static int eval_index(cell *a, index_t *indexp, cell *dump, cell* env) {
+static int eval_index(cell *a, index_t *indexp, cell *dump, environment *env) {
     integer_t value;
     if (!eval_numeric(a, &value, dump, env)) return 0;
     if (value < 0) {
@@ -114,7 +113,7 @@ static int pick_boolean(cell *a, int *boolp, cell *dump) {
     return 0;
 }
 
-static cell *cfun_defq(cell *args, cell* env) {
+static cell *cfun_defq(cell *args, environment *env) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
         cell_ref(hash_void); // error
@@ -123,13 +122,20 @@ static cell *cfun_defq(cell *args, cell* env) {
         cell_unref(b);
         return error_rt1("not a symbol", a);
     }
-    cell_unref(a->_.symbol.val);
-    b = a->_.symbol.val = eval(b, env);
-    cell_unref(a);
-    return cell_ref(b);
+    b = eval(b, env);
+    if (env) {
+	assert(env->assoc);
+	// TODO should not be allowed to redefine
+	assoc_set(env->assoc, a, cell_ref(b));
+    } else {
+	cell_unref(a->_.symbol.val);
+	a->_.symbol.val = cell_ref(b);
+	cell_unref(a);
+    }
+    return b;
 }
 
-static cell *cfun_not(cell *args, cell* env) {
+static cell *cfun_not(cell *args, environment *env) {
     cell *a;
     int bool;
     if (arg1(args, &a)) {
@@ -141,7 +147,7 @@ static cell *cfun_not(cell *args, cell* env) {
     return cell_ref(hash_void); // error
 }
 
-static cell *cfun_if(cell *args, cell* env) {
+static cell *cfun_if(cell *args, environment *env) {
     int bool;
     cell *a;
     if (cell_split(args, &a, &args)) {
@@ -171,7 +177,7 @@ static cell *cfun_if(cell *args, cell* env) {
     return eval(a, env);
 }
 
-static cell *cfun_quote(cell *args, cell* env) {
+static cell *cfun_quote(cell *args, environment *env) {
     cell *a;
     if (arg1(args, &a)) {
 	return a;
@@ -179,7 +185,7 @@ static cell *cfun_quote(cell *args, cell* env) {
     return cell_ref(hash_void); // error
 }
 
-static cell *cfun_lambda(cell *args, cell* env) {
+static cell *cfun_lambda(cell *args, environment *env) {
     cell *arglist;
     cell *cp;
     if (!cell_split(args, &arglist, &args)) {
@@ -190,7 +196,7 @@ static cell *cfun_lambda(cell *args, cell* env) {
     return cp;
 }
 
-static cell *cfun_plus(cell *args, cell* env) {
+static cell *cfun_plus(cell *args, environment *env) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
@@ -201,7 +207,7 @@ static cell *cfun_plus(cell *args, cell* env) {
     return verify_nil(args, cell_integer(result));
 }
 
-static cell *cfun_minus(cell *args, cell* env) {
+static cell *cfun_minus(cell *args, environment *env) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
@@ -219,7 +225,7 @@ static cell *cfun_minus(cell *args, cell* env) {
     return verify_nil(args, cell_integer(result));
 }
 
-static cell *cfun_times(cell *args, cell* env) {
+static cell *cfun_times(cell *args, environment *env) {
     integer_t result = 1;
     integer_t operand;
     cell *a;
@@ -230,7 +236,7 @@ static cell *cfun_times(cell *args, cell* env) {
     return verify_nil(args, cell_integer(result));
 }
 
-static cell *cfun_div(cell *args, cell* env) {
+static cell *cfun_div(cell *args, environment *env) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
@@ -250,7 +256,7 @@ static cell *cfun_div(cell *args, cell* env) {
     return verify_nil(args, cell_integer(result));
 }
 
-static cell *cfun_lt(cell *args, cell* env) {
+static cell *cfun_lt(cell *args, environment *env) {
     integer_t value;
     integer_t operand;
     cell *a;
@@ -269,13 +275,13 @@ static cell *cfun_lt(cell *args, cell* env) {
     return verify_nil(args, cell_ref(hash_t));
 }
 
-static cell *cfun_eval(cell *args, cell* env) {
+static cell *cfun_eval(cell *args, environment *env) {
     cell *a;
     if (!arg1(args, &a)) return cell_ref(hash_void);
     return eval(a, env);
 }
 
-static cell *cfun_list(cell *args, cell* env) {
+static cell *cfun_list(cell *args, environment *env) {
     cell *list = NIL;
     cell **pp = &list;
     cell *a;
@@ -287,7 +293,7 @@ static cell *cfun_list(cell *args, cell* env) {
     return list;
 }
 
-static cell *cfun_vector(cell *args, cell* env) {
+static cell *cfun_vector(cell *args, environment *env) {
     cell *length;
     cell *vector;
     cell *a;
@@ -332,7 +338,7 @@ static cell *cfun_vector(cell *args, cell* env) {
     return vector;
 }
 
-static cell *cfun_assoc(cell *args, cell* env) {
+static cell *cfun_assoc(cell *args, environment *env) {
     cell *assoc;
     assoc = cell_assoc(); // empty
 #if 0 // TODO implement
@@ -380,7 +386,7 @@ static cell *cfun_assoc(cell *args, cell* env) {
     return assoc;
 }
 
-static cell *cfun_ref(cell *args, cell* env) {
+static cell *cfun_ref(cell *args, environment *env) {
     cell *a, *b;
     cell *value;
     index_t index;

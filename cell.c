@@ -91,7 +91,7 @@ cell *cell_integer(integer_t integer) {
     return node;
 }
 
-cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct cell_s *)) {
+cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct env_s *)) {
     cell *node = newcell(c_CFUN);
     node->_.cfun.def = fun;
     return node;

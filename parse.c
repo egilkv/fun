@@ -144,6 +144,7 @@ static cell *expr(precedence lv) {
     case it_RPAR: // cannot be used
     case it_RBRK:
     case it_RBRC:
+    case it_COLO:
 	error_pat("misplaced item, syntax error", it->type);
         dropitem(it);
         return expr(lv);
@@ -275,7 +276,6 @@ static cell *binary(cell *left, precedence lv) {
         // parse no more
         pushitem(op);
         return left;
-
 
     case it_NOT: // unary only
     case it_QUOT:

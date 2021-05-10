@@ -4,9 +4,10 @@
  */
 
 #include <assert.h>
+#include <stdlib.h>
 
 #include "cfun.h"
-#include "eval.h"
+#include "cell.h"
 #include "err.h"
 
 // if a is NIL, return value otherwise complain and return void
@@ -20,54 +21,41 @@ cell *verify_nil(cell *a, cell *value) {
 }
 
 // TODO check is this is right...
-static cell *apply_lambda(cell *fun, cell* args, cell *env) {
-    cell *result = NIL; // TODO should be void
-    cell *body;
+void apply_lambda(cell *fun, cell* args, environment **envp) {
     assert(fun->type == c_LAMBDA);
+    struct env_s *newenv;
+    cell *nam;
+    cell *val;
+    cell *argnames = cell_ref(fun->_.cons.car);
     // add one level to environment
+    newenv = malloc(sizeof(environment));
+    newenv->prev = *envp;
+    newenv->assoc = cell_assoc();
+    newenv->prog = cell_ref(fun->_.cons.cdr);
+    cell_unref(fun);
 
     // pick up arguments one by one and add to assoc
-    {
-	cell *nam;
-        cell *assoc = cell_assoc();
-        cell *argnames = cell_ref(fun->_.cons.car);
-        while (cell_split(argnames, &nam, &argnames)) {
-            cell *val;
-	    assert(cell_is_symbol(nam));
-            if (!cell_split(args, &val, &args)) {
-                // TODO if more than one, have one message
-		cell_unref(error_rt1("missing value for", cell_ref(nam)));
-                val = cell_ref(hash_void);
-            } else {
-                val = eval(val, env);
-            }
-            // TODO start with assoc = NIL
-            assoc_set(assoc, nam, val);
-        }
-        if (args != NIL) {
-            cell_unref(error_rt1("excess arguments ignored", args));
-        }
-        // add one level of environment
-        env = cell_cons(assoc, env);
+    while (cell_split(argnames, &nam, &argnames)) {
+	assert(cell_is_symbol(nam));
+	if (!cell_split(args, &val, &args)) {
+	    // TODO if more than one, have one message
+	    cell_unref(error_rt1("missing value for", cell_ref(nam)));
+	    val = cell_ref(hash_void);
+	} else {
+	    // TODO C recursion, should be avoided
+	    val = eval(val, *envp);
+	}
+	// TODO may start with assoc = NIL
+	assoc_set(newenv->assoc, nam, val);
     }
-    {
-        cell *expr;
-	body = cell_ref(fun->_.cons.cdr);
-        cell_unref(fun);
-
-        // evaluate one expression at a time
-        while (cell_split(body, &expr, &body)) {
-            cell_unref(result);
-            result = eval(expr, env);
-        }
-        // TODO end recursion
+    if (args != NIL) {
+	cell_unref(error_rt1("excess arguments ignored", args));
     }
-    // drop one level of environment
-    cell_split(env, (cell **)0, &env);
-    return verify_nil(body, result);
+    // add one level of environment
+    *envp = newenv;
 }
 
-cell *eval(cell *arg, cell* env) {
+cell *eval(cell *arg, environment *env) {
 
     if (arg) switch (arg->type) {
     default:        // value is itself
@@ -77,12 +65,11 @@ cell *eval(cell *arg, cell* env) {
 	{
 	    cell *val;
 	    while (env) {
-		assert(cell_is_cons(env));
-		if (assoc_get(env->_.cons.car, arg, &val)) {
+		if (assoc_get(env->assoc, arg, &val)) {
 		    cell_unref(arg);
 		    return val;
 		}
-		env = env->_.cons.cdr;
+		env = env->prev;
 	    }
 	    // global
 	    val = cell_ref(arg->_.symbol.val);
@@ -93,7 +80,7 @@ cell *eval(cell *arg, cell* env) {
     case c_CONS:    
         {
             cell *fun;
-	    struct cell_s *(*def)(struct cell_s *, struct cell_s *);
+	    struct cell_s *(*def)(struct cell_s *, struct env_s *);
 	    cell_split(arg, &fun, &arg);
 	    fun = eval(fun, env);
 	    // TODO may consider moving evaluation out of functions
@@ -106,7 +93,32 @@ cell *eval(cell *arg, cell* env) {
 
 	    case c_LAMBDA:
                 // TODO perhaps
-                return apply_lambda(fun, arg, env);
+		apply_lambda(fun, arg, &env);
+
+		// run program
+		assert(env != NULL);
+		{
+		    cell *result = NIL; // TODO void
+		    cell *expr;
+
+		    // evaluate one expression at a time
+		    while (cell_split(env->prog, &expr, &(env->prog))) {
+			cell_unref(result);
+			// TODO C recursion
+			result = eval(expr, env);
+		    }
+		    // TODO end recursion
+
+		    // drop one level of environment
+		    {
+			environment *prevenv = env->prev;
+			cell_unref(env->assoc);
+			cell_unref(verify_nil(env->prog, NIL));
+			free(env);
+			env = prevenv;
+		    }
+		    return result;
+		}
 
 	    default: // not a function
 		// TODO show item before eval

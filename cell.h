@@ -5,6 +5,7 @@
 #ifndef CELL_H
 
 #include "assoc.h"
+#include "eval.h"
 
 enum cell_t {
    c_CONS,
@@ -45,7 +46,7 @@ struct cell_s {
             char *nam;
         } symbol;
         struct {
-            struct cell_s *(*def)(struct cell_s *, struct cell_s *);
+            struct cell_s *(*def)(struct cell_s *, struct env_s *);
         } cfun;
     } _;
 } ;
@@ -66,7 +67,7 @@ cell *cell_astring(char *string);
 cell *cell_integer(long int integer);
 cell *cell_vector(index_t length);
 cell *cell_assoc();
-cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct cell_s *));
+cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct env_s *));
 
 int cell_is_cons(cell *cp);
 cell *cell_car(cell *cp);
