@@ -1,6 +1,7 @@
 /* TAB-P
  */
 
+#include "type.h"
 
 enum it_ {
    it_QUOT,    // 0
@@ -39,8 +40,9 @@ typedef enum it_ token;
 
 struct item_s {
     token type;
-    long int ivalue; // TODO overlay?
-    char *svalue;
+    integer_t ivalue; // TODO union for efficiency?
+    index_t slen;
+    char_t *svalue;
 };
 
 typedef struct item_s item;

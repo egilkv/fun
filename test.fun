@@ -5,6 +5,7 @@ c = a < b;
 a + b;
 (a + b);
 #plus(a, b);
+c ? a : b;
 
 factorial = (n) { n<2 ? 1 : n*factorial(n-1) };
 factorial(10);
@@ -38,9 +39,11 @@ array1[0];
 array1[3];
 array1[3..4];
 
-array2 = [0..5]{ 0 };
+a = [0..20]{ #t };
 // list[1 ..];
-a[0..j-1] & []{#f} & a[j+1..N];
-c ? a : b;
-// (a) { a<=1 ? a : a*.(a-1) } (5);
+j = 15;
+a[..j-1] & []{#f} & a[j+1..];
+
+// TODO what happens to '.' here:
+((a) { a<=1 ? a : a*.(a-1) }) (5);
 

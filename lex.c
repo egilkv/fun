@@ -80,7 +80,7 @@ static item *gotsymbol(char c, item *it) {
             return it;
         }
         assert(it->svalue);
-        n = strlen(it->svalue);
+        n = it->slen;
     } else {
         it = newitem(it_SYMBOL);
         n = 0;
@@ -89,6 +89,7 @@ static item *gotsymbol(char c, item *it) {
     assert(it->svalue);
     it->svalue[n] = c;
     it->svalue[n+1] = '\0';
+    it->slen = n+1;
     return gotchar(getchar(), it);
 }
 
@@ -113,7 +114,7 @@ static item *gotstring(char c, item *it) {
         }
         // string continues
         assert(it->svalue);
-        n = 1 + strlen(it->svalue);
+        n = 1 + it->slen;
         it->svalue = realloc(it->svalue, n+1);
         assert(it->svalue);
         it->svalue[n-1] = c;
@@ -125,6 +126,7 @@ static item *gotstring(char c, item *it) {
         assert(it->svalue);
     }
     it->svalue[n] = '\0';
+    it->slen = n;
     return gotstring(getchar(), it);
 }
 

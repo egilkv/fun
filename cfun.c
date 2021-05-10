@@ -410,16 +410,16 @@ static cell *cfun_amp(cell *args, environment *env) {
             } else {
                 // TODO handle alen or rlen zero
                 // TODO optimize for case of more than two arguments
-                index_t rlen = strlen(result->_.string.str);
-                index_t alen = strlen(a->_.string.str);
-                char *newstr = malloc(rlen + alen + 1);
+		index_t rlen = result->_.string.len;
+		index_t alen = a->_.string.len;
+		char_t *newstr = malloc(rlen + alen + 1);
                 assert(newstr);
-                if (rlen > 0) memcpy(newstr,result->_.string.str,rlen);
-                if (alen > 0) memcpy(newstr+rlen,a->_.string.str,alen);
+		if (rlen > 0) memcpy(newstr, result->_.string.ptr, rlen);
+		if (alen > 0) memcpy(newstr+rlen, a->_.string.ptr, alen);
                 newstr[rlen+alen] = '\0';
                 cell_unref(result);
                 cell_unref(a);
-                result = cell_astring(newstr);
+		result = cell_astring(newstr, rlen+alen);
             }
             break;
 
@@ -473,11 +473,12 @@ static cell *cfun_ref(cell *args, environment *env) {
 
     case c_STRING:
 	if (!eval_index(b, &index, NIL, env)) return cell_ref(hash_void); // error
-	if (a->_.string.str && index < strlen(a->_.string.str)) {
-            char s[2];
-            s[0] = a->_.string.str[index];
-            s[1] = '\0';
-            value = cell_astring(s);
+	if (index < a->_.string.len) {
+	    char_t *s = malloc(1 + 1);
+	    assert(s);
+	    s[0] = a->_.string.ptr[index];
+	    s[1] = '\0';
+	    value = cell_astring(s, 1);
         } else {
             return error_rti("string index out of bounds", index);
 	}

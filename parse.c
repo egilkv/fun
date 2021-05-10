@@ -43,14 +43,14 @@ static cell *expr(precedence lv) {
         return binary(pt, lv);
 
     case it_STRING:
-        pt = cell_astring(it->svalue);
-        it->svalue = 0;
+        pt = cell_astring(it->svalue, it->slen);
+        it->svalue = NULL;
         dropitem(it);
         return binary(pt, lv);
 
     case it_SYMBOL:
         pt = cell_asymbol(it->svalue);
-        it->svalue = 0;
+        it->svalue = NULL;
         dropitem(it);
         return binary(pt, lv);
 

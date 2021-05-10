@@ -48,7 +48,7 @@ void cell_print(FILE *out, cell *ct) {
         fprintf(out, "%ld", ct->_.ivalue);
         break;
     case c_STRING:
-        fprintf(out, "\"%s\"",ct->_.string.str);
+        fprintf(out, "\"%s\"", ct->_.string.ptr); // TODO ignore ct->_.string.len
         break;
     case c_SYMBOL:
         fprintf(out, "%s", ct->_.symbol.nam);

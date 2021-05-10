@@ -106,9 +106,10 @@ cell *cell_asymbol(char *symbol) {
     return oblista(symbol);
 }
 
-cell *cell_astring(char *string) {
+cell *cell_astring(char_t *string, index_t length) {
     cell *node = newcell(c_STRING);
-    node->_.string.str = string;
+    node->_.string.ptr = string;
+    node->_.string.len = length;
     return node;
 }
 
@@ -212,7 +213,7 @@ void cell_unref(cell *node) {
             // cell is on oblist TODO special case, odd...
             break;
         case c_STRING:
-            free(node->_.string.str);
+            free(node->_.string.ptr);
             free(node);
             break;
         case c_INTEGER:

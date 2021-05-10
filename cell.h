@@ -6,6 +6,7 @@
 
 #include "assoc.h"
 #include "eval.h"
+#include "type.h"
 
 enum cell_t {
    c_LIST,
@@ -18,9 +19,6 @@ enum cell_t {
    c_LAMBDA,
    c_CFUN
 } ;
-
-typedef unsigned long int index_t; // TODO 64 bit
-typedef long int integer_t; // TODO 64 bit
 
 struct cell_s {
     unsigned ref     : 32; // TODO tricky 64bit
@@ -40,11 +38,12 @@ struct cell_s {
             // index_t size; // TODO not used size of hash table
         } assoc;
         struct {
-            char *str;
+            char_t *ptr;
+            index_t len;
         } string;
         struct {
             struct cell_s *val; // all symbols have values
-            char *nam;
+            char_t *nam;
         } symbol;
         struct {
             struct cell_s *(*def)(struct cell_s *, struct env_s *);
@@ -63,9 +62,9 @@ void cell_unref(cell *cp);
 
 cell *cell_list(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
-cell *cell_symbol(char *symbol);
-cell *cell_asymbol(char *symbol);
-cell *cell_astring(char *string);
+cell *cell_symbol(char_t *symbol);
+cell *cell_asymbol(char_t *symbol);
+cell *cell_astring(char_t *string, index_t length);
 cell *cell_integer(long int integer);
 cell *cell_vector(index_t length);
 cell *cell_assoc();
