@@ -339,10 +339,10 @@ static cell *cfun_vector(cell *args, environment *env) {
 	if (!eval_index(length, &len, args, env)) return cell_ref(hash_void); // error
         vector = cell_vector(len);
 
+        // TODO can be optimized
 	while (list_split(args, &a, &args)) {
             if (!vector_set(vector, index, eval(a, env))) {
-                // TODO should include a
-                cell_unref(error_rt1("excess initialization data ignored", args));
+		cell_unref(error_rti("excess initialization data ignored at", index));
                 cell_unref(args);
                 args = NIL;
                 break;
@@ -350,8 +350,13 @@ static cell *cfun_vector(cell *args, environment *env) {
             ++index;
         }
         cell_unref(verify_nil(args, NIL));
-        if (index < len) {
-            // TODO repeat initialization???
+        if (index < len) { // need to pad rest of vector with last element?
+            index_t last_index = index-1;
+            vector_get(vector, last_index, &a);
+            do {
+                vector_set(vector, index, cell_ref(a));
+            } while (++index < len);
+            cell_unref(a);
         }
     } else {
         // vector of unknown length
