@@ -143,13 +143,7 @@ static cell *cfio_write(cell *args, environment *env) {
     return cell_ref(hash_void);
 }
 
-static cell *cfio_writeln(cell *args, environment *env) {
-    cell *v = cfio_write(args, env);
-    fprintf(stdout, "\n");
-    return v;
-}
-
-static cell *cfio_display(cell *args, environment *env) {
+static cell *cfio_print(cell *args, environment *env) {
     cell *a;
     while (list_split(args, &a, &args)) {
         a = eval(a, env);
@@ -171,12 +165,19 @@ static cell *cfio_display(cell *args, environment *env) {
     return cell_ref(hash_void);
 }
 
+static cell *cfio_println(cell *args, environment *env) {
+    cell *v = cfio_print(args, env);
+    fprintf(stdout, "\n");
+    return v;
+}
+
+
 
 cell *module_io() {
     cell *assoc = cell_assoc();
-    assoc_set(assoc, oblists("display"), cell_cfun(cfio_display));;
-    assoc_set(assoc, oblists("write"), cell_cfun(cfio_write));;
-    assoc_set(assoc, oblists("writeln"), cell_cfun(cfio_writeln));;
+    assoc_set(assoc, oblists("print"),   cell_cfun(cfio_print)); // scheme 'display'
+    assoc_set(assoc, oblists("println"), cell_cfun(cfio_println));
+    assoc_set(assoc, oblists("write"),   cell_cfun(cfio_write));
     return assoc;
 }
 
