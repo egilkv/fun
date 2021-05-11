@@ -13,7 +13,7 @@ enum prec_ {
     l_COMMA,    // ,            TODO
     l_DEF,      // =            TODO right to left
     l_COND,     // ?            TODO right to left, in C ? : are same
-    l_COLO,     // :            TODO
+    l_COLON,    // :            TODO
     l_OR ,      // ||           TODO
     l_AND,      // &&
     l_AMP,      // & TODO revise

@@ -68,13 +68,19 @@ static cell *expr(precedence lv) {
         if (!p2) return badeof();
         return cell_list(cell_ref(hash_not), cell_list(p2, NIL));
 
-    case it_MINS:
+    case it_MINUS:
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
+	if (cell_is_integer(p2)) {
+	    // handle unary minus of number
+	    // TODO deal with overflow
+            p2->_.ivalue = -(p2->_.ivalue);
+	    return p2;
+	}
         return cell_list(cell_ref(hash_minus), cell_list(p2, NIL));
 
-    case it_QUOT:
+    case it_QUOTE:
         dropitem(it);
         p2 = expr(l_UNARY);
         if (!p2) return badeof();
@@ -82,7 +88,7 @@ static cell *expr(precedence lv) {
 
     case it_LPAR:
         // read as list
-        pt = getlist(it, it_COMA, it_RPAR);
+        pt = getlist(it, it_COMMA, it_RPAR);
         it = lexical();
         if (cell_is_list(pt)) {
             // single item on list, not sure what it is
@@ -124,7 +130,7 @@ static cell *expr(precedence lv) {
             return cell_list(cell_ref(hash_vector), cell_list(pt, NIL));
         }
         {
-            cell *init = getlist(it, it_COMA, it_RBRC);
+            cell *init = getlist(it, it_COMMA, it_RBRC);
 
 	    // peek to see if it is a colon-style initializer
 	    if ((cell_is_list(init) && cell_is_pair(cell_car(init)))
@@ -148,10 +154,10 @@ static cell *expr(precedence lv) {
 
     case it_PLUS: // unary?
     case it_MULT: // binary only
-    case it_DIVS:
+    case it_DIV:
     case it_LT:
     case it_GT:
-    case it_EQUL:
+    case it_EQ:
     case it_LTEQ:
     case it_GTEQ:
     case it_NTEQ:
@@ -159,13 +165,13 @@ static cell *expr(precedence lv) {
     case it_AMP:
     case it_AND:
     case it_STOP:
-    case it_COMA:
-    case it_QEST: // ternary
+    case it_COMMA:
+    case it_QUEST: // ternary
     case it_ELIP: // binary sometimes..
     case it_RPAR: // cannot be used
     case it_RBRK:
     case it_RBRC:
-    case it_COLO:
+    case it_COLON:
 	error_pat("misplaced item, syntax error", it->type);
         dropitem(it);
         return expr(lv);
@@ -187,11 +193,11 @@ static cell *binary(cell *left, precedence lv) {
     switch (op->type) {
     case it_PLUS: // binary
 	if (!s) { l2 = l_ADD;     s = cell_ref(hash_plus); }
-    case it_MINS:
+    case it_MINUS:
 	if (!s) { l2 = l_ADD;     s = cell_ref(hash_minus); }
     case it_MULT:
 	if (!s) { l2 = l_MULT;    s = cell_ref(hash_times); }
-    case it_DIVS:
+    case it_DIV:
 	if (!s) { l2 = l_MULT;    s = cell_ref(hash_div); }
     case it_LT:
         if (!s) { l2 = l_REL;     s = cell_ref(hash_lt); }
@@ -211,7 +217,7 @@ static cell *binary(cell *left, precedence lv) {
         if (!s) { l2 = l_AND;     s = cell_symbol("#and"); }
     case it_STOP:
         if (!s) { l2 = l_POST;    s = cell_ref(hash_refq); }
-    case it_EQUL:
+    case it_EQ:
 	if (!s) { l2 = l_DEF;     s = cell_ref(hash_defq); }
 
         if (lv >= l2) { // TODO left-to-right
@@ -228,7 +234,7 @@ static cell *binary(cell *left, precedence lv) {
         return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv);
 
 #if 1 // TODO
-    case it_QEST:
+    case it_QUEST:
         if (lv >= l_COND) { // TODO right to left
             // look no further
             pushitem(op);
@@ -242,7 +248,7 @@ static cell *binary(cell *left, precedence lv) {
         }
         return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv);
 #else
-    case it_QEST: // ternary
+    case it_QUEST: // ternary
         if (lv >= l_COND) { // TODO right to left
             // look no further
             pushitem(op);
@@ -255,7 +261,7 @@ static cell *binary(cell *left, precedence lv) {
             return left;
         }
         op = lexical();
-        if (!op || op->type != it_COLO) {
+        if (!op || op->type != it_COLON) {
             // "if" without an "else"
             // TODO should that be allowed?
             if (op) pushitem(op);
@@ -279,7 +285,7 @@ static cell *binary(cell *left, precedence lv) {
             pushitem(op);
             return left;
         }
-        return cell_list(left, getlist(op, it_COMA, it_RPAR));
+        return cell_list(left, getlist(op, it_COMMA, it_RPAR));
 
     case it_LBRK: // array
         if (lv >= l_POST) { // TODO left-to-right
@@ -303,14 +309,14 @@ static cell *binary(cell *left, precedence lv) {
         }
         return binary(cell_list(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv);
 
-    case it_COLO:
-        if (lv >= l_COLO) { // TODO left-to-right
+    case it_COLON:
+        if (lv >= l_COLON) { // TODO left-to-right
             // look no further
             pushitem(op);
             return left;
         }
         dropitem(op);
-        right = expr(l_COLO);
+        right = expr(l_COLON);
         if (!right) {
             badeof(); // end of file
             return left;
@@ -321,14 +327,14 @@ static cell *binary(cell *left, precedence lv) {
     case it_RPAR:
     case it_RBRK:
     case it_RBRC:
-    case it_COMA:
+    case it_COMMA:
     case it_ELIP:
         // parse no more
         pushitem(op);
         return left;
 
     case it_NOT: // unary only
-    case it_QUOT:
+    case it_QUOTE:
     case it_LBRC:
     case it_INTEGER:
     case it_STRING:

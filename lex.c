@@ -177,7 +177,7 @@ static item *gotdefault(char c, item *it) {
     return it ? it : gotchar(getchar(), 0);
 }
 
-static item *gotequl(char c, item *it) {
+static item *goteq(char c, item *it) {
     if (it) {
         switch (it->type) {
         case it_LT:
@@ -189,7 +189,7 @@ static item *gotequl(char c, item *it) {
         case it_NOT:
             it->type = it_NTEQ;
             break;
-        case it_EQUL:
+        case it_EQ:
             it->type = it_EQEQ;
             break;
         default:
@@ -197,7 +197,7 @@ static item *gotequl(char c, item *it) {
             break;
         }
     } else {
-        it = gotchar(getchar(), newitem(it_EQUL));
+        it = gotchar(getchar(), newitem(it_EQ));
     }
     return it;
 }
@@ -228,9 +228,9 @@ static item *gotstop(char c, item *it) {
     return it;
 }
 
-static item *gotdivs(char c, item *it) {
+static item *gotdiv(char c, item *it) {
     if (it) {
-        if (it->type == it_DIVS) { // comment until end of line
+        if (it->type == it_DIV) { // comment until end of line
             dropitem(it);
             // TODO iteration
             int c;
@@ -244,7 +244,7 @@ static item *gotdivs(char c, item *it) {
             pushchar(c);
         }
     } else {
-        it = gotchar(getchar(), newitem(it_DIVS));
+        it = gotchar(getchar(), newitem(it_DIV));
     }
     return it;
 }
@@ -255,23 +255,23 @@ static item *gotplain(char c, token type, item *it) {
     return it;
 }
 
-static item *gotlt(char c, item *it) { return gotplain(c, it_LT, it); }
-static item *gotgt(char c, item *it) { return gotplain(c, it_GT, it); }
-static item *gotnot(char c, item *it) { return gotplain(c, it_NOT, it); }
-static item *gotquot(char c, item *it) { return gotplain(c, it_QUOT, it); }
-static item *gotplus(char c, item *it) { return gotplain(c, it_PLUS, it); }
-static item *gotmins(char c, item *it) { return gotplain(c, it_MINS, it); }
-static item *gotmult(char c, item *it) { return gotplain(c, it_MULT, it); }
-static item *gotcoma(char c, item *it) { return gotplain(c, it_COMA, it); }
-static item *gotcolo(char c, item *it) { return gotplain(c, it_COLO, it); }
-static item *gotsemi(char c, item *it) { return gotplain(c, it_SEMI, it); }
-static item *gotqest(char c, item *it) { return gotplain(c, it_QEST, it); }
-static item *gotlpar(char c, item *it) { return gotplain(c, it_LPAR, it); }
-static item *gotrpar(char c, item *it) { return gotplain(c, it_RPAR, it); }
-static item *gotlbrk(char c, item *it) { return gotplain(c, it_LBRK, it); }
-static item *gotrbrk(char c, item *it) { return gotplain(c, it_RBRK, it); }
-static item *gotlbrc(char c, item *it) { return gotplain(c, it_LBRC, it); }
-static item *gotrbrc(char c, item *it) { return gotplain(c, it_RBRC, it); }
+static item *gotlt(char c, item *it)    { return gotplain(c, it_LT, it); }
+static item *gotgt(char c, item *it)    { return gotplain(c, it_GT, it); }
+static item *gotnot(char c, item *it)   { return gotplain(c, it_NOT, it); }
+static item *gotquote(char c, item *it) { return gotplain(c, it_QUOTE, it); }
+static item *gotplus(char c, item *it)  { return gotplain(c, it_PLUS, it); }
+static item *gotminus(char c, item *it) { return gotplain(c, it_MINUS, it); }
+static item *gotmult(char c, item *it)  { return gotplain(c, it_MULT, it); }
+static item *gotcomma(char c, item *it) { return gotplain(c, it_COMMA, it); }
+static item *gotcolon(char c, item *it) { return gotplain(c, it_COLON, it); }
+static item *gotsemi(char c, item *it)  { return gotplain(c, it_SEMI, it); }
+static item *gotquest(char c, item *it) { return gotplain(c, it_QUEST, it); }
+static item *gotlpar(char c, item *it)  { return gotplain(c, it_LPAR, it); }
+static item *gotrpar(char c, item *it)  { return gotplain(c, it_RPAR, it); }
+static item *gotlbrk(char c, item *it)  { return gotplain(c, it_LBRK, it); }
+static item *gotrbrk(char c, item *it)  { return gotplain(c, it_RBRK, it); }
+static item *gotlbrc(char c, item *it)  { return gotplain(c, it_LBRC, it); }
+static item *gotrbrc(char c, item *it)  { return gotplain(c, it_RBRC, it); }
 
 // return item, or NULL is end of file
 static item *gotchar(int c, item *it) {
@@ -285,7 +285,7 @@ static item *gotchar(int c, item *it) {
     case '#':
         return gotsymbol(c, it);
     case '\'':
-        return gotquot(c, it);
+        return gotquote(c, it);
     case '"':
         return gotstring(c, it);
     case '+':
@@ -293,9 +293,9 @@ static item *gotchar(int c, item *it) {
     case '*':
         return gotmult(c, it);
     case '-':
-        return gotmins(c, it);
+        return gotminus(c, it);
     case '/':
-        return gotdivs(c, it);
+        return gotdiv(c, it);
     case '<':
         return gotlt(c, it);
     case '>':
@@ -305,17 +305,17 @@ static item *gotchar(int c, item *it) {
     case '&':
         return gotamp(c, it);
     case '=':
-        return gotequl(c, it);
+        return goteq(c, it);
     case '.':
         return gotstop(c, it);
     case ',':
-        return gotcoma(c, it);
+        return gotcomma(c, it);
     case ':':
-        return gotcolo(c, it);
+        return gotcolon(c, it);
     case ';':
 	return gotsemi(c, it);
     case '?':
-        return gotqest(c, it);
+        return gotquest(c, it);
     case '(':
         return gotlpar(c, it);
     case ')':

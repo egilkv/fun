@@ -4,15 +4,15 @@
 #include "type.h"
 
 enum it_ {
-   it_QUOT,    // 0
+   it_QUOTE,   // 0
    it_PLUS,
-   it_MINS,
+   it_MINUS,
    it_MULT,
-   it_DIVS,
+   it_DIV,
    it_LT,      // 5
    it_NOT,
    it_GT,
-   it_EQUL,
+   it_EQ,
    it_LTEQ,
    it_GTEQ,    // 10
    it_NTEQ,
@@ -21,10 +21,10 @@ enum it_ {
    it_AND,
    it_STOP,    // 15
    it_ELIP,
-   it_COMA,
-   it_COLO,
+   it_COMMA,
+   it_COLON,
    it_SEMI,
-   it_QEST,    // 20
+   it_QUEST,   // 20
    it_LPAR,
    it_RPAR,
    it_LBRK,

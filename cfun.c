@@ -75,13 +75,10 @@ static int arg2(cell *args, cell **a1p, cell **a2p) {
 // a in always unreffed
 // dump is unreffed only if error
 static int get_numeric(cell *a, integer_t *valuep, cell *dump) {
-    if (a) switch (a->type) {
-    case c_INTEGER:
+    if (cell_is_integer(a)) {
 	*valuep = a->_.ivalue;
 	cell_unref(a);
 	return 1;
-    default:
-	break;
     }
     cell_unref(dump);
     cell_unref(error_rt1("not a number", a));

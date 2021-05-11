@@ -61,6 +61,11 @@ int cell_is_string(cell *cp) {
     return cp && cp->type == c_STRING;
 }
 
+// TODO inline
+int cell_is_integer(cell *cp) {
+    return cp && cp->type == c_INTEGER;
+}
+
 cell *cell_car(cell *cp) {
     assert(cell_is_list(cp) || cell_is_pair(cp));
     return cp->_.cons.car;

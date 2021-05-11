@@ -1,4 +1,13 @@
 
+Possibly change array and assoc initialization to Json style?
+But then, how to separate a {} block in a program from an initialized assoc?
+Json reserved names and types:
+    null, true, false
+    signed decimal number, including floats
+    string
+    array [] and comma-separated elements.
+    associative array
+
 5 > 3 > 1  must be investigated. And also, how does it work in C?
 
     if (oldlen > 0 && oldlen > newlen) {
@@ -9,9 +18,11 @@ Implement non-mutable 'variables'
 
 verify_nil can possibly be replace by assert
 
-[]{} is an empty assoc
+[]{} is an empty assoc?
 
 Function invocation and lists should be separate things. Really
+
+TODO allow for byte order mark and other Unicode stuff in reader
 
 Assoc keys can be symbols, strings or integers
 

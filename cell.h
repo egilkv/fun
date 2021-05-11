@@ -85,6 +85,8 @@ int cell_is_symbol(cell *cp);
 
 int cell_is_string(cell *cp);
 
+int cell_is_integer(cell *cp);
+
 #endif
 
 #define CELL_H
