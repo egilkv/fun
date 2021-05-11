@@ -16,7 +16,7 @@
 
 // TODO remove when all is done
 static cell *cell_symbol(char *symbol) {
-    return oblist(symbol, NIL);
+    return oblistv(symbol, cell_ref(hash_void));    // undefined
 }
 
 

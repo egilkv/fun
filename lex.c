@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+
 #include "lex.h"
 #include "err.h"
 
@@ -102,15 +103,52 @@ static item *gotstring(char c, item *it) {
         }
         if (c == '"') { // end of string?
             return it;
-        }
-        if (iscntrl(c)) {
+        } 
+        if (c == '\\') {
+            int c2 = getchar();
+            if (c2 < 0) {
+                error_lex("unterminated string", -1);
+                return it;
+            }
+            switch (c2) {
+            case '"':  // TODO surely more
+            case '\'':
+            case '\\':
+            case '?':
+                c = c2; // next as is
+                break;
+            case 'b':
+                c = '\b';
+                break;
+            case 'f':
+                c = '\f';
+                break;
+            case 'n':
+                c = '\n';
+                break;
+            case 'r':
+                c = '\r';
+                break;
+            case 't':
+                c = '\t';
+                break;
+            case '0': // TODO implement https://en.wikipedia.org/wiki/Escape_sequences_in_C
+            case 'x':
+            case 'u':
+            case 'U':
+            default: // TODO implement
+                error_lex("unknown \\-escape, ignored", c2);
+                return gotstring(getchar(), it);
+            }
+        } else if (iscntrl(c)) {
             // TODO error
             if (c == '\r' || c == '\n') {
                 error_lex("string missing trailing quote", -1);
-            } else {
-                error_lex("bad control character in string", c);
+                pushchar(c);
+                return it;
             }
-            return gotchar(getchar(), 0);
+            error_lex("bad control character in string, ignored", c);
+            return gotstring(getchar(), it);
         }
         // string continues
         assert(it->svalue);
@@ -284,6 +322,8 @@ static item *gotchar(int c, item *it) {
         return gotrpar(c, it);
     case '[':
         return gotlbrk(c, it);
+    case '\\':
+        return gotstring(c, it);
     case ']':
         return gotrbrk(c, it);
     case '{':

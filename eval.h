@@ -9,6 +9,4 @@ struct env_s {
 
 typedef struct env_s environment;
 
-struct cell_s *verify_nil(struct cell_s *a, struct cell_s *value);
-
 struct cell_s *eval(struct cell_s *arg, environment *env);

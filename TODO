@@ -16,3 +16,6 @@ Function invocation and lists should be separate things. Really
 Assoc keys can be symbols, strings or integers
 
 Have === operator in addition to ==, to require more equality of sorts
+
+In Scheme, 'display' will print strings without the " etc while 'write' will
+write S-expressions that 'read' can read. We should be able to read JSON directly.

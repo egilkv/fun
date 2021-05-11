@@ -30,9 +30,9 @@ static unsigned int hash_string(const char *sym) {
 }
 
 // add symbol to oblist, with value
-// symbol is alloc'd
+// symbol is alloc'd as needed
 // val is consumed
-cell *oblist(char *sym, cell *val) {
+cell *oblistv(const char *sym, cell *val) {
     cell *ob = oblista(strdup(sym));
     oblist_set(ob, val);
     return ob;
@@ -40,7 +40,7 @@ cell *oblist(char *sym, cell *val) {
 
 // find or create symbol
 // assume symbol is malloc()'d
-// TODO if created, state should be "not yet defined"
+// return unreffed symbol
 cell *oblista(char *sym) {
     struct ob_entry **pp;
     int hash = hash_string(sym);
@@ -58,8 +58,35 @@ cell *oblista(char *sym) {
     (*pp)->next = 0;
     (*pp)->namdef.type = c_SYMBOL;
     (*pp)->namdef.ref = 1;
-    (*pp)->namdef._.symbol.val = NIL; // TODO should probably be #void instead
+    // TODO if created, state should be "not yet defined"
+    (*pp)->namdef._.symbol.val = NIL;
     (*pp)->namdef._.symbol.nam = sym;
+    return &((*pp)->namdef);
+}
+
+// find symbol, or create as undef as needed
+// symbol will be malloc()'d
+// TODO if created, state should be "not yet defined"
+// return unreffed symbol
+cell *oblists(const char *sym) {
+    // TODO combine with oblista() above
+    struct ob_entry **pp;
+    int hash = hash_string(sym);
+    pp = &(ob_table[hash]);
+    while (*pp) {
+        if (strcmp((*pp)->namdef._.symbol.nam, sym) == 0) {
+	    // exists already
+            return &((*pp)->namdef);
+	}
+	pp = &(*pp)->next;
+    }
+    // not found, make entry
+    *pp = malloc(sizeof(struct ob_entry));
+    (*pp)->next = 0;
+    (*pp)->namdef.type = c_SYMBOL;
+    (*pp)->namdef.ref = 1;
+    (*pp)->namdef._.symbol.val = NIL; // TODO should probably be #void instead
+    (*pp)->namdef._.symbol.nam = strdup(sym);
     return &((*pp)->namdef);
 }
 

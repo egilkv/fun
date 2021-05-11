@@ -10,16 +10,6 @@
 #include "cell.h"
 #include "err.h"
 
-// if a is NIL, return value otherwise complain and return void
-cell *verify_nil(cell *a, cell *value) {
-    if (a) {
-	cell_unref(error_rt1("improper list", a));
-	cell_unref(value);
-	return cell_ref(hash_void);
-    }
-    return value;
-}
-
 // TODO check is this is right...
 void apply_lambda(cell *fun, cell* args, environment **envp) {
     assert(fun->type == c_LAMBDA);
@@ -115,7 +105,7 @@ cell *eval(cell *arg, environment *env) {
 		    {
 			environment *prevenv = env->prev;
 			cell_unref(env->assoc);
-			cell_unref(verify_nil(env->prog, NIL));
+			assert(env->prog == NIL);
 			free(env);
 			env = prevenv;
 		    }

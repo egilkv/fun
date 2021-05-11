@@ -1,12 +1,16 @@
 /* TAB-P
  *
+ * module io
  */
 
 #include <stdio.h>
+#include <ctype.h>
 #include <assert.h>
 
 #include "cell.h"
 #include "io.h"
+#include "cfun.h"
+#include "oblist.h"
 
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
@@ -27,6 +31,7 @@ static void show_list(FILE *out, cell *ct) {
     }
 }
 
+// does not consume cell
 void cell_print(FILE *out, cell *ct) {
 
     if (!ct) {
@@ -48,7 +53,35 @@ void cell_print(FILE *out, cell *ct) {
         fprintf(out, "%ld", ct->_.ivalue);
         break;
     case c_STRING:
-        fprintf(out, "\"%s\"", ct->_.string.ptr); // TODO ignore ct->_.string.len
+        {
+            index_t n;
+            fprintf(out, "\"");
+            for (n = 0; n < ct->_.string.len; ++n) {
+                char_t c = ct->_.string.ptr[n];
+                switch (c) {
+                case '"':
+                case '\\':
+                    fprintf(out, "\\%c", c);
+                    break;
+                case '\r':
+                    fprintf(out, "\\r");
+                    break;
+                case '\n':
+                    fprintf(out, "\\n");
+                    break;
+                default:
+                    // TODO review carefully
+                    if (iscntrl(c) || c == 0x7f) {
+                        // TODO only for 7 bit control chars
+                        fprintf(out, "\\%03o", c);
+                    } else {
+                        fputc(c, out);
+                    }
+                    break;
+                }
+            }
+            fprintf(out, "\"");
+        }
         break;
     case c_SYMBOL:
         fprintf(out, "%s", ct->_.symbol.nam);
@@ -69,3 +102,52 @@ void cell_print(FILE *out, cell *ct) {
         break;
     }
 }
+
+static cell *cfio_write(cell *args, environment *env) {
+    cell *a;
+    while (list_split(args, &a, &args)) {
+        a = eval(a, env);
+	cell_print(stdout, a);
+	cell_unref(a);
+    }
+    assert(args == NIL);
+    return cell_ref(hash_void);
+}
+
+static cell *cfio_writeln(cell *args, environment *env) {
+    cell *v = cfio_write(args, env);
+    fprintf(stdout, "\n");
+    return v;
+}
+
+static cell *cfio_display(cell *args, environment *env) {
+    cell *a;
+    while (list_split(args, &a, &args)) {
+        a = eval(a, env);
+        if (a) switch (a->type) { // NIL prints as nothing
+        case c_STRING:
+            fwrite(a->_.string.ptr, sizeof(char_t), a->_.string.len, stdout);
+            break;
+        case c_INTEGER:
+        case c_SYMBOL:
+            cell_print(stdout, a);
+            break;
+        default:
+            // TODO error message??
+            break;
+        }
+        cell_unref(a);
+    }
+    assert(args == NIL);
+    return cell_ref(hash_void);
+}
+
+
+cell *module_io() {
+    cell *assoc = cell_assoc();
+    assoc_set(assoc, oblists("display"), cell_cfun(cfio_display));;
+    assoc_set(assoc, oblists("write"), cell_cfun(cfio_write));;
+    assoc_set(assoc, oblists("writeln"), cell_cfun(cfio_writeln));;
+    return assoc;
+}
+

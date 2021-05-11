@@ -33,7 +33,7 @@ aa['three];
 aa.one;
 aa.two;
 aa.three;
-aa.ix;
+// aa.ix;
 
 list = #(1, 2, 3);
 list[0];

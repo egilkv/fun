@@ -22,6 +22,7 @@ extern cell *hash_ref;
 extern cell *hash_refq;
 extern cell *hash_t;
 extern cell *hash_times;
+extern cell *hash_use;
 extern cell *hash_vector;
 extern cell *hash_void;
 
