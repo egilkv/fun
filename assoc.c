@@ -30,6 +30,7 @@ int assoc_set(cell *anode, cell* key, cell* val) {
 	anode->_.assoc.table = malloc(ASSOC_HASH_SIZE * sizeof(struct assoc_s *));
 	assert(anode->_.assoc.table);
 	memset(anode->_.assoc.table, 0, ASSOC_HASH_SIZE * sizeof(struct assoc_s *));
+	anode->_.assoc.size = ASSOC_HASH_SIZE;
     }
 
     pp = &(anode->_.assoc.table[hash]);

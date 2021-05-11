@@ -35,7 +35,7 @@ struct cell_s {
         } vector;
         struct {
 	    struct assoc_s **table; // pointer to hash table
-            // index_t size; // TODO not used size of hash table
+	    index_t size; // TODO not used size of hash table
         } assoc;
         struct {
             char_t *ptr; // includes a trailing '\0' for easy conversion to C

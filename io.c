@@ -95,10 +95,39 @@ void cell_print(FILE *out, cell *ct) {
         fprintf(out, "()");
         break;
     case c_VECTOR:
-        fprintf(out, "#vector[%ld]", ct->_.vector.len); // TODO something better
+        {
+            int more = 0;
+            index_t n = ct->_.vector.len;
+            index_t i;
+	    fprintf(out, "[%ld]{ ", n); // TODO make JSON
+            for (i = 0; i < n; ++i) {
+                if (more) fprintf(out, ", ");
+                more = 1;
+		cell_print(out, ct->_.vector.table[i]);
+            }
+            fprintf(out, more ? " } ":"} ");
+        }
         break;
     case c_ASSOC:
-        fprintf(out, "#assoc[]"); // TODO something better
+        {
+	    struct assoc_s *p;
+            int more = 0;
+            index_t n = ct->_.assoc.size;
+            index_t i;
+	    fprintf(out, "[]{ "); // TODO make JSON
+	    if ( ct->_.assoc.table) for (i = 0; i < n; ++i) {
+		p = ct->_.assoc.table[i];
+		while (p) {
+                    if (more) fprintf(out, ", ");
+                    more = 1;
+		    cell_print(out, p->key);
+		    fprintf(out, " : ");
+		    cell_print(out, p->val);
+		    p = p->next;
+		}
+	    }
+            fprintf(out, more ? " } ":"} ");
+        }
         break;
     }
 }
