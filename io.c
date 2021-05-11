@@ -99,13 +99,14 @@ void cell_print(FILE *out, cell *ct) {
             int more = 0;
             index_t n = ct->_.vector.len;
             index_t i;
-	    fprintf(out, "[%ld]{ ", n); // TODO make JSON
+            fprintf(out, "[ ");
             for (i = 0; i < n; ++i) {
                 if (more) fprintf(out, ", ");
                 more = 1;
 		cell_print(out, ct->_.vector.table[i]);
             }
-            fprintf(out, more ? " } ":"} ");
+            fprintf(out, more ? " ] ":"] ");
+            // TODO sprinkle some newlines here and elsewhere
         }
         break;
     case c_ASSOC:
@@ -114,7 +115,7 @@ void cell_print(FILE *out, cell *ct) {
             int more = 0;
             index_t n = ct->_.assoc.size;
             index_t i;
-	    fprintf(out, "[]{ "); // TODO make JSON
+            fprintf(out, "{ ");
 	    if ( ct->_.assoc.table) for (i = 0; i < n; ++i) {
 		p = ct->_.assoc.table[i];
 		while (p) {
@@ -127,6 +128,7 @@ void cell_print(FILE *out, cell *ct) {
 		}
 	    }
             fprintf(out, more ? " } ":"} ");
+            // TODO sprinkle some newlines here and elsewhere
         }
         break;
     }

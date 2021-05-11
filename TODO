@@ -1,32 +1,34 @@
 
-Possibly change array and assoc initialization to Json style?
-But then, how to separate a {} block in a program from an initialized assoc?
-Json reserved names and types:
+Implement semicolon as operator like C comma operator
+Needs some refinement for sure
+
+When array and assoc initialization is Json style,
+how to separate a {} block in a program from an initialized assoc?
+
+Json keys are always strings. Reserved names and types:
     null, true, false
     signed decimal number, including floats
     string
     array [] and comma-separated elements.
     associative array
 
-5 > 3 > 1  must be investigated. And also, how does it work in C?
-
-    if (oldlen > 0 && oldlen > newlen) {
+5 > a > 1 should be implemented. What about 5 >= a > 1
+newlen > oldlen > 0  same as (oldlen > 0 && oldlen < newlen)
 
 Implement function call without use of C stack
 
 Implement non-mutable 'variables'
 
-verify_nil can possibly be replace by assert
-
-[]{} is an empty assoc?
+{} is an empty assoc?
 
 Function invocation and lists should be separate things. Really
 
 TODO allow for byte order mark and other Unicode stuff in reader
 
-Assoc keys can be symbols, strings or integers
+Assoc keys can be symbols, integers. Or strings?
 
 Have === operator in addition to ==, to require more equality of sorts
 
 In Scheme, 'display' will print strings without the " etc while 'write' will
-write S-expressions that 'read' can read. We should be able to read JSON directly.
+write S-expressions that 'read' can read. We should be able to read JSON 
+directly.

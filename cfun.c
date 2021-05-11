@@ -344,52 +344,36 @@ static cell *cfun_list(cell *args, environment *env) {
 }
 
 static cell *cfun_vector(cell *args, environment *env) {
-    cell *length;
     cell *vector;
-    cell *a;
     index_t len;
-    if (!list_split(args, &length, &args)) {
-	return error_rt1("missing vector length", args);
-    }
-    if (length) {
-        // vector of specified length
-	// TODO index_t check > 0
-	index_t index = 0;
-	if (!get_index(eval(length, env), &len, args)) return cell_ref(hash_void); // error
-        vector = cell_vector(len);
-
-        // TODO can be optimized
-	while (list_split(args, &a, &args)) {
-            if (!vector_set(vector, index, eval(a, env))) {
-		cell_unref(error_rti("excess initialization data ignored at", index));
-                cell_unref(args);
-                args = NIL;
-                break;
+    cell *a;
+    // vector of length determined by initialization
+    len = 0;
+    vector = cell_vector(0);
+    // TODO rather inefficient
+    while (list_split(args, &a, &args)) {
+        if (cell_is_pair(a)) {  // index : value
+	    index_t index;
+            cell *b;
+	    pair_split(a, &a, &b);
+	    if (get_index(eval(a, env), &index, b)) {
+                if (index >= len) {
+                    len = index+1;
+                    vector_resize(vector, len);
+                }
+                // TODO check if redefining, which is not allowed
+		if (!vector_set(vector, index, eval(b, env))) {
+                    assert(0); // out of bounds should not happen
+                }
             }
-            ++index;
-        }
-	assert(args == NIL);
-        if (index < len) { // need to pad rest of vector with last element?
-            index_t last_index = index-1;
-            vector_get(vector, last_index, &a);
-            do {
-                vector_set(vector, index, cell_ref(a));
-            } while (++index < len);
-            cell_unref(a);
-        }
-    } else {
-        // vector of unknown length
-        len = 0;
-        vector = cell_vector(0);
-        // TODO rather inefficient
-	while (list_split(args, &a, &args)) {
+        } else {
             vector_resize(vector, ++len);
             if (!vector_set(vector, len-1, eval(a, env))) {
                 assert(0); // out of bounds should not happen
             }
         }
-	assert(args == NIL);
     }
+    assert(args == NIL);
     return vector;
 }
 

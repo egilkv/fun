@@ -7,7 +7,7 @@ a + b;
 #plus(a, b);
 c ? a : b;
 
-factorial = (n) { n<2 ? 1 : n*factorial(n-1) };
+factorial = (n){ n<2 ? 1 : n*factorial(n-1) };
 factorial(10);
 
 ft = (a, b) {
@@ -18,10 +18,10 @@ ft = (a, b) {
 // NOTE: final semicolon required, not after c+d
 ft(50,5);
 
-v = []{7, 8, "hello"};
+v = [ 7, 8, "hello" ];
 v[0];
 v[2];
-aa = []{
+aa = {
    one : 1,
    two : 2,
    three : 3
@@ -34,6 +34,8 @@ aa.one;
 aa.two;
 aa.three;
 // aa.ix;
+
+[ 3 : 99, 0 : "test" ]; // 1 and 2 are undefined
 
 list = #(1, 2, 3);
 list[0];

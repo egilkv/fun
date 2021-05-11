@@ -29,8 +29,9 @@ static cell *badeof() {
     return 0;
 }
 
+// get expression at the outer level, where semicolon is separator
 cell *expression() {
-    return expr(l_BOT);
+    return expr(l_SEMI);
 }
 
 static cell *expr(precedence lv) {
@@ -41,9 +42,6 @@ static cell *expr(precedence lv) {
     if (!it) return 0; // end of file
 
     switch (it->type) {
-    case it_SEMI: // special
-        dropitem(it);
-        return expr(lv); // TODO end recursion in C is a problem
 
     case it_INTEGER:
         pt = cell_integer(it->ivalue);
@@ -114,14 +112,15 @@ static cell *expr(precedence lv) {
             return cell_list(cell_ref(hash_lambda), cell_list(pt, body));
         }
 
-    case it_LBRC:
-        pt = getlist(it, it_SEMI, it_RBRC);
+    case it_LBRC: // assoc definition
+	pt = getlist(it, it_COMMA, it_RBRC);
         // TODO implement optional final semicolon
-        return cell_list(cell_symbol("#do"), pt);
+	return cell_list(cell_ref(hash_assoc), pt);
 
-    case it_LBRK:
-        // TODO ellipsis cannot be treated exactly as comma
-        pt = getlist(it, it_ELIP, it_RBRK);
+    case it_LBRK: // array definition
+	pt = getlist(it, it_COMMA, it_RBRK);
+	return cell_list(cell_ref(hash_vector), pt);
+#if 0 // TODO
         it = lexical();
         if (!it || it->type != it_LBRC) {
 	    error_par("expected initializer (left curly bracket)");
@@ -138,7 +137,6 @@ static cell *expr(precedence lv) {
 		if (pt) {
 		    error_pa1("length specified for assoc ignored", pt); // TODO rephrase?
 		}
-		return cell_list(cell_ref(hash_assoc), init);
 
 	    } else { // vector
 		// vector of straight length is special case
@@ -151,6 +149,15 @@ static cell *expr(precedence lv) {
 		return cell_list(cell_ref(hash_vector), cell_list(pt, init));
 	    }
         }
+#endif
+
+    case it_SEMI:
+        if (lv < l_SEMI) {
+            // TODO sure???
+            error_pat("misplaced semicolon, syntax error", it->type);
+        }
+        dropitem(it);
+        return expr(lv);
 
     case it_PLUS: // unary?
     case it_MULT: // binary only
@@ -212,7 +219,7 @@ static cell *binary(cell *left, precedence lv) {
     case it_EQEQ:
         if (!s) { l2 = l_EQ;      s = cell_symbol("#eq"); }
     case it_AMP:
-        if (!s) { l2 = l_AMP;     s = cell_symbol("#amp"); }
+        if (!s) { l2 = l_AMP;     s = cell_ref(hash_amp); }
     case it_AND:
         if (!s) { l2 = l_AND;     s = cell_symbol("#and"); }
     case it_STOP:
@@ -324,6 +331,20 @@ static cell *binary(cell *left, precedence lv) {
         return binary(cell_pair(left, right), lv);
 
     case it_SEMI:
+        if (lv >= l_SEMI) { // TODO left-to-right?
+            // look no further
+            pushitem(op);
+            return left;
+        }
+        dropitem(op);
+        right = expr(lv);
+        if (!right) {
+            badeof(); // end of file
+            return left;
+        }
+        // TODO as with '+' and '*' and '>' etc, catenate
+        return binary(cell_list(cell_symbol("#do"), cell_list(left, cell_list(right, NIL))), lv);
+
     case it_RPAR:
     case it_RBRK:
     case it_RBRC:
