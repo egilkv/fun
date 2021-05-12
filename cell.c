@@ -62,6 +62,11 @@ int cell_is_string(cell *cp) {
 }
 
 // TODO inline
+int cell_is_assoc(cell *cp) {
+    return cp && cp->type == c_ASSOC;
+}
+
+// TODO inline
 int cell_is_integer(cell *cp) {
     return cp && cp->type == c_INTEGER;
 }

@@ -13,16 +13,10 @@
 // TODO check is this is right...
 void apply_lambda(cell *fun, cell* args, environment **envp) {
     assert(fun->type == c_LAMBDA);
-    struct env_s *newenv;
     cell *nam;
     cell *val;
     cell *argnames = cell_ref(fun->_.cons.car);
-    // add one level to environment
-    newenv = malloc(sizeof(environment));
-    newenv->prev = *envp;
-    newenv->assoc = cell_assoc();
-    newenv->prog = cell_ref(fun->_.cons.cdr);
-    cell_unref(fun);
+    cell *newassoc = cell_assoc();
 
     // pick up arguments one by one and add to assoc
     while (list_split(argnames, &nam, &argnames)) {
@@ -35,7 +29,7 @@ void apply_lambda(cell *fun, cell* args, environment **envp) {
 	    // TODO C recursion, should be avoided
 	    val = eval(val, *envp);
 	}
-	if (!assoc_set(newenv->assoc, nam, val)) {
+	if (!assoc_set(newassoc, nam, val)) {
 	    cell_unref(val);
 	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
 	}
@@ -43,84 +37,116 @@ void apply_lambda(cell *fun, cell* args, environment **envp) {
     if (args != NIL) {
 	cell_unref(error_rt1("excess arguments ignored", args));
     }
-    // add one level of environment
-    *envp = newenv;
+
+ #if 1 // TODO implement!
+    if (*envp && (*envp)->prog == NIL) {
+	// end recursion, reuse environment
+	// TODO what happens with exec end detection?
+	cell_unref((*envp)->assoc);
+	(*envp)->assoc = newassoc;
+    } else 
+#endif
+    {
+	// add one level to environment
+	struct env_s *newenv = malloc(sizeof(environment));
+	newenv->prev = *envp;
+	newenv->assoc = newassoc;
+	*envp = newenv;
+    }
+    (*envp)->prog = cell_ref(fun->_.cons.cdr);
+    cell_unref(fun);
 }
 
+// evalute the one thing in arg
 cell *eval(cell *arg, environment *env) {
+    environment *end_env = env;
+    cell *end_prog = env ? env->prog : NIL; // unreffed
+    cell *result = NIL;
 
-    if (arg) switch (arg->type) {
-    default:        // value is itself
-	return arg;
+    for (;;) {
+	if (arg == NIL) {
+	    result = NIL;
+	} else switch (arg->type) {
+	default:    // value is itself
+	    result = arg;
+	    break;
 
-    case c_SYMBOL:  // evaluate symbol
-	{
-	    cell *val;
-	    while (env) {
-		if (assoc_get(env->assoc, arg, &val)) {
-		    cell_unref(arg);
-		    return val;
+	case c_SYMBOL: // evaluate symbol
+	    {
+		environment *e = env;
+		for (;;) {
+		    if (!e) {
+			// global
+			result = cell_ref(arg->_.symbol.val);
+			break;
+		    }
+		    if (assoc_get(e->assoc, arg, &result)) {
+			break;
+		    }
+		    e = e->prev;
 		}
-		env = env->prev;
 	    }
-	    // global
-	    val = cell_ref(arg->_.symbol.val);
 	    cell_unref(arg);
-	    return val;
+	    break;
+
+	case c_LIST:
+	    {
+		cell *fun;
+		struct cell_s *(*def)(struct cell_s *, struct env_s *);
+		list_split(arg, &fun, &arg);
+		fun = eval(fun, env);
+		// TODO may consider moving evaluation out of functions
+
+		switch (fun ? fun->type : c_LIST) {
+		case c_CFUN:
+		    def = fun->_.cfun.def;
+		    cell_unref(fun);
+		    result = (*def)(arg, env);
+		    break;
+
+		case c_LAMBDA:
+		    apply_lambda(fun, arg, &env);
+		    result = NIL; // TODO probably #void
+		    break; // continue executing
+
+		default: // not a function
+		    // TODO show item before eval
+		    cell_unref(arg);
+		    result = error_rt1("not a function", fun);
+		    break;
+		}
+	    }
+	    break;
+
+	case c_PAIR:
+	    result = error_rt1("pair cannot be evaluated", arg);
+	    break;
 	}
 
-    case c_LIST:
-        {
-            cell *fun;
-	    struct cell_s *(*def)(struct cell_s *, struct env_s *);
-	    list_split(arg, &fun, &arg);
-	    fun = eval(fun, env);
-	    // TODO may consider moving evaluation out of functions
-
-            switch (fun ? fun->type : c_LIST) {
-            case c_CFUN:
-                def = fun->_.cfun.def;
-                cell_unref(fun);
-		return (*def)(arg, env);
-
-	    case c_LAMBDA:
-                // TODO perhaps
-		apply_lambda(fun, arg, &env);
-
-		// run program
-		assert(env != NULL);
-		{
-		    cell *result = NIL; // TODO void
-		    cell *expr;
-
-		    // evaluate one expression at a time
-		    while (list_split(env->prog, &expr, &(env->prog))) {
-			cell_unref(result);
-			// TODO C recursion
-			result = eval(expr, env);
-		    }
-		    // TODO end recursion
-
-		    // drop one level of environment
-		    {
-			environment *prevenv = env->prev;
-			cell_unref(env->assoc);
-			assert(env->prog == NIL);
-			free(env);
-			env = prevenv;
-		    }
-		    return result;
-		}
-
-	    default: // not a function
-		// TODO show item before eval
-		cell_unref(arg);
-		return error_rt1("not a function", fun);
+	for (;;) {
+	    if (!env) {
+		return result; // reached top level
 	    }
-        }
-
-    case c_PAIR:
-        return error_rt1("pair cannot be evaluated", arg);
+	    if (env == end_env && env->prog == end_prog) {
+		// arg fully done
+		return result;
+	    }
+	    if (env->prog == NIL) {
+		// reached end of current level
+		// drop one level of environment
+		environment *prevenv = env->prev;
+		cell_unref(env->assoc);
+		free(env);
+		env = prevenv;
+	    } else {
+		break;
+	    }
+	}
+	// eval one more expression
+	cell_unref(result);
+	if (!list_split(env->prog, &arg, &(env->prog))) {
+	    assert(0);
+	}
     }
     assert(0);
     return NIL;

@@ -21,4 +21,4 @@ grind: fun
 		./fun
 
 clean:
-	rm *~ fun a.out
+	rm -f *~ fun a.out

@@ -23,7 +23,7 @@ static unsigned int hash_cons(cell *key) {
 int assoc_set(cell *anode, cell* key, cell* val) {
     struct assoc_s **pp;
     int hash = hash_cons(key);
-    assert(anode->type == c_ASSOC);
+    assert(cell_is_assoc(anode));
 
     if (anode->_.assoc.table == NULL) {
         // table not yet allocated
@@ -55,7 +55,7 @@ int assoc_set(cell *anode, cell* key, cell* val) {
 // neither key nor anode is consumed TODO evaluate
 // false if not found
 int assoc_get(cell *anode, cell* key, cell **valuep) {
-    assert(anode->type == c_ASSOC);
+    assert(cell_is_assoc(anode));
 
     if (anode->_.assoc.table != NULL) {
 	struct assoc_s **pp;
@@ -75,7 +75,7 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
 
 // clean up on exit
 void assoc_drop(cell *anode) {
-    assert(anode->type == c_ASSOC);
+    assert(cell_is_assoc(anode));
     if (anode->_.assoc.table) {
         struct assoc_s *p;
         int h;

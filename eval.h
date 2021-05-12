@@ -4,7 +4,7 @@
 struct env_s {
     struct env_s *prev;
     struct cell_s *assoc; // locals
-    struct cell_s *prog;
+    struct cell_s *prog; // program pointer
 } ;
 
 typedef struct env_s environment;

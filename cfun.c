@@ -16,7 +16,6 @@ cell *hash_amp;
 cell *hash_assoc;
 cell *hash_defq;
 cell *hash_div;
-cell *hash_eval;
 cell *hash_f;
 cell *hash_if;
 cell *hash_lambda;
@@ -325,12 +324,6 @@ static cell *cfun_lt(cell *args, environment *env) {
     return cell_ref(hash_t);
 }
 
-static cell *cfun_eval(cell *args, environment *env) {
-    cell *a;
-    if (!arg1(args, &a)) return cell_ref(hash_void);
-    return eval(a, env);
-}
-
 static cell *cfun_list(cell *args, environment *env) {
     cell *list = NIL;
     cell **pp = &list;
@@ -411,18 +404,24 @@ static cell *cfun_amp(cell *args, environment *env) {
                 cell_unref(args);
 		return error_rt1("& applied to non-string and string", a);
             } else {
-                // TODO handle alen or rlen zero
                 // TODO optimize for case of more than two arguments
 		index_t rlen = result->_.string.len;
 		index_t alen = a->_.string.len;
-		char_t *newstr = malloc(rlen + alen + 1);
-                assert(newstr);
-		if (rlen > 0) memcpy(newstr, result->_.string.ptr, rlen);
-		if (alen > 0) memcpy(newstr+rlen, a->_.string.ptr, alen);
-                newstr[rlen+alen] = '\0';
-                cell_unref(result);
-                cell_unref(a);
-		result = cell_astring(newstr, rlen+alen);
+		if (alen == 0) {
+		    cell_unref(a);
+		} else if (rlen == 0) {
+		    cell_unref(result);
+		    result = a;
+		} else {
+		    char_t *newstr = malloc(rlen + alen + 1);
+		    assert(newstr);
+		    memcpy(newstr, result->_.string.ptr, rlen);
+		    memcpy(newstr+rlen, a->_.string.ptr, alen);
+		    newstr[rlen+alen] = '\0';
+		    cell_unref(result);
+		    cell_unref(a);
+		    result = cell_astring(newstr, rlen+alen);
+		}
             }
             break;
 
@@ -432,9 +431,19 @@ static cell *cfun_amp(cell *args, environment *env) {
 	    return error_rt1("vector & not yet implemented", a);
 
         case c_ASSOC:
-            cell_unref(result);
-            cell_unref(args);
-	    return error_rt1("assoc & not yet implemented", a);
+            if (result == NIL) {
+                result = a; // TODO somewhat cheeky
+	    } else if (!cell_is_assoc(result)) {
+                cell_unref(result);
+                cell_unref(args);
+		return error_rt1("& applied to non-assoc and assoc", a);
+            } else {
+		// TODO make copy of all elements in result
+		// TODO overlay with all elements in a
+		cell_unref(result);
+		cell_unref(args);
+		return error_rt1("assoc & not yet implemented", a);
+            }
 
         case c_LIST:
             if (result == NIL) {
@@ -578,7 +587,6 @@ void cfun_init() {
     hash_assoc   = oblistv("#assoc",   cell_cfun(cfun_assoc));
     hash_defq    = oblistv("#defq",    cell_cfun(cfun_defq));
     hash_div     = oblistv("#div",     cell_cfun(cfun_div));
-    hash_eval    = oblistv("#eval",    cell_cfun(cfun_eval));
     hash_if      = oblistv("#if",      cell_cfun(cfun_if));
     hash_lambda  = oblistv("#lambda",  cell_cfun(cfun_lambda));
     hash_lt      = oblistv("#lt",      cell_cfun(cfun_lt));

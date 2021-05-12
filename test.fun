@@ -34,6 +34,7 @@ aa.one;
 aa.two;
 aa.three;
 // aa.ix;
+aa & { two : "TWO" }; // modified assoc
 
 [ 3 : 99, 0 : "test" ]; // 1 and 2 are undefined
 
