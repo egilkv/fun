@@ -1,4 +1,10 @@
 
+[] is NIL, maybe also {} ??
+
+Lists and vectors are the same, so drop lists (make it up to runtime to switch)
+
+Possibly have pair as a data type instead, using :
+
 Implement semicolon as operator like C comma operator
 Needs some refinement for sure
 
@@ -11,6 +17,12 @@ Json keys are always strings. Reserved names and types:
     string
     array [] and comma-separated elements.
     associative array
+
+What is the difference between (){} for function and {} for assoc, really.
+Try to nullify it. So in addition to { a : b }, we can also have { a }
+which means? And { a ; b }
+
+The & operator can update values in assocs. What about vectors?
 
 5 > a > 1 should be implemented. What about 5 >= a > 1
 newlen > oldlen > 0  same as (oldlen > 0 && oldlen < newlen)
@@ -32,3 +44,11 @@ Have === operator in addition to ==, to require more equality of sorts
 In Scheme, 'display' will print strings without the " etc while 'write' will
 write S-expressions that 'read' can read. We should be able to read JSON 
 directly.
+
+ELM uses ++ instead of & to concatenate.
+
+Do we really need lists and vectors to be different things???
+
+Easy to use threading, like goroutines, i.e.: go function()
+
+Go interfaces - specifies only functions
