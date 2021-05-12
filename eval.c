@@ -38,15 +38,11 @@ void apply_lambda(cell *fun, cell* args, environment **envp) {
 	cell_unref(error_rt1("excess arguments ignored", args));
     }
 
- #if 1 // TODO implement!
     if (*envp && (*envp)->prog == NIL) {
 	// end recursion, reuse environment
-	// TODO what happens with exec end detection?
 	cell_unref((*envp)->assoc);
 	(*envp)->assoc = newassoc;
-    } else 
-#endif
-    {
+    } else {
 	// add one level to environment
 	struct env_s *newenv = malloc(sizeof(environment));
 	newenv->prev = *envp;
@@ -92,16 +88,53 @@ cell *eval(cell *arg, environment *env) {
 	case c_LIST:
 	    {
 		cell *fun;
-		struct cell_s *(*def)(struct cell_s *, struct env_s *);
 		list_split(arg, &fun, &arg);
 		fun = eval(fun, env);
 		// TODO may consider moving evaluation out of functions
 
 		switch (fun ? fun->type : c_LIST) {
 		case c_CFUN:
-		    def = fun->_.cfun.def;
-		    cell_unref(fun);
-		    result = (*def)(arg, env);
+		    {
+			struct cell_s *(*def)(struct cell_s *, struct env_s *) = fun->_.cfun.def;
+			cell_unref(fun);
+			result = (*def)(arg, env);
+		    }
+		    break;
+
+		case c_CFUN1:
+		    {
+			cell *(*def)(cell *) = fun->_.cfun1.def;
+			cell_unref(fun);
+			if (arg1(arg, &result)) { // if error, result is void
+			    result = (*def)(eval(result, env));
+			}
+		    }
+		    break;
+
+		case c_CFUN2:
+		    {
+			cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
+			cell *b = NIL;
+			cell_unref(fun);
+			if (!arg2(arg, &result, &b)) { // if error, result is void
+			    result = (*def)(eval(result, env), eval(b, env));
+			}
+		    }
+		    break;
+
+		case c_CFUNN:
+		    {
+			cell *(*def)(cell *) = fun->_.cfun1.def;
+			cell_unref(fun);
+			cell *e = NIL;
+			cell **pp = &e;
+			while (list_split(arg, &result, &arg)) {
+			    *pp = cell_list(eval(result, env), NIL);
+			    pp = &((*pp)->_.cons.cdr);
+			}
+			assert(arg == NIL);
+			result = (*def)(e);
+		    }
 		    break;
 
 		case c_LAMBDA:

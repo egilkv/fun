@@ -91,8 +91,10 @@ void cell_print(FILE *out, cell *ct) {
         cell_print(out, ct->_.cons.car);
         break;
     case c_CFUN:
-        fprintf(out, "#cfun"); // TODO something better
-        fprintf(out, "()");
+    case c_CFUN1:
+    case c_CFUN2:
+    case c_CFUNN:
+        fprintf(out, "#cfun()"); // TODO something better
         break;
     case c_VECTOR:
         {

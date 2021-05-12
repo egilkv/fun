@@ -34,41 +34,34 @@ cell *hash_vector;
 cell *hash_void;
 
 // function with 1 argument
-static int arg1(cell *args, cell **a1p) {
-    if (list_split(args, a1p, &args)) {
-        if (args) {
-	    cell_unref(error_rt1("excess argument(s) ignored", args));
-        }
-        return 1;
-    } else {
-        *a1p = NIL;
-        if (args == NIL) {
-	    cell_unref(error_rt0("missing argument"));
-        } else {
-	    cell_unref(error_rt1("malformed argument(s)", args));
-        }
-        return 0;
+// if false, *ap is error value
+int arg1(cell *args, cell **ap) {
+    if (!list_split(args, ap, &args)) {
+	assert(args == NIL);
+	*ap = error_rt0("missing argument(s)");
+	return 0;
     }
+    if (args) {
+	cell_unref(error_rt1("excess argument(s) ignored", args));
+    }
+    return 1;
 }
 
 // function with 2 arguments
-static int arg2(cell *args, cell **a1p, cell **a2p) {
-    if (list_split(args, a1p, &args)) {
-	if (list_split(args, a2p, &args)) {
-            if (args) {
-		cell_unref(error_rt1("excess argument(s) ignored", args));
-            }
-            return 1;
-        }
-        *a2p = NIL;
+// if false, *ap is error value
+int arg2(cell *args, cell **ap, cell **bp) {
+    *ap = NIL;
+    if (!list_split(args, ap, &args)
+     || !list_split(args, bp, &args)) {
+	assert(args == NIL);
+	cell_unref(*ap);
+	*ap = error_rt0("missing argument(s)");
+	return 0;
     }
-    *a1p = NIL;
-    if (args == NIL) {
-	cell_unref(error_rt0("missing argument(s)"));
-    } else {
-	cell_unref(error_rt1("malformed argument(s)", args));
+    if (args) {
+	cell_unref(error_rt1("excess argument(s) ignored", args));
     }
-    return 0;
+    return 1;
 }
 
 // a in always unreffed
@@ -153,22 +146,18 @@ static cell *cfun_defq(cell *args, environment *env) {
     return b;
 }
 
-static cell *cfun_not(cell *args, environment *env) {
-    cell *a;
+static cell *cfun1_not(cell *a) {
     int bool;
-    if (arg1(args, &a)) {
-	a = eval(a, env);
-        if (pick_boolean(a, &bool, NIL)) {
-	    return bool ? cell_ref(hash_f) : cell_ref(hash_t);
-        }
+    if (!pick_boolean(a, &bool, NIL)) {
+	return cell_ref(hash_void); // error
     }
-    return cell_ref(hash_void); // error
+    return bool ? cell_ref(hash_f) : cell_ref(hash_t);
 }
 
 static cell *cfun_if(cell *args, environment *env) {
     int bool;
-#if 1
     cell *a, *b;
+#if 1
     if (!arg2(args, &a, &b)) {
         return cell_ref(hash_void); // error
     }
@@ -223,8 +212,9 @@ static cell *cfun_if(cell *args, environment *env) {
 
 static cell *cfun_quote(cell *args, environment *env) {
     cell *a;
+
     if (!arg1(args, &a)) {
-        return cell_ref(hash_void); // error
+	return a; // error value
     }
     return a;
 }
@@ -240,79 +230,72 @@ static cell *cfun_lambda(cell *args, environment *env) {
     return cp;
 }
 
-static cell *cfun_plus(cell *args, environment *env) {
+static cell *cfunN_plus(cell *args) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void); // error
+	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void); // error
         result += operand; // TODO overflow etc
     }
     assert(args == NIL);
     return cell_integer(result);
 }
 
-static cell *cfun_minus(cell *args, environment *env) {
+static cell *cfunN_minus(cell *args) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
     if (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &result, args)) return cell_ref(hash_void); // error
+	if (!get_numeric(a, &result, args)) return cell_ref(hash_void); // error
 	if (args == NIL) {
             // special case, one argument
             result = -result; // TODO overflow
         }
     }
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void);
+	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void);
         result -= operand; // TODO overflow etc
     }
     assert(args == NIL);
     return cell_integer(result);
 }
 
-static cell *cfun_times(cell *args, environment *env) {
+static cell *cfunN_times(cell *args) {
     integer_t result = 1;
     integer_t operand;
     cell *a;
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void);
+	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void);
         result *= operand; // TODO overflow etc
     }
     assert(args == NIL);
     return cell_integer(result);
 }
 
-static cell *cfun_div(cell *args, environment *env) {
-    integer_t result = 0;
+static cell *cfun2_div(cell *a, cell *b) {
+    integer_t result;
     integer_t operand;
-    cell *a;
-    // TODO must have two arguments?
-    if (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &result, args)) return cell_ref(hash_void); // error
+    if (!get_numeric(a, &result, b)) return cell_ref(hash_void); // error
+    if (!get_numeric(b, &operand, NIL)) return cell_ref(hash_void); // error
+
+    if (operand == 0) {
+        return error_rt0("attempted division by zero");
     }
-    while (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void); // error
-        if (operand == 0) {
-            cell_unref(args);
-	    return error_rt0("attempted division by zero");
-        }
-        // TODO should rather create a quotient
-        result /= operand;
-    }
-    assert(args == NIL);
+    // TODO div mod quotient
+    result /= operand;
     return cell_integer(result);
 }
 
-static cell *cfun_lt(cell *args, environment *env) {
+static cell *cfunN_lt(cell *args) {
     integer_t value;
     integer_t operand;
     cell *a;
     if (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &value, args)) return cell_ref(hash_void); // error
+	if (!get_numeric(a, &value, args)) return cell_ref(hash_void); // error
     }
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(eval(a, env), &operand, args)) return cell_ref(hash_void); // error
+	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void); // error
 	if (value < operand) { // condition satisfied?
             value = operand;
 	} else {
@@ -324,16 +307,8 @@ static cell *cfun_lt(cell *args, environment *env) {
     return cell_ref(hash_t);
 }
 
-static cell *cfun_list(cell *args, environment *env) {
-    cell *list = NIL;
-    cell **pp = &list;
-    cell *a;
-    while (list_split(args, &a, &args)) {
-	*pp = cell_list(eval(a, env), NIL);
-	pp = &((*pp)->_.cons.cdr);
-    }
-    assert(args == NIL);
-    return list;
+static cell *cfunN_list(cell *args) {
+    return args;
 }
 
 static cell *cfun_vector(cell *args, environment *env) {
@@ -389,12 +364,11 @@ static cell *cfun_assoc(cell *args, environment *env) {
     return assoc;
 }
 
-static cell *cfun_amp(cell *args, environment *env) {
+static cell *cfunN_amp(cell *args) {
     cell *a;
     cell *result = NIL;
     while (list_split(args, &a, &args)) {
-        a = eval(a, env);
-        switch (a ? a->type : c_LIST) {
+	switch (a ? a->type : c_LIST) {
 
         case c_STRING:
             if (result == NIL) {
@@ -465,7 +439,7 @@ static cell *cfun_amp(cell *args, environment *env) {
     return result;
 }
 
-static cell *common_ref(cell *a, cell *b) {
+static cell *cfun2_ref(cell *a, cell *b) {
     cell *value;
     index_t index;
     if (a) switch (a->type) {
@@ -539,6 +513,8 @@ static cell *common_ref(cell *a, cell *b) {
 
     case c_LAMBDA:
     case c_CFUN:
+    case c_CFUN1:
+    case c_CFUN2:
     // TODO ref should work for functions ??
     default:
 	    break;
@@ -548,29 +524,16 @@ static cell *common_ref(cell *a, cell *b) {
     return 0;
 }
 
-static cell *cfun_ref(cell *args, environment *env) {
-    cell *a, *b;
-    if (!arg2(args, &a, &b)) {
-        return cell_ref(hash_void); // error
-    }
-    return common_ref(eval(a, env), eval(b, env));
-}
-
 static cell *cfun_refq(cell *args, environment *env) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
         return cell_ref(hash_void); // error
     }
-    return common_ref(eval(a, env), b);
+    return cfun2_ref(eval(a, env), b);
 }
 
-static cell *cfun_use(cell *args, environment *env) {
-    cell *a;
+static cell *cfun1_use(cell *a) {
     char *str;
-    if (!arg1(args, &a)) {
-        return cell_ref(hash_void); // error
-    }
-    a = eval(a, env);
     cell_ref(a); // for error message
     if (!get_string(a, &str, a)) {
         return cell_ref(hash_void); // error
@@ -583,22 +546,22 @@ static cell *cfun_use(cell *args, environment *env) {
 }
 
 void cfun_init() {
-    hash_amp     = oblistv("#amp",     cell_cfun(cfun_amp));
+    hash_amp     = oblistv("#amp",     cell_cfunN(cfunN_amp));
     hash_assoc   = oblistv("#assoc",   cell_cfun(cfun_assoc));
     hash_defq    = oblistv("#defq",    cell_cfun(cfun_defq));
-    hash_div     = oblistv("#div",     cell_cfun(cfun_div));
+    hash_div     = oblistv("#div",     cell_cfun2(cfun2_div));
     hash_if      = oblistv("#if",      cell_cfun(cfun_if));
     hash_lambda  = oblistv("#lambda",  cell_cfun(cfun_lambda));
-    hash_lt      = oblistv("#lt",      cell_cfun(cfun_lt));
-    hash_list    = oblistv("#",        cell_cfun(cfun_list));
-    hash_minus   = oblistv("#minus",   cell_cfun(cfun_minus));
-    hash_not     = oblistv("#not",     cell_cfun(cfun_not));
-    hash_plus    = oblistv("#plus",    cell_cfun(cfun_plus));
+    hash_lt      = oblistv("#lt",      cell_cfunN(cfunN_lt));
+    hash_list    = oblistv("#",        cell_cfunN(cfunN_list));
+    hash_minus   = oblistv("#minus",   cell_cfunN(cfunN_minus));
+    hash_not     = oblistv("#not",     cell_cfun1(cfun1_not));
+    hash_plus    = oblistv("#plus",    cell_cfunN(cfunN_plus));
     hash_quote   = oblistv("#quote",   cell_cfun(cfun_quote));
-    hash_ref     = oblistv("#ref",     cell_cfun(cfun_ref));
+    hash_ref     = oblistv("#ref",     cell_cfun2(cfun2_ref));
     hash_refq    = oblistv("#refq",    cell_cfun(cfun_refq));
-    hash_times   = oblistv("#times",   cell_cfun(cfun_times));
-    hash_use     = oblistv("#use",     cell_cfun(cfun_use));
+    hash_times   = oblistv("#times",   cell_cfunN(cfunN_times));
+    hash_use     = oblistv("#use",     cell_cfun1(cfun1_use));
     hash_vector  = oblistv("#vector",  cell_cfun(cfun_vector));
 
     // values are themselves

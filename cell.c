@@ -131,6 +131,24 @@ cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct env_s *)) {
     return node;
 }
 
+cell *cell_cfunN(struct cell_s *(*fun)(struct cell_s *)) {
+    cell *node = newcell(c_CFUNN);
+    node->_.cfun1.def = fun;
+    return node;
+}
+
+cell *cell_cfun1(struct cell_s *(*fun)(struct cell_s *)) {
+    cell *node = newcell(c_CFUN1);
+    node->_.cfun1.def = fun;
+    return node;
+}
+
+cell *cell_cfun2(struct cell_s *(*fun)(struct cell_s *, struct cell_s *)) {
+    cell *node = newcell(c_CFUN2);
+    node->_.cfun2.def = fun;
+    return node;
+}
+
 cell *cell_vector(index_t length) {
     cell *node = newcell(c_VECTOR);
     node->_.vector.len = length;
@@ -226,6 +244,9 @@ void cell_unref(cell *node) {
             free(node);
             break;
         case c_CFUN:
+        case c_CFUN1:
+        case c_CFUN2:
+        case c_CFUNN:
             free(node);
             break;
         case c_VECTOR:

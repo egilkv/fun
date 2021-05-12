@@ -205,7 +205,7 @@ static cell *binary(cell *left, precedence lv) {
     case it_MULT:
 	if (!s) { l2 = l_MULT;    s = cell_ref(hash_times); }
     case it_DIV:
-	if (!s) { l2 = l_MULT;    s = cell_ref(hash_div); }
+	if (!s) { l2 = l_MULT;    s = cell_ref(hash_div); } // 2 args
     case it_LT:
         if (!s) { l2 = l_REL;     s = cell_ref(hash_lt); }
     case it_GT:
