@@ -90,7 +90,7 @@ void cell_print(FILE *out, cell *ct) {
         fprintf(out, "#lambda"); // TODO something better
         cell_print(out, ct->_.cons.car);
         break;
-    case c_CFUN:
+    case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:
@@ -179,9 +179,9 @@ static cell *cfio_println(cell *args, environment *env) {
 
 cell *module_io() {
     cell *assoc = cell_assoc();
-    assoc_set(assoc, oblists("print"),   cell_cfun(cfio_print)); // scheme 'display'
-    assoc_set(assoc, oblists("println"), cell_cfun(cfio_println));
-    assoc_set(assoc, oblists("write"),   cell_cfun(cfio_write));
+    assoc_set(assoc, oblists("print"),   cell_cfunQ(cfio_print)); // scheme 'display'
+    assoc_set(assoc, oblists("println"), cell_cfunQ(cfio_println));
+    assoc_set(assoc, oblists("write"),   cell_cfunQ(cfio_write));
     return assoc;
 }
 

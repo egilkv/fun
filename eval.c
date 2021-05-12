@@ -93,9 +93,9 @@ cell *eval(cell *arg, environment *env) {
 		// TODO may consider moving evaluation out of functions
 
 		switch (fun ? fun->type : c_LIST) {
-		case c_CFUN:
+		case c_CFUNQ:
 		    {
-			struct cell_s *(*def)(struct cell_s *, struct env_s *) = fun->_.cfun.def;
+			struct cell_s *(*def)(struct cell_s *, struct env_s *) = fun->_.cfunq.def;
 			cell_unref(fun);
 			result = (*def)(arg, env);
 		    }

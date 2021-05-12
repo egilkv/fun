@@ -122,7 +122,7 @@ static int pick_boolean(cell *a, int *boolp, cell *dump) {
     return 0;
 }
 
-static cell *cfun_defq(cell *args, environment *env) {
+static cell *cfunQ_defq(cell *args, environment *env) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
         return cell_ref(hash_void); // error
@@ -154,7 +154,7 @@ static cell *cfun1_not(cell *a) {
     return bool ? cell_ref(hash_f) : cell_ref(hash_t);
 }
 
-static cell *cfun_if(cell *args, environment *env) {
+static cell *cfunQ_if(cell *args, environment *env) {
     int bool;
     cell *a, *b;
 #if 1
@@ -210,7 +210,7 @@ static cell *cfun_if(cell *args, environment *env) {
 #endif
 }
 
-static cell *cfun_quote(cell *args, environment *env) {
+static cell *cfunQ_quote(cell *args, environment *env) {
     cell *a;
 
     if (!arg1(args, &a)) {
@@ -219,7 +219,7 @@ static cell *cfun_quote(cell *args, environment *env) {
     return a;
 }
 
-static cell *cfun_lambda(cell *args, environment *env) {
+static cell *cfunQ_lambda(cell *args, environment *env) {
     cell *arglist;
     cell *cp;
     if (!list_split(args, &arglist, &args)) {
@@ -311,7 +311,7 @@ static cell *cfunN_list(cell *args) {
     return args;
 }
 
-static cell *cfun_vector(cell *args, environment *env) {
+static cell *cfunQ_vector(cell *args, environment *env) {
     cell *vector;
     index_t len;
     cell *a;
@@ -345,7 +345,7 @@ static cell *cfun_vector(cell *args, environment *env) {
     return vector;
 }
 
-static cell *cfun_assoc(cell *args, environment *env) {
+static cell *cfunQ_assoc(cell *args, environment *env) {
     cell *a;
     cell *b;
     cell *assoc = cell_assoc();
@@ -512,7 +512,7 @@ static cell *cfun2_ref(cell *a, cell *b) {
         return value;
 
     case c_LAMBDA:
-    case c_CFUN:
+    case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
     // TODO ref should work for functions ??
@@ -524,7 +524,7 @@ static cell *cfun2_ref(cell *a, cell *b) {
     return 0;
 }
 
-static cell *cfun_refq(cell *args, environment *env) {
+static cell *cfunQ_refq(cell *args, environment *env) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
         return cell_ref(hash_void); // error
@@ -547,22 +547,22 @@ static cell *cfun1_use(cell *a) {
 
 void cfun_init() {
     hash_amp     = oblistv("#amp",     cell_cfunN(cfunN_amp));
-    hash_assoc   = oblistv("#assoc",   cell_cfun(cfun_assoc));
-    hash_defq    = oblistv("#defq",    cell_cfun(cfun_defq));
+    hash_assoc   = oblistv("#assoc",   cell_cfunQ(cfunQ_assoc));
+    hash_defq    = oblistv("#defq",    cell_cfunQ(cfunQ_defq));
     hash_div     = oblistv("#div",     cell_cfun2(cfun2_div));
-    hash_if      = oblistv("#if",      cell_cfun(cfun_if));
-    hash_lambda  = oblistv("#lambda",  cell_cfun(cfun_lambda));
+    hash_if      = oblistv("#if",      cell_cfunQ(cfunQ_if));
+    hash_lambda  = oblistv("#lambda",  cell_cfunQ(cfunQ_lambda));
     hash_lt      = oblistv("#lt",      cell_cfunN(cfunN_lt));
     hash_list    = oblistv("#",        cell_cfunN(cfunN_list));
     hash_minus   = oblistv("#minus",   cell_cfunN(cfunN_minus));
     hash_not     = oblistv("#not",     cell_cfun1(cfun1_not));
     hash_plus    = oblistv("#plus",    cell_cfunN(cfunN_plus));
-    hash_quote   = oblistv("#quote",   cell_cfun(cfun_quote));
+    hash_quote   = oblistv("#quote",   cell_cfunQ(cfunQ_quote));
     hash_ref     = oblistv("#ref",     cell_cfun2(cfun2_ref));
-    hash_refq    = oblistv("#refq",    cell_cfun(cfun_refq));
+    hash_refq    = oblistv("#refq",    cell_cfunQ(cfunQ_refq));
     hash_times   = oblistv("#times",   cell_cfunN(cfunN_times));
     hash_use     = oblistv("#use",     cell_cfun1(cfun1_use));
-    hash_vector  = oblistv("#vector",  cell_cfun(cfun_vector));
+    hash_vector  = oblistv("#vector",  cell_cfunQ(cfunQ_vector));
 
     // values are themselves
     hash_f       = oblistv("#f",       NIL);

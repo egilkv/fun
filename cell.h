@@ -17,7 +17,7 @@ enum cell_t {
    c_VECTOR,
    c_ASSOC,
    c_LAMBDA,
-   c_CFUN,
+   c_CFUNQ,
    c_CFUN1,
    c_CFUN2,
    c_CFUNN
@@ -50,7 +50,7 @@ struct cell_s {
         } symbol;
         struct {
             struct cell_s *(*def)(struct cell_s *, struct env_s *);
-        } cfun;
+        } cfunq;
         struct {
             struct cell_s *(*def)(struct cell_s *);
         } cfun1;
@@ -76,7 +76,7 @@ cell *cell_astring(char_t *string, index_t length);
 cell *cell_integer(long int integer);
 cell *cell_vector(index_t length);
 cell *cell_assoc();
-cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct env_s *));
+cell *cell_cfunQ(struct cell_s *(*fun)(struct cell_s *, struct env_s *));
 cell *cell_cfunN(struct cell_s *(*fun)(struct cell_s *));
 cell *cell_cfun1(struct cell_s *(*fun)(struct cell_s *));
 cell *cell_cfun2(struct cell_s *(*fun)(struct cell_s *, struct cell_s *));

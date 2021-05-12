@@ -125,9 +125,9 @@ cell *cell_integer(integer_t integer) {
     return node;
 }
 
-cell *cell_cfun(struct cell_s *(*fun)(struct cell_s *, struct env_s *)) {
-    cell *node = newcell(c_CFUN);
-    node->_.cfun.def = fun;
+cell *cell_cfunQ(struct cell_s *(*fun)(struct cell_s *, struct env_s *)) {
+    cell *node = newcell(c_CFUNQ);
+    node->_.cfunq.def = fun;
     return node;
 }
 
@@ -243,7 +243,7 @@ void cell_unref(cell *node) {
         case c_INTEGER:
             free(node);
             break;
-        case c_CFUN:
+        case c_CFUNQ:
         case c_CFUN1:
         case c_CFUN2:
         case c_CFUNN:
