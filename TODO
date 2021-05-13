@@ -1,10 +1,10 @@
 
-module_io() has valgrind issues
 How to deal with io not being pure functions?
 
 Lists and assocs can also be used for functions. Skip [] operator.
 
 [] is NIL, maybe also {} ??
+Delay creation of assoc list
 
 Lists and vectors are the same, so drop lists (make it up to runtime to switch)
 

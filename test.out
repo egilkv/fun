@@ -7,36 +7,36 @@
 #(#if, c, (a : b)) --> 1
 #(#defq, factorial, #(#lambda, #(n), #(#if, #(#lt, n, 2), (1 : #(#times, n, #(factorial, #(#minus, n, 1))))))) --> #lambda#(n)
 #(factorial, 10) --> 3628800
-#(#defq, ft, #(#lambda, #(a, b), #(#do, #(#defq, c, a), #(#do, #(#defq, d, b), #(#plus, c, d))))) --> #lambda#(a, b)
-#(ft, 50, 5) --> error; not a function: #void
-#void
+#(#defq, ft, #(#lambda, #(a, b), #(#defq, c, a), #(#defq, d, b), #(#plus, c, d))) --> #lambda#(a, b)
+#(ft, 50, 5) --> 55
 #(#defq, v, #(#vector, 7, 8, "hello")) --> [ 7, 8, "hello" ] 
-#(#ref, v, 0) --> v
-#(#ref, v, 2) --> v
-#(#defq, aa, #(#assoc, (one : 1), (two : 2), (three : 3))) --> { one : 1, three : 3, two : 2 } 
+#(#ref, v, 0) --> 7
+#(#ref, v, 2) --> "hello"
+#(#defq, aa, #(#assoc, (one : 1), (two : 2), (three : 3))) --> { two : 2, three : 3, one : 1 } 
 #(#defq, ix, #(#quote, two)) --> two
-#(#ref, aa, #(#quote, one)) --> aa
-#(#ref, aa, ix) --> aa
-#(#ref, aa, #(#quote, three)) --> aa
+#(#ref, aa, #(#quote, one)) --> 1
+#(#ref, aa, ix) --> 2
+#(#ref, aa, #(#quote, three)) --> 3
 #(#refq, aa, one) --> 1
 #(#refq, aa, two) --> 2
 #(#refq, aa, three) --> 3
-#(#amp, aa, #(#assoc, (two : "TWO"))) --> error; list & not yet implemented: { one : 1, three : 3, two : 2 } 
+#(#amp, aa, #(#assoc, (two : "TWO"))) --> error; list & not yet implemented: { two : 2, three : 3, one : 1 } 
 #void
 #(#vector, (3 : 99), (0 : "test")) --> [ "test", #(), #(), 99 ] 
 #(#defq, list, #(#, 1, 2, 3)) --> #(1, 2, 3)
-#(#ref, list, 0) --> list
+#(#ref, list, 0) --> 1
 #(#refq, list, 0) --> 1
 #(#amp, "abc", "def") --> "abcdef"
-#(#ref, "abcdef", 2) --> "abcdef"
+#(#ref, "abcdef", 2) --> "c"
 error; misplaced operator, syntax error: type is 25
-#(#defq, array1, #(#vector, 6)) --> [ 6 ] 
+#(#defq, array1, #(#vector, 6, 0)) --> [ 0, 0, 0, 0, 0, 0 ]
 0 --> 0
 error; misplaced item, syntax error: type is 26
-#(#ref, array1, 0) --> array1
-#(#ref, array1, 3) --> array1
+#(#ref, array1, 0) --> 0
+#(#ref, array1, 3) --> 0
 error; expected matching right bracket for array
-#(#ref, array1, 3) --> array1
+#(#ref, array1, 3) --> error; vector index out of bounds: 3
+#void
 error; misplaced item, syntax error: type is 16
 4 --> 4
 error; misplaced item, syntax error: type is 24
@@ -50,12 +50,14 @@ error; misplaced item, syntax error: type is 24
 #(#defq, j, 15) --> 15
 error; misplaced item, syntax error: type is 16
 error; misplaced operator, syntax error: type is 25
-#(#amp, #(#ref, a, #(#minus, j, 1)), #(#vector)) --> error; operator & cannot be applied: a
+#(#amp, #(#ref, a, #(#minus, j, 1)), #(#vector)) --> error; vector index out of bounds: 14
+error; operator & cannot be applied: #void
 #void
 #f --> #f
 error; misplaced item, syntax error: type is 26
 error; misplaced item, syntax error: type is 13
 error; expected matching right bracket for array
-#(#ref, a, #(#plus, j, 1)) --> a
+#(#ref, a, #(#plus, j, 1)) --> error; vector index out of bounds: 16
+#void
 error; misplaced item, syntax error: type is 16
 error; misplaced item, syntax error: type is 24

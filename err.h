@@ -12,3 +12,6 @@ void error_pat(const char *msg, int type);
 void error_pa1(const char *msg, cell *arg);
 
 void error_lex(const char *msg, int c);
+
+void error_cmdopt(const char *msg, int c);
+void error_cmdstr(const char *msg, const char *s);

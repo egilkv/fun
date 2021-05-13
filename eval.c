@@ -10,11 +10,27 @@
 #include "cell.h"
 #include "err.h"
 
+static void insert_prog(cell *newprog, cell* newassoc, environment **envp) {
+    if (*envp && (*envp)->prog == NIL) {
+	// end recursion, reuse environment
+	cell_unref((*envp)->assoc);
+	(*envp)->assoc = newassoc;
+    } else {
+	// add one level to environment
+	struct env_s *newenv = malloc(sizeof(environment));
+	newenv->prev = *envp;
+	newenv->assoc = newassoc;
+	*envp = newenv;
+    }
+    (*envp)->prog = newprog;
+}
+
 // TODO check is this is right...
-void apply_lambda(cell *fun, cell* args, environment **envp) {
+static void apply_lambda(cell *fun, cell* args, environment **envp) {
     assert(fun->type == c_LAMBDA);
     cell *nam;
     cell *val;
+    // TODO split fun instead...
     cell *argnames = cell_ref(fun->_.cons.car);
     cell *newassoc = cell_assoc();
 
@@ -35,19 +51,7 @@ void apply_lambda(cell *fun, cell* args, environment **envp) {
 	}
     }
     assert(args == NIL);
-
-    if (*envp && (*envp)->prog == NIL) {
-	// end recursion, reuse environment
-	cell_unref((*envp)->assoc);
-	(*envp)->assoc = newassoc;
-    } else {
-	// add one level to environment
-	struct env_s *newenv = malloc(sizeof(environment));
-	newenv->prev = *envp;
-	newenv->assoc = newassoc;
-	*envp = newenv;
-    }
-    (*envp)->prog = cell_ref(fun->_.cons.cdr);
+    insert_prog(cell_ref(fun->_.cons.cdr), newassoc, envp);
     cell_unref(fun);
 }
 

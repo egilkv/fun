@@ -8,6 +8,7 @@ extern cell *hash_amp;
 extern cell *hash_assoc;
 extern cell *hash_defq;
 extern cell *hash_div;
+extern cell *hash_do;
 extern cell *hash_f;
 extern cell *hash_if;
 extern cell *hash_lambda;

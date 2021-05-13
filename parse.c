@@ -325,6 +325,7 @@ static cell *binary(cell *left, precedence lv, FILE *in) {
         return binary(cell_pair(left, right), lv, in);
 
     case it_SEMI:
+#if 0 // TODO review for later
         if (lv >= l_SEMI) { // TODO left-to-right?
             // look no further
             pushitem(op);
@@ -337,7 +338,12 @@ static cell *binary(cell *left, precedence lv, FILE *in) {
             return left;
         }
         // TODO as with '+' and '*' and '>' etc, catenate
-        return binary(cell_list(cell_symbol("#do"), cell_list(left, cell_list(right, NIL))), lv, in);
+        // TODO we do not really need the #do, do we?
+        // return binary(cell_list(cell_ref(hash_do), cell_list(left, cell_list(right, NIL))), lv, in);
+        // return binary(cell_list(left, cell_list(right, NIL)), lv, in);
+        // this is a lambda with empty argument list
+        return cell_list(cell_ref(hash_lambda), cell_list(NIL, cell_list(left, cell_list(right, NIL))));
+#endif
 
     case it_RPAR:
     case it_RBRK:

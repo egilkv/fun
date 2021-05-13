@@ -65,10 +65,7 @@ void error_pa1(const char *msg, cell *arg) {
     cell_unref(arg);
 }
 
-// lexical error, show character or -1 if none
-void error_lex(const char *msg, int c) {
-    fflush(stdout);
-    fprintf(stderr,"error; %s", msg);
+static void printable_c(int c) {
     if (c >= 0) {
 	if (iscntrl(c)) {
 	    fprintf(stderr,": 0x%02x", c);
@@ -80,7 +77,30 @@ void error_lex(const char *msg, int c) {
 	    fprintf(stderr, ": \"%c\"", c);
 	}
     }
+}
+
+// lexical error, show character or -1 if none
+void error_lex(const char *msg, int c) {
+    fflush(stdout);
+    fprintf(stderr,"error; %s", msg);
+    printable_c(c);
     fprintf(stderr,"\n");
+    fflush(stderr);
+}
+
+// command line option error, show character
+void error_cmdopt(const char *msg, int c) {
+    fflush(stdout);
+    fprintf(stderr,"error; %s", msg);
+    printable_c(c);
+    fprintf(stderr,"\n");
+    fflush(stderr);
+}
+
+// command line option error, show string
+void error_cmdstr(const char *msg, const char *s) {
+    fflush(stdout);
+    fprintf(stderr,"error; %s: %s\n", msg, s);
     fflush(stderr);
 }
 
