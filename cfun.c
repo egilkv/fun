@@ -167,7 +167,7 @@ static cell *cfunQ_if(cell *args, environment *env) {
     if (bool) {
 	if (!pair_split(b, &a, (cell **)0)) {
             // no else-part
-            return eval(b, env);
+	    a = b;
         }
     } else {
 	if (!pair_split(b, (cell **)0, &a)) {
