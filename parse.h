@@ -27,5 +27,5 @@ enum prec_ {
 
 typedef enum prec_ precedence;
 
-cell *expression();
+cell *expression(FILE *in);
 

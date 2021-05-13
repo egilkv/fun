@@ -47,7 +47,7 @@ struct item_s {
 
 typedef struct item_s item;
 
-item *lexical();
+item *lexical(FILE *in);
 void dropitem(item *it);
 void pushitem(item *it);
 

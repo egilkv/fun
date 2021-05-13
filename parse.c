@@ -19,10 +19,9 @@ static cell *cell_symbol(char *symbol) {
     return oblistv(symbol, cell_ref(hash_void));    // undefined
 }
 
-
-static cell *expr(precedence lv);
-static cell *getlist(item *op, token sep_token, token end_token);
-static cell *binary(cell *left, precedence lv);
+static cell *expr(precedence lv, FILE *in);
+static cell *getlist(item *op, token sep_token, token end_token, FILE *in);
+static cell *binary(cell *left, precedence lv, FILE *in);
 
 static cell *badeof() {
     error_par("unexpected end of file");
@@ -30,15 +29,15 @@ static cell *badeof() {
 }
 
 // get expression at the outer level, where semicolon is separator
-cell *expression() {
-    return expr(l_SEMI);
+cell *expression(FILE *in) {
+    return expr(l_SEMI, in);
 }
 
-static cell *expr(precedence lv) {
+static cell *expr(precedence lv, FILE *in) {
     cell *pt = 0;
     cell *p2 = 0;
     item *it;
-    it = lexical();
+    it = lexical(in);
     if (!it) return 0; // end of file
 
     switch (it->type) {
@@ -46,29 +45,29 @@ static cell *expr(precedence lv) {
     case it_INTEGER:
         pt = cell_integer(it->ivalue);
         dropitem(it);
-        return binary(pt, lv);
+        return binary(pt, lv, in);
 
     case it_STRING:
         pt = cell_astring(it->svalue, it->slen);
         it->svalue = NULL;
         dropitem(it);
-        return binary(pt, lv);
+        return binary(pt, lv, in);
 
     case it_SYMBOL:
         pt = cell_asymbol(it->svalue);
         it->svalue = NULL;
         dropitem(it);
-        return binary(pt, lv);
+        return binary(pt, lv, in);
 
     case it_NOT: // unary only
         dropitem(it);
-        p2 = expr(l_UNARY);
+        p2 = expr(l_UNARY, in);
         if (!p2) return badeof();
         return cell_list(cell_ref(hash_not), cell_list(p2, NIL));
 
     case it_MINUS:
         dropitem(it);
-        p2 = expr(l_UNARY);
+        p2 = expr(l_UNARY, in);
         if (!p2) return badeof();
 	if (cell_is_integer(p2)) {
 	    // handle unary minus of number
@@ -80,14 +79,14 @@ static cell *expr(precedence lv) {
 
     case it_QUOTE:
         dropitem(it);
-        p2 = expr(l_UNARY);
+        p2 = expr(l_UNARY, in);
         if (!p2) return badeof();
         return cell_list(cell_ref(hash_quote), cell_list(p2, NIL));
 
     case it_LPAR:
         // read as list
-        pt = getlist(it, it_COMMA, it_RPAR);
-        it = lexical();
+        pt = getlist(it, it_COMMA, it_RPAR, in);
+        it = lexical(in);
         if (cell_is_list(pt)) {
             // single item on list, not sure what it is
             if (!it || it->type != it_LBRC) {
@@ -96,7 +95,7 @@ static cell *expr(precedence lv) {
                 pt->_.cons.car = 0;
 		cell_unref(pt);
                 if (it) pushitem(it);
-                return binary(p2, lv);
+                return binary(p2, lv, in);
             }
         } else {
             // must be an anomymous function defintion
@@ -108,20 +107,20 @@ static cell *expr(precedence lv) {
             }
         }
         {
-            cell *body = getlist(it, it_SEMI, it_RBRC);
+            cell *body = getlist(it, it_SEMI, it_RBRC, in);
             return cell_list(cell_ref(hash_lambda), cell_list(pt, body));
         }
 
     case it_LBRC: // assoc definition
-	pt = getlist(it, it_COMMA, it_RBRC);
+        pt = getlist(it, it_COMMA, it_RBRC, in);
         // TODO implement optional final semicolon
 	return cell_list(cell_ref(hash_assoc), pt);
 
     case it_LBRK: // array definition
-	pt = getlist(it, it_COMMA, it_RBRK);
+        pt = getlist(it, it_COMMA, it_RBRK, in);
 	return cell_list(cell_ref(hash_vector), pt);
 #if 0 // TODO
-        it = lexical();
+        it = lexical(in);
         if (!it || it->type != it_LBRC) {
 	    error_par("expected initializer (left curly bracket)");
             if (it) pushitem(it);
@@ -129,7 +128,7 @@ static cell *expr(precedence lv) {
             return cell_list(cell_ref(hash_vector), cell_list(pt, NIL));
         }
         {
-            cell *init = getlist(it, it_COMMA, it_RBRC);
+            cell *init = getlist(it, it_COMMA, it_RBRC, in);
 
 	    // peek to see if it is a colon-style initializer
 	    if ((cell_is_list(init) && cell_is_pair(cell_car(init)))
@@ -157,7 +156,7 @@ static cell *expr(precedence lv) {
             error_pat("misplaced semicolon, syntax error", it->type);
         }
         dropitem(it);
-        return expr(lv);
+        return expr(lv, in);
 
     case it_PLUS: // unary?
     case it_MULT: // binary only
@@ -181,7 +180,7 @@ static cell *expr(precedence lv) {
     case it_COLON:
 	error_pat("misplaced item, syntax error", it->type);
         dropitem(it);
-        return expr(lv);
+        return expr(lv, in);
 
     default:
         assert(0);
@@ -190,11 +189,11 @@ static cell *expr(precedence lv) {
     return 0;
 }
 
-static cell *binary(cell *left, precedence lv) {
+static cell *binary(cell *left, precedence lv, FILE *in) {
     precedence l2 = l_BOT;
     cell *s = 0;
     cell *right = 0;
-    item *op = lexical();
+    item *op = lexical(in);
     if (!op) return left; // end of file
 
     switch (op->type) {
@@ -233,12 +232,12 @@ static cell *binary(cell *left, precedence lv) {
             return left;
         }
         dropitem(op);
-        right = expr(l2);
+        right = expr(l2, in);
         if (!right) {
             badeof(); // end of file
             return left;
         }
-        return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv);
+        return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv, in);
 
 #if 1 // TODO
     case it_QUEST:
@@ -248,12 +247,12 @@ static cell *binary(cell *left, precedence lv) {
             return left;
         }
         dropitem(op);
-        right = expr(l_COND);
+        right = expr(l_COND, in);
         if (!right) {
             badeof(); // end of file
             return left;
         }
-        return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv);
+        return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
 #else
     case it_QUEST: // ternary
         if (lv >= l_COND) { // TODO right to left
@@ -262,27 +261,27 @@ static cell *binary(cell *left, precedence lv) {
             return left;
         }
         dropitem(op);
-        right = expr(l_COND);
+        right = expr(l_COND, in);
         if (!right) {
             badeof(); // end of file
             return left;
         }
-        op = lexical();
+        op = lexical(in);
         if (!op || op->type != it_COLON) {
             // "if" without an "else"
             // TODO should that be allowed?
             if (op) pushitem(op);
-            return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv);
+            return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
         }
         dropitem(op);
         {
             cell *third;
-            third = expr(l_COND);
+            third = expr(l_COND, in);
             if (!third) {
                 badeof(); // end of file
-                return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv);
+                return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
             }
-            return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, cell_list(third, NIL)))), lv);
+            return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, cell_list(third, NIL)))), lv, in);
         }
 #endif
 
@@ -292,7 +291,7 @@ static cell *binary(cell *left, precedence lv) {
             pushitem(op);
             return left;
         }
-        return cell_list(left, getlist(op, it_COMMA, it_RPAR));
+        return cell_list(left, getlist(op, it_COMMA, it_RPAR, in));
 
     case it_LBRK: // array
         if (lv >= l_POST) { // TODO left-to-right
@@ -302,19 +301,19 @@ static cell *binary(cell *left, precedence lv) {
         }
         dropitem(op);
         // TODO argument list, not expression
-        right = expr(l_BOT);
+        right = expr(l_BOT, in);
         if (!right) {
             badeof(); // end of file
             return left;
         }
-        op = lexical();
+        op = lexical(in);
         if (op->type == it_RBRK) {
             dropitem(op);
         } else {
 	    error_par("expected matching right bracket for array");
             if (op) pushitem(op);
         }
-        return binary(cell_list(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv);
+        return binary(cell_list(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
 
     case it_COLON:
         if (lv >= l_COLON) { // TODO left-to-right
@@ -323,12 +322,12 @@ static cell *binary(cell *left, precedence lv) {
             return left;
         }
         dropitem(op);
-        right = expr(l_COLON);
+        right = expr(l_COLON, in);
         if (!right) {
             badeof(); // end of file
             return left;
         }
-        return binary(cell_pair(left, right), lv);
+        return binary(cell_pair(left, right), lv, in);
 
     case it_SEMI:
         if (lv >= l_SEMI) { // TODO left-to-right?
@@ -337,13 +336,13 @@ static cell *binary(cell *left, precedence lv) {
             return left;
         }
         dropitem(op);
-        right = expr(lv);
+        right = expr(lv, in);
         if (!right) {
             badeof(); // end of file
             return left;
         }
         // TODO as with '+' and '*' and '>' etc, catenate
-        return binary(cell_list(cell_symbol("#do"), cell_list(left, cell_list(right, NIL))), lv);
+        return binary(cell_list(cell_symbol("#do"), cell_list(left, cell_list(right, NIL))), lv, in);
 
     case it_RPAR:
     case it_RBRK:
@@ -374,14 +373,14 @@ static cell *binary(cell *left, precedence lv) {
 //
 // parse list of function arguments or parameters
 //
-static cell *getlist(item *op, token sep_token, token end_token) {
+static cell *getlist(item *op, token sep_token, token end_token, FILE *in) {
     cell *arglist = 0;
     cell **nextp = &arglist;
     cell *arg;
 
     // assume left parenthesis is current
     dropitem(op);
-    op = lexical();
+    op = lexical(in);
     if (!op) {
         badeof();
         return arglist;
@@ -393,14 +392,14 @@ static cell *getlist(item *op, token sep_token, token end_token) {
     }
     pushitem(op);
     for (;;) {
-        arg = expr(l_BOT);            // TODO what about comma?
+        arg = expr(l_BOT, in);        // TODO what about comma?
         if (!arg) {
             badeof(); // end of file
             return arglist;
         }
         *nextp = cell_list(arg, NIL);
         nextp = &((*nextp)->_.cons.cdr);
-        op = lexical();
+        op = lexical(in);
         if (!op) {
             badeof();
             return arglist;

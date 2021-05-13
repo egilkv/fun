@@ -34,7 +34,7 @@ int main(int argc, char * const argv[]) {
 
     cfun_init();
 
-    while ((ct = expression())) {
+    while ((ct = expression(stdin))) {
         if (opt_showparse) {
             cell_print(stdout, ct);
         }
