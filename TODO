@@ -1,7 +1,10 @@
 
+
 [] is NIL, maybe also {} ??
 
 Lists and vectors are the same, so drop lists (make it up to runtime to switch)
+
+Invocations of eval still uses C stack, so still not proper end recursion
 
 Possibly have pair as a data type instead, using :
 

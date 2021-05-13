@@ -157,7 +157,6 @@ static cell *cfun1_not(cell *a) {
 static cell *cfunQ_if(cell *args, environment *env) {
     int bool;
     cell *a, *b;
-#if 1
     if (!arg2(args, &a, &b)) {
         return cell_ref(hash_void); // error
     }
@@ -165,49 +164,25 @@ static cell *cfunQ_if(cell *args, environment *env) {
     if (!pick_boolean(a, &bool, b)) {
         return cell_ref(hash_void); // error
     }
-    if (cell_is_pair(b)) { // if/else present
-        if (bool) {
-            a = eval(cell_ref(cell_car(b)), env);
-        } else {
-            a = eval(cell_ref(cell_cdr(b)), env);
+    if (bool) {
+	if (!pair_split(b, &a, (cell **)0)) {
+            // no else-part
+            return eval(b, env);
         }
-        cell_unref(b);
-
-    } else if (bool) {
-        a = b;
     } else {
-        cell_unref(b);
-        a = cell_ref(hash_void);
+	if (!pair_split(b, (cell **)0, &a)) {
+            // no else-part
+            cell_unref(b);
+            return cell_ref(hash_void);
+        }
     }
-    return a;
-#else
-    cell *a;
-    if (list_split(args, &a, &args)) {
-	a = eval(a, env);
-        if (!pick_boolean(a, &bool, args)) return cell_ref(hash_void); // error
+    if (env) {
+        // evalutae in-line
+	env->prog = cell_list(a, env->prog);
+        return NIL;
+    } else {
+        return eval(a, env);
     }
-    // second argument must be present
-    if (!list_split(args, &a, &args)) {
-	return error_rt1("missing body for if statement", args); // TODO rephrase
-    }
-    if (bool) { // true?
-        cell_unref(args);
-	return eval(a, env);
-    } 
-    // else
-    cell_unref(a);
-    if (!args) {
-        // no else part given, value is void
-        return cell_ref(hash_void);
-    } else if (!list_split(args, &a, &args)) {
-	return error_rt1("missing body for else statement", args); // TODO rephrase
-    }
-    if (args) {
-	cell_unref(error_rt1("extra argument for if ignored", args));
-    }
-    // finally, else proper
-    return eval(a, env);
-#endif
 }
 
 static cell *cfunQ_quote(cell *args, environment *env) {
