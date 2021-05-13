@@ -15,13 +15,17 @@ static item *pushback = 0;
 static item *gotchar(int c, item *it, FILE *in);
 static item *gotsymbol(char c, item *it, FILE *in);
 
+static item *nextchar(item *it, FILE *in) {
+    return gotchar(fgetc(in), it, in);
+}
+
 item *lexical(FILE *in) {
     item *it;
     if (pushback) {
 	it = pushback;
         pushback = 0;
     } else {
-        it = gotchar(fgetc(in), NULL, in);
+        it = nextchar(NULL, in);
     }
     return it;
 }
@@ -68,7 +72,7 @@ static item *gotdigit(char c, item *it, FILE *in) {
         it = newitem(it_INTEGER);
     }
     it->ivalue = it->ivalue*10 + c-'0';
-    return gotchar(fgetc(in), it, in);
+    return nextchar(it, in);
 }
 
 static item *gotsymbol(char c, item *it, FILE *in) {
@@ -89,7 +93,7 @@ static item *gotsymbol(char c, item *it, FILE *in) {
     it->svalue[n] = c;
     it->svalue[n+1] = '\0';
     it->slen = n+1;
-    return gotchar(fgetc(in), it, in);
+    return nextchar(it, in);
 }
 
 static item *gotstring(char c, item *it, FILE *in) {
@@ -167,12 +171,12 @@ static item *gotstring(char c, item *it, FILE *in) {
 }
 
 static item *gotspace(char c, item *it, FILE *in) {
-    return it ? it : gotchar(fgetc(in), NULL, in);
+    return it ? it : nextchar(NULL, in);
 }
 
 static item *gotdefault(char c, item *it, FILE *in) {
     error_lex("bad character, ignored", c);
-    return it ? it : gotchar(fgetc(in), NULL, in);
+    return it ? it : nextchar(NULL, in);
 }
 
 static item *goteq(char c, item *it, FILE *in) {
@@ -195,7 +199,7 @@ static item *goteq(char c, item *it, FILE *in) {
             break;
         }
     } else {
-        it = gotchar(fgetc(in), newitem(it_EQ), in);
+        it = nextchar(newitem(it_EQ), in);
     }
     return it;
 }
@@ -208,7 +212,7 @@ static item *gotamp(char c, item *it, FILE *in) {
             ungetc(c,in);
         }
     } else {
-        it = gotchar(fgetc(in), newitem(it_AMP), in);
+        it = nextchar(newitem(it_AMP), in);
     }
     return it;
 }
@@ -221,7 +225,7 @@ static item *gotstop(char c, item *it, FILE *in) {
             ungetc(c,in);
         }
     } else {
-        it = gotchar(fgetc(in), newitem(it_STOP), in);
+        it = nextchar(newitem(it_STOP), in);
     }
     return it;
 }
@@ -242,7 +246,7 @@ static item *gotdiv(char c, item *it, FILE *in) {
             ungetc(c,in);
         }
     } else {
-        it = gotchar(fgetc(in), newitem(it_DIV), in);
+        it = nextchar(newitem(it_DIV), in);
     }
     return it;
 }
