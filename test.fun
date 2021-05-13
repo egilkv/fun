@@ -44,9 +44,9 @@ list.0;
 // TODO module.symbol;
 "abc" & "def";
 "abcdef"[2];
-array1 = [6]{ 0 };
+array1 = [ 0..5 : 0];
 array1[0];
-array1[3];
+array1[3];     // TODO generates error?
 array1[3..4];
 
 a = [0..20]{ #t };

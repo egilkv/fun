@@ -267,16 +267,15 @@ static cell *cfun2_div(cell *a, cell *b) {
 }
 
 static cell *cfunN_lt(cell *args) {
+    int argno = 0;
     integer_t value;
     integer_t operand;
     cell *a;
-    if (list_split(args, &a, &args)) {
-	if (!get_numeric(a, &value, args)) return cell_ref(hash_void); // error
-    }
+    // TODO should be cfunQ_lt, do not evaluate more than necessary
     while (list_split(args, &a, &args)) {
 	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void); // error
-	if (value < operand) { // condition satisfied?
-            value = operand;
+	if (argno++ == 0 || value < operand) { // condition satisfied?
+	    value = operand;
 	} else {
 	    cell_unref(args);
 	    return cell_ref(hash_f); // false
