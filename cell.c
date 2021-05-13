@@ -107,9 +107,15 @@ int pair_split(cell *cp, cell **carp, cell **cdrp) {
      }
 }
 
+// symbol that is not malloc'd
+// TODO should optimze wrt constant symbols
+cell *cell_symbol(const char *symbol) {
+    return cell_asymbol(strdup(symbol));
+}
+
 // symbol that is malloc'd already
 cell *cell_asymbol(char *symbol) {
-    return oblista(symbol);
+    return cell_ref(oblista(symbol));
 }
 
 cell *cell_astring(char_t *string, index_t length) {
@@ -223,40 +229,58 @@ cell *cell_assoc() {
 }
 
 // TODO this will soon enough collapse
-void cell_unref(cell *node) {
-    if (node) {
-        if (--(node->ref) == 0) switch (node->type) {
-        case c_LIST:
-        case c_PAIR:
-        case c_LAMBDA:
-            cell_unref(node->_.cons.car);
-            cell_unref(node->_.cons.cdr);
-            free(node);
-            break;
-        case c_SYMBOL:
-            // cell is on oblist TODO special case, odd...
-            break;
-        case c_STRING:
-            free(node->_.string.ptr);
-            free(node);
-            break;
-        case c_INTEGER:
-            free(node);
-            break;
-        case c_CFUNQ:
-        case c_CFUN1:
-        case c_CFUN2:
-        case c_CFUNN:
-            free(node);
-            break;
-        case c_VECTOR:
-            vector_resize(node, 0);
-            free(node);
-            break;
-        case c_ASSOC:
-            assoc_drop(node);
-            free(node);
-            break;
-        }
+static void cell_free(cell *node) {
+    assert(node && node->ref == 0);
+    switch (node->type) {
+    case c_LIST:
+    case c_PAIR:
+    case c_LAMBDA:
+        cell_unref(node->_.cons.car);
+        cell_unref(node->_.cons.cdr);
+        free(node);
+        break;
+    case c_SYMBOL: 
+        assert(oblist_teardown); // these exist only on oblist
+        cell_unref(node->_.symbol.val);
+        free(node->_.symbol.nam);
+        free(node);
+        break;
+    case c_STRING:
+        free(node->_.string.ptr);
+        free(node);
+        break;
+    case c_INTEGER:
+        free(node);
+        break;
+    case c_CFUNQ:
+    case c_CFUN1:
+    case c_CFUN2:
+    case c_CFUNN:
+        free(node);
+        break;
+    case c_VECTOR:
+        vector_resize(node, 0);
+        free(node);
+        break;
+    case c_ASSOC:
+        assoc_drop(node);
+        free(node);
+        break;
     }
 }
+
+// asym is allocated already
+// return unreffed reference
+cell *cell_oblist_item(char_t *asym) {
+    cell *node = newcell(c_SYMBOL);
+    // node->_.symbol.val = NIL; // TODO should probably be #void instead
+    node->_.symbol.nam = asym; // allocated already
+    return node;
+}
+
+
+// TODO inline
+void cell_unref(cell *node) {
+    if (node && --(node->ref) == 0) cell_free(node);
+}
+

@@ -15,8 +15,10 @@
 
 struct ob_entry {
     struct ob_entry *next;
-    cell namdef; // TODO can also be a pointer, TBD
+    cell *symdef;
 };
+
+int oblist_teardown = 0; // for assert() only
 
 static struct ob_entry* ob_table[OBLIST_HASH_SIZE];
 
@@ -39,29 +41,26 @@ cell *oblistv(const char *sym, cell *val) {
 }
 
 // find or create symbol
-// assume symbol is malloc()'d
+// assume symbol is malloc()'d already
 // return unreffed symbol
 cell *oblista(char *sym) {
     struct ob_entry **pp;
     int hash = hash_string(sym);
     pp = &(ob_table[hash]);
     while (*pp) {
-        if (strcmp((*pp)->namdef._.symbol.nam, sym) == 0) {
+        assert(cell_is_symbol((*pp)->symdef));
+        if (strcmp((*pp)->symdef->_.symbol.nam, sym) == 0) {
 	    // exists already
 	    free(sym);
-            return &((*pp)->namdef);
+            return (*pp)->symdef;
 	}
 	pp = &(*pp)->next;
     }
     // not found, make entry
     *pp = malloc(sizeof(struct ob_entry));
+    assert(*pp);
     (*pp)->next = 0;
-    (*pp)->namdef.type = c_SYMBOL;
-    (*pp)->namdef.ref = 1;
-    // TODO if created, state should be "not yet defined"
-    (*pp)->namdef._.symbol.val = NIL;
-    (*pp)->namdef._.symbol.nam = sym;
-    return &((*pp)->namdef);
+    return (*pp)->symdef = cell_oblist_item(sym);
 }
 
 // find symbol, or create as undef as needed
@@ -69,25 +68,24 @@ cell *oblista(char *sym) {
 // TODO if created, state should be "not yet defined"
 // return unreffed symbol
 cell *oblists(const char *sym) {
+
     // TODO combine with oblista() above
     struct ob_entry **pp;
     int hash = hash_string(sym);
     pp = &(ob_table[hash]);
     while (*pp) {
-        if (strcmp((*pp)->namdef._.symbol.nam, sym) == 0) {
-	    // exists already
-            return &((*pp)->namdef);
+        assert(cell_is_symbol((*pp)->symdef));
+        if (strcmp((*pp)->symdef->_.symbol.nam, sym) == 0) {
+	    // symbol exists already
+	    return (*pp)->symdef;
 	}
 	pp = &(*pp)->next;
     }
     // not found, make entry
     *pp = malloc(sizeof(struct ob_entry));
+    assert(*pp);
     (*pp)->next = 0;
-    (*pp)->namdef.type = c_SYMBOL;
-    (*pp)->namdef.ref = 1;
-    (*pp)->namdef._.symbol.val = NIL; // TODO should probably be #void instead
-    (*pp)->namdef._.symbol.nam = strdup(sym);
-    return &((*pp)->namdef);
+    return (*pp)->symdef = cell_oblist_item(strdup(sym));
 }
 
 // define value of variable
@@ -102,19 +100,21 @@ void oblist_set(cell *sym, cell *val) {
 void oblist_drop(int show) {
     int h;
     struct ob_entry *p;
+    oblist_teardown = 1;
     if (show) printf("\n\noblist:\n");
     for (h = 0; h < OBLIST_HASH_SIZE; ++h) {
 	p = ob_table[h];
 	ob_table[h] = 0;
 	while (p) {
 	    struct ob_entry *q = p->next;
-	    if (show) printf("%s ", p->namdef._.symbol.nam);
-	    cell_unref(p->namdef._.symbol.val);
-            free(p->namdef._.symbol.nam);
+            assert(cell_is_symbol(p->symdef));
+            if (show) printf("%s ", p->symdef->_.symbol.nam);
+            cell_unref(p->symdef);
 	    free(p);
 	    p = q;
 	}
     }
+    oblist_teardown = 0;
     if (show) printf("\n");
 }
 

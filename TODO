@@ -1,4 +1,7 @@
 
+module_io() has valgrind issues
+How to deal with io not being pure functions?
+
 Lists and assocs can also be used for functions. Skip [] operator.
 
 [] is NIL, maybe also {} ??

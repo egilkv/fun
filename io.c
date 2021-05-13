@@ -4,13 +4,13 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
 
 #include "cell.h"
 #include "io.h"
 #include "cfun.h"
-#include "oblist.h"
 #include "parse.h"
 
 static void show_list(FILE *out, cell *ct) {
@@ -137,10 +137,9 @@ void cell_print(FILE *out, cell *ct) {
     }
 }
 
-static cell *cfio_write(cell *args, environment *env) {
+static cell *cfio_write(cell *args) {
     cell *a;
     while (list_split(args, &a, &args)) {
-        a = eval(a, env);
 	cell_print(stdout, a);
 	cell_unref(a);
     }
@@ -148,17 +147,9 @@ static cell *cfio_write(cell *args, environment *env) {
     return cell_ref(hash_void);
 }
 
-static cell *cfio_read(cell *args, environment *env) {
-    arg0(args);
-    // TODO how to deal with error messages
-    // TODO threading
-    return expression(stdin);
-}
-
-static cell *cfio_print(cell *args, environment *env) {
+static cell *cfio_print(cell *args) {
     cell *a;
     while (list_split(args, &a, &args)) {
-        a = eval(a, env);
         if (a) switch (a->type) { // NIL prints as nothing
         case c_STRING:
             fwrite(a->_.string.ptr, sizeof(char_t), a->_.string.len, stdout);
@@ -177,20 +168,44 @@ static cell *cfio_print(cell *args, environment *env) {
     return cell_ref(hash_void);
 }
 
-static cell *cfio_println(cell *args, environment *env) {
-    cell *v = cfio_print(args, env);
+static cell *cfio_println(cell *args) {
+    cell *v = cfio_print(args);
     fprintf(stdout, "\n");
     return v;
 }
 
+static cell *cfio_read(cell *args) {
+    arg0(args);
+    // TODO how to deal with error messages
+    // TODO threading
+    return expression(stdin);
+}
 
+static cell *cfio_getline(cell *args) {
+    size_t len = 1;
+    char *line = malloc(1); // if 0, getline will malloc a huge buffer
+    arg0(args);
+    // TODO how to deal with error messages
+    // TODO threading
+    if (getline(&line, &len, stdin) < 0) {
+        // usually and eof but could be other type of error
+        // generate error message?
+        // TODO errno is error
+        free(line);
+        return cell_ref(hash_void);
+    }
+    return cell_astring(line, len-1);
+}
 
 cell *module_io() {
+    // TODO should probably be multiple copies of same entity
     cell *assoc = cell_assoc();
-    assoc_set(assoc, oblists("print"),   cell_cfunQ(cfio_print)); // scheme 'display'
-    assoc_set(assoc, oblists("println"), cell_cfunQ(cfio_println));
-    assoc_set(assoc, oblists("write"),   cell_cfunQ(cfio_write));
-    assoc_set(assoc, oblists("read"),    cell_cfunQ(cfio_read));
+    // TODO these functions are unure
+    assoc_set(assoc, cell_symbol("print"), cell_cfunN(cfio_print)); // scheme 'display'
+    assoc_set(assoc, cell_symbol("println"), cell_cfunN(cfio_println));
+    assoc_set(assoc, cell_symbol("write"), cell_cfunN(cfio_write));
+    assoc_set(assoc, cell_symbol("read"), cell_cfunN(cfio_read));
+    assoc_set(assoc, cell_symbol("getline"), cell_cfunN(cfio_getline));
     return assoc;
 }
 

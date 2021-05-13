@@ -71,6 +71,7 @@ void cell_unref(cell *cp);
 
 cell *cell_list(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
+cell *cell_symbol(const char *symbol);
 cell *cell_asymbol(char_t *symbol);
 cell *cell_astring(char_t *string, index_t length);
 cell *cell_integer(long int integer);
@@ -94,6 +95,7 @@ int vector_get(cell *node, index_t index, cell **valuep);
 void vector_resize(cell *vector, index_t newlen);
 
 int cell_is_symbol(cell *cp);
+cell *cell_oblist_item(char_t *asym);
 
 int cell_is_string(cell *cp);
 

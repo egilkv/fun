@@ -114,7 +114,7 @@ cell *eval(cell *arg, environment *env) {
 			cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
 			cell *b = NIL;
 			cell_unref(fun);
-			if (!arg2(arg, &result, &b)) { // if error, result is void
+			if (arg2(arg, &result, &b)) { // if error, result is void
 			    result = (*def)(eval(result, env), eval(b, env));
 			}
 		    }

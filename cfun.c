@@ -56,11 +56,15 @@ int arg1(cell *args, cell **ap) {
 // if false, *ap is error value
 int arg2(cell *args, cell **ap, cell **bp) {
     *ap = NIL;
-    if (!list_split(args, ap, &args)
-     || !list_split(args, bp, &args)) {
+    if (!list_split(args, ap, &args)) {
+	assert(args == NIL);
+	*ap = error_rt0("missing 1st argument");
+	return 0;
+    }
+    if (!list_split(args, bp, &args)) {
 	assert(args == NIL);
 	cell_unref(*ap);
-	*ap = error_rt0("missing argument(s)");
+	*ap = error_rt0("missing 2nd argument");
 	return 0;
     }
     arg0(args);
@@ -128,7 +132,7 @@ static int pick_boolean(cell *a, int *boolp, cell *dump) {
 static cell *cfunQ_defq(cell *args, environment *env) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
-        return cell_ref(hash_void); // error
+	return a; // error
     }
     if (!cell_is_symbol(a)) {
         cell_unref(b);
@@ -161,7 +165,7 @@ static cell *cfunQ_if(cell *args, environment *env) {
     int bool;
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
-        return cell_ref(hash_void); // error
+	return a; // error
     }
     a = eval(a, env);
     if (!pick_boolean(a, &bool, b)) {
@@ -190,10 +194,7 @@ static cell *cfunQ_if(cell *args, environment *env) {
 
 static cell *cfunQ_quote(cell *args, environment *env) {
     cell *a;
-
-    if (!arg1(args, &a)) {
-	return a; // error value
-    }
+    arg1(args, &a); // sets void if error
     return a;
 }
 
@@ -452,6 +453,7 @@ static cell *cfun2_ref(cell *a, cell *b) {
 		return error_rt1("assoc key does not exist", b);
 	    }
 	    cell_unref(a);
+	    cell_unref(b);
 	    return value;
 	}
 
@@ -504,10 +506,10 @@ static cell *cfun2_ref(cell *a, cell *b) {
 
 static cell *cfunQ_refq(cell *args, environment *env) {
     cell *a, *b;
-    if (!arg2(args, &a, &b)) {
-        return cell_ref(hash_void); // error
+    if (arg2(args, &a, &b)) {
+	a = cfun2_ref(eval(a, env), b);
     }
-    return cfun2_ref(eval(a, env), b);
+    return a;
 }
 
 static cell *cfun1_use(cell *a) {
@@ -524,6 +526,8 @@ static cell *cfun1_use(cell *a) {
 }
 
 void cfun_init() {
+    // TODO hash_amp etc are unrefferenced, and depends on oblist
+    //      to keep symbols in play
     hash_amp     = oblistv("#amp",     cell_cfunN(cfunN_amp));
     hash_assoc   = oblistv("#assoc",   cell_cfunQ(cfunQ_assoc));
     hash_defq    = oblistv("#defq",    cell_cfunQ(cfunQ_defq));
@@ -557,3 +561,4 @@ void cfun_drop() {
     oblist_set(hash_t, NIL);
     oblist_set(hash_void, NIL);
 }
+

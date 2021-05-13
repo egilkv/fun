@@ -8,3 +8,6 @@ cell *oblists(const char *sym);
 void oblist_set(cell *sym, cell *val);
 
 void oblist_drop(int show);
+
+extern int oblist_teardown; // TODO for assert only
+

@@ -14,11 +14,6 @@
 
 #include "oblist.h"
 
-// TODO remove when all is done
-static cell *cell_symbol(char *symbol) {
-    return oblistv(symbol, cell_ref(hash_void));    // undefined
-}
-
 static cell *expr(precedence lv, FILE *in);
 static cell *getlist(item *op, token sep_token, token end_token, FILE *in);
 static cell *binary(cell *left, precedence lv, FILE *in);
