@@ -11,6 +11,7 @@
 #include "io.h"
 #include "cfun.h"
 #include "oblist.h"
+#include "parse.h"
 
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
@@ -147,6 +148,13 @@ static cell *cfio_write(cell *args, environment *env) {
     return cell_ref(hash_void);
 }
 
+static cell *cfio_read(cell *args, environment *env) {
+    arg0(args);
+    // TODO how to deal with error messages
+    // TODO threading
+    return expression(stdin);
+}
+
 static cell *cfio_print(cell *args, environment *env) {
     cell *a;
     while (list_split(args, &a, &args)) {
@@ -182,6 +190,7 @@ cell *module_io() {
     assoc_set(assoc, oblists("print"),   cell_cfunQ(cfio_print)); // scheme 'display'
     assoc_set(assoc, oblists("println"), cell_cfunQ(cfio_println));
     assoc_set(assoc, oblists("write"),   cell_cfunQ(cfio_write));
+    assoc_set(assoc, oblists("read"),    cell_cfunQ(cfio_read));
     return assoc;
 }
 

@@ -34,9 +34,7 @@ void apply_lambda(cell *fun, cell* args, environment **envp) {
 	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
 	}
     }
-    if (args != NIL) {
-	cell_unref(error_rt1("excess arguments ignored", args));
-    }
+    assert(args == NIL);
 
     if (*envp && (*envp)->prog == NIL) {
 	// end recursion, reuse environment

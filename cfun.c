@@ -33,17 +33,22 @@ cell *hash_use;
 cell *hash_vector;
 cell *hash_void;
 
+// function with 0 arguments
+void arg0(cell *args) {
+    if (args) {
+	cell_unref(error_rt1("excess argument(s) ignored", args));
+    }
+}
+
 // function with 1 argument
 // if false, *ap is error value
 int arg1(cell *args, cell **ap) {
     if (!list_split(args, ap, &args)) {
 	assert(args == NIL);
-	*ap = error_rt0("missing argument(s)");
+	*ap = error_rt0("missing argument");
 	return 0;
     }
-    if (args) {
-	cell_unref(error_rt1("excess argument(s) ignored", args));
-    }
+    arg0(args);
     return 1;
 }
 
@@ -58,9 +63,7 @@ int arg2(cell *args, cell **ap, cell **bp) {
 	*ap = error_rt0("missing argument(s)");
 	return 0;
     }
-    if (args) {
-	cell_unref(error_rt1("excess argument(s) ignored", args));
-    }
+    arg0(args);
     return 1;
 }
 
