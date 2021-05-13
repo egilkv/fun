@@ -99,22 +99,22 @@ void oblist_set(cell *sym, cell *val) {
 }
 
 // clean up on exit
-void oblist_drop() {
+void oblist_drop(int show) {
     int h;
     struct ob_entry *p;
-    printf("\n\noblist:\n");
+    if (show) printf("\n\noblist:\n");
     for (h = 0; h < OBLIST_HASH_SIZE; ++h) {
 	p = ob_table[h];
 	ob_table[h] = 0;
 	while (p) {
 	    struct ob_entry *q = p->next;
-	    printf("%s\n", p->namdef._.symbol.nam);
+	    if (show) printf("%s ", p->namdef._.symbol.nam);
 	    cell_unref(p->namdef._.symbol.val);
             free(p->namdef._.symbol.nam);
 	    free(p);
 	    p = q;
 	}
     }
-    printf("\n");
+    if (show) printf("\n");
 }
 

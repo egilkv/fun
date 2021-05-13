@@ -1,4 +1,5 @@
 
+Lists and assocs can also be used for functions. Skip [] operator.
 
 [] is NIL, maybe also {} ??
 
