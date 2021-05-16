@@ -79,19 +79,19 @@ static void chomp(FILE *f) {
 	if (f == stdin) {
 	    if (opt_showparse) {
 		cell_print(stdout, ct);
+                printf(" --> ");
 	    }
 	}
-        fprintf(stdout, " --> "); // TODO remove
         ct = eval(ct, NULL);
-        if (f == stdin && stdin_is_terminal) {
-            printf("\n");
-	    cell_print(stdout, ct);
-
-        } else if (f == stdin) { // TODO remove...
-            // printf("\n");
-	    cell_print(stdout, ct);
-            printf("\n"); // TODO
+        if (f == stdin) {
+            cell_print(stdout, ct);
+            if (!stdin_is_terminal) {
+                printf("\n");
+            }
 	}
         cell_unref(ct);
+    }
+    if (f == stdin && stdin_is_terminal) {
+        printf("\n");
     }
 }

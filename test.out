@@ -28,12 +28,15 @@
 #(#refq, list, 0) --> 1
 #(#amp, "abc", "def") --> "abcdef"
 #(#ref, "abcdef", 2) --> "c"
-error; misplaced operator, syntax error: type is 25
-#(#defq, array1, #(#vector, 6, 0)) --> [ 0, 0, 0, 0, 0, 0 ]
-0 --> 0
-error; misplaced item, syntax error: type is 26
+error; expected matching right parenthesis
+#(#defq, array1, #(#vector, 0)) --> [ 0 ] 
+error; misplaced item, syntax error: type is 16
+(5 : 0) --> error; pair cannot be evaluated: (5 : 0)
+#void
+error; misplaced item, syntax error: type is 24
 #(#ref, array1, 0) --> 0
-#(#ref, array1, 3) --> 0
+#(#ref, array1, 3) --> error; vector index out of bounds: 3
+#void
 error; expected matching right bracket for array
 #(#ref, array1, 3) --> error; vector index out of bounds: 3
 #void
