@@ -72,6 +72,42 @@ static cell *cgtk_application_run(cell *app, cell *arglist) {
     return app;
 }
 
+static cell *cgtk_button_box_new(cell *flags) {
+    GtkWidget *button_box;
+    // TODO ignore flags
+    // GTK_ORIENTATION_HORIZONTAL
+    // GTK_ORIENTATION_VERTICAL
+    cell_unref(flags);
+    button_box = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
+    return cell_special(magic_gtk_wid, (void *)button_box);
+}
+
+static cell *cgtk_button_new(cell *args) {
+    GtkWidget *button;
+    cell *label = NIL;
+    if (list_split(args, &label, &args)) {
+        char *label_s;
+        if (!get_cstring(label, &label_s, NIL)) {
+            return cell_ref(hash_void); // error
+        }
+        button = gtk_button_new_with_label(label_s);
+    } else {
+        button = gtk_button_new();
+    }
+    arg0(args);
+    return cell_special(magic_gtk_wid, (void *)button);
+}
+
+static cell *cgtk_container_add(cell *widget, cell *add) {
+    GtkWidget *wp;
+    GtkWidget *ap;
+    if (peek_wid_s(widget, &wp, add)
+     && peek_wid_s(add, &ap, NIL)) {
+        gtk_container_add(GTK_CONTAINER(wp), ap);
+    }
+    return widget;
+}
+
 static cell *cgtk_print(cell *args) {
     cell *a;
     while (list_split(args, &a, &args)) {
@@ -107,6 +143,8 @@ static void do_callback(GtkApplication* gp, gpointer data) {
 }
 
 static cell *cgtk_signal_connect(cell *app, cell *hook, cell *callback) {
+    // TODO also works for widgets, any instance
+
     GtkApplication *gp;
     char_t *signal;
     if (!peek_app_s(app, &gp, callback)) {
@@ -172,6 +210,9 @@ cell *module_gtk() {
     assoc_set(assoc, cell_symbol("application_new"), cell_cfunN(cgtk_application_new));
     assoc_set(assoc, cell_symbol("application_run"), cell_cfun2(cgtk_application_run));
     assoc_set(assoc, cell_symbol("application_window_new"), cell_cfun1(cgtk_application_window_new));
+    assoc_set(assoc, cell_symbol("button_new"), cell_cfunN(cgtk_button_new)); // also "button_new_with_label"
+    assoc_set(assoc, cell_symbol("button_box_new"), cell_cfunN(cgtk_button_box_new));
+    assoc_set(assoc, cell_symbol("container_add"), cell_cfun2(cgtk_container_add));
     assoc_set(assoc, cell_symbol("print"), cell_cfunN(cgtk_print));
     assoc_set(assoc, cell_symbol("signal_connect"), cell_cfun3(cgtk_signal_connect));
     assoc_set(assoc, cell_symbol("window_set_title"), cell_cfun2(cgtk_window_set_title));

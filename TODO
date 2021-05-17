@@ -1,4 +1,7 @@
 
+Surely cannot be right?
+(#usr("io")).println("hello2");
+
 How to deal with io not being pure functions?
 
 Lists and assocs can also be used for functions. Skip [] operator.
