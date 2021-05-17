@@ -6,8 +6,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "cfun.h"
-#include "cell.h"
+#include "cmod.h"
 #include "err.h"
 
 static void insert_prog(cell *newprog, cell* newassoc, environment **envp) {

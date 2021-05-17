@@ -1,7 +1,7 @@
 // TAB P
 // https://developer.gnome.org/gtk3/stable/gtk-getting-started.html
 
-gtk = #use("gtk");
+gtk = #use("gtk3");
 
 app = gtk.application_new("org.gtk.example");
 

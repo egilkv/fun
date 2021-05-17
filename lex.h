@@ -3,6 +3,7 @@
 
 #include "type.h"
 
+// NOTE: also update it_name in "err.c"
 enum it_ {
    it_QUOTE,   // 0
    it_PLUS,
@@ -25,18 +26,28 @@ enum it_ {
    it_COLON,
    it_SEMI,
    it_QUEST,   // 20
+   it_BAR,
+   it_OR,
    it_LPAR,
    it_RPAR,
-   it_LBRK,
+   it_LBRK,    // 25
    it_RBRK,
-   it_LBRC,    // 25
+   it_LBRC,
    it_RBRC,
    it_INTEGER,
-   it_STRING,
+   it_STRING,  // 30
    it_SYMBOL
 } ;
 
 typedef enum it_ token;
+
+struct file_s {
+    FILE *f;
+    int lineno;
+    int index;
+} ;
+
+typedef struct file_s lxfile;
 
 struct item_s {
     token type;
@@ -47,7 +58,10 @@ struct item_s {
 
 typedef struct item_s item;
 
-item *lexical(FILE *in);
+item *lexical(lxfile *in);
+void lxfile_init(lxfile *in, FILE *f);
+const char *lxfile_info(lxfile *in);
+
 void dropitem(item *it);
 void pushitem(item *it);
 

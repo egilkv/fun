@@ -3,6 +3,7 @@
  */
 
 #include "cell.h"
+#include "lex.h"
 
 // TODO see also:
 // https://www.tutorialspoint.com/cprogramming/c_operators_precedence.htm
@@ -27,5 +28,5 @@ enum prec_ {
 
 typedef enum prec_ precedence;
 
-cell *expression(FILE *in);
+cell *expression(lxfile *in);
 

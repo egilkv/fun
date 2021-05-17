@@ -2,6 +2,10 @@
 Surely cannot be right?
 (#usr("io")).println("hello2");
 
+Functions within assocs must be able to refer to their own assoc
+
+|-operator is for replacements, so somewhat related to &.
+
 How to deal with io not being pure functions?
 
 Lists and assocs can also be used for functions. Skip [] operator.

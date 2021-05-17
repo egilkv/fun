@@ -10,7 +10,7 @@
 
 #include "cell.h"
 #include "io.h"
-#include "cfun.h"
+#include "cmod.h"
 #include "parse.h"
 
 static void show_list(FILE *out, cell *ct) {
@@ -183,7 +183,10 @@ static cell *cfio_read(cell *args) {
     arg0(args);
     // TODO how to deal with error messages
     // TODO threading
-    return expression(stdin);
+    // TODO should probably continue previous lxfile
+    lxfile infile;
+    lxfile_init(&infile, stdin);
+    return expression(&infile);
 }
 
 static cell *cfio_getline(cell *args) {

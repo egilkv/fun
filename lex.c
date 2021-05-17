@@ -12,14 +12,53 @@
 #include "err.h"
 
 static item *pushback = 0;
-static item *gotchar(int c, item *it, FILE *in);
-static item *gotsymbol(char c, item *it, FILE *in);
+static item *gotchar(int c, item *it, lxfile *in);
+static item *gotsymbol(char c, item *it, lxfile *in);
 
-static item *nextchar(item *it, FILE *in) {
-    return gotchar(fgetc(in), it, in);
+void lxfile_init(lxfile *in, FILE *f) {
+    in->f = f;
+    in->lineno = 1;
+    in->index = 0;
 }
 
-item *lexical(FILE *in) {
+// BUG: static string
+const char *lxfile_info(lxfile *in) {
+    static char infobuf[81];
+    snprintf(infobuf, sizeof(infobuf)-1, " at %d:%d", in->lineno, in->index);
+    return infobuf;
+}
+
+// TODO inline
+static void lxungetc(char c, lxfile *in) {
+    if (c == '\n') {
+        --(in->lineno);
+        in->index = -1; // means end of line
+    }
+    ungetc(c, in->f);
+}
+
+// TODO inline
+static int lxgetc(lxfile *in) {
+    int c = fgetc(in->f);
+    switch (c) {
+    case '\n':
+        ++(in->lineno);
+        in->index = 0;
+        break;
+    case '\r':
+        break;
+    default:
+        ++(in->index);
+        break;
+    }
+    return c;
+}
+
+static item *nextchar(item *it, lxfile *in) {
+    return gotchar(lxgetc(in), it, in);
+}
+
+item *lexical(lxfile *in) {
     item *it;
     if (pushback) {
 	it = pushback;
@@ -54,18 +93,18 @@ static item *newitem(token type) {
     return it;
 }
 
-static item *goteof(char c, item *it, FILE *in) {
+static item *goteof(char c, item *it, lxfile *in) {
     // assume eof is returned more than once
     return it;
 }
 
-static item *gotdigit(char c, item *it, FILE *in) {
+static item *gotdigit(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_SYMBOL) {
             return gotsymbol(c, it, in);
         }
         if (it->type != it_INTEGER) {
-            ungetc(c,in);
+            lxungetc(c, in);
             return it;
         }
     } else {
@@ -75,11 +114,11 @@ static item *gotdigit(char c, item *it, FILE *in) {
     return nextchar(it, in);
 }
 
-static item *gotsymbol(char c, item *it, FILE *in) {
+static item *gotsymbol(char c, item *it, lxfile *in) {
     int n;
     if (it) {
         if (it->type != it_SYMBOL) {
-            ungetc(c,in);
+            lxungetc(c, in);
             return it;
         }
         assert(it->svalue);
@@ -96,20 +135,20 @@ static item *gotsymbol(char c, item *it, FILE *in) {
     return nextchar(it, in);
 }
 
-static item *gotstring(char c, item *it, FILE *in) {
+static item *gotstring(char c, item *it, lxfile *in) {
     int n = 0;
     if (it) {
         if (it->type != it_STRING) {
-            ungetc(c,in);
+            lxungetc(c, in);
             return it;
         }
         if (c == '"') { // end of string?
             return it;
         } 
         if (c == '\\') {
-            int c2 = fgetc(in);
+            int c2 = lxgetc(in);
             if (c2 < 0) {
-                error_lex("unterminated string", -1);
+		error_lex(lxfile_info(in), "unterminated string", -1);
                 return it;
             }
             switch (c2) {
@@ -139,18 +178,18 @@ static item *gotstring(char c, item *it, FILE *in) {
             case 'u':
             case 'U':
             default: // TODO implement
-                error_lex("unknown \\-escape, ignored", c2);
-                return gotstring(fgetc(in), it, in);
+		error_lex(lxfile_info(in), "unknown \\-escape, ignored", c2);
+                return gotstring(lxgetc(in), it, in);
             }
         } else if (iscntrl(c)) {
             // TODO error
             if (c == '\r' || c == '\n') {
-                error_lex("string missing trailing quote", -1);
-                ungetc(c,in);
+		error_lex(lxfile_info(in), "string missing trailing quote", -1);
+                lxungetc(c, in);
                 return it;
             }
-            error_lex("bad control character in string, ignored", c);
-            return gotstring(fgetc(in), it, in);
+	    error_lex(lxfile_info(in), "bad control character in string, ignored", c);
+            return gotstring(lxgetc(in), it, in);
         }
         // string continues
         assert(it->svalue);
@@ -167,19 +206,19 @@ static item *gotstring(char c, item *it, FILE *in) {
     }
     it->svalue[n] = '\0';
     it->slen = n;
-    return gotstring(fgetc(in), it, in);
+    return gotstring(lxgetc(in), it, in);
 }
 
-static item *gotspace(char c, item *it, FILE *in) {
+static item *gotspace(char c, item *it, lxfile *in) {
     return it ? it : nextchar(NULL, in);
 }
 
-static item *gotdefault(char c, item *it, FILE *in) {
-    error_lex("bad character, ignored", c);
+static item *gotdefault(char c, item *it, lxfile *in) {
+    error_lex(lxfile_info(in), "bad character, ignored", c);
     return it ? it : nextchar(NULL, in);
 }
 
-static item *goteq(char c, item *it, FILE *in) {
+static item *goteq(char c, item *it, lxfile *in) {
     if (it) {
         switch (it->type) {
         case it_LT:
@@ -195,7 +234,7 @@ static item *goteq(char c, item *it, FILE *in) {
             it->type = it_EQEQ;
             break;
         default:
-            ungetc(c,in);
+            lxungetc(c, in);
             break;
         }
     } else {
@@ -204,12 +243,12 @@ static item *goteq(char c, item *it, FILE *in) {
     return it;
 }
 
-static item *gotamp(char c, item *it, FILE *in) {
+static item *gotamp(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_AMP) {
             it->type = it_AND;
         } else {
-            ungetc(c,in);
+            lxungetc(c, in);
         }
     } else {
         it = nextchar(newitem(it_AMP), in);
@@ -217,12 +256,25 @@ static item *gotamp(char c, item *it, FILE *in) {
     return it;
 }
 
-static item *gotstop(char c, item *it, FILE *in) {
+static item *gotbar(char c, item *it, lxfile *in) {
+    if (it) {
+        if (it->type == it_BAR) {
+            it->type = it_OR;
+        } else {
+            lxungetc(c, in);
+        }
+    } else {
+        it = nextchar(newitem(it_BAR), in);
+    }
+    return it;
+}
+
+static item *gotstop(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_STOP) {
             it->type = it_ELIP;
         } else {
-            ungetc(c,in);
+            lxungetc(c, in);
         }
     } else {
         it = nextchar(newitem(it_STOP), in);
@@ -230,20 +282,20 @@ static item *gotstop(char c, item *it, FILE *in) {
     return it;
 }
 
-static item *gotdiv(char c, item *it, FILE *in) {
+static item *gotdiv(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_DIV) { // double slash, comment until end of line
             dropitem(it);
             // TODO iteration
             int c;
             do {
-                c = fgetc(in);
+                c = lxgetc(in);
                 if (c < 0) return 0; // end of file
             } while (c != '\r' && c != '\n');
             // end of line
             it = gotchar(c, NULL, in);
         } else {
-            ungetc(c,in);
+            lxungetc(c, in);
         }
     } else {
         it = nextchar(newitem(it_DIV), in); // reqd for peek into next
@@ -251,7 +303,7 @@ static item *gotdiv(char c, item *it, FILE *in) {
     return it;
 }
 
-static item *gotmult(char c, item *it, FILE *in) {
+static item *gotmult(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_DIV) { // slash-star, comment until end of line
             dropitem(it);
@@ -260,12 +312,12 @@ static item *gotmult(char c, item *it, FILE *in) {
             int c0;
             do {
                 c0 = c;
-                c = fgetc(in);
+                c = lxgetc(in);
                 if (c < 0) return 0; // end of file
             } while (c0 != '*' || c != '/');
             it = nextchar(NULL, in);
         } else {
-            ungetc(c,in);
+            lxungetc(c, in);
         }
     } else {
         it = newitem(it_MULT);
@@ -273,31 +325,31 @@ static item *gotmult(char c, item *it, FILE *in) {
     return it;
 }
 
-static item *gotplain(char c, token type, item *it, FILE *in) {
-    if (it) ungetc(c,in);
+static item *gotplain(char c, token type, item *it, lxfile *in) {
+    if (it) lxungetc(c, in);
     else it = newitem(type);
     return it;
 }
 
-static item *gotlt(char c, item *it, FILE *in)    { return gotplain(c, it_LT, it, in); }
-static item *gotgt(char c, item *it, FILE *in)    { return gotplain(c, it_GT, it, in); }
-static item *gotnot(char c, item *it, FILE *in)   { return gotplain(c, it_NOT, it, in); }
-static item *gotquote(char c, item *it, FILE *in) { return gotplain(c, it_QUOTE, it, in); }
-static item *gotplus(char c, item *it, FILE *in)  { return gotplain(c, it_PLUS, it, in); }
-static item *gotminus(char c, item *it, FILE *in) { return gotplain(c, it_MINUS, it, in); }
-static item *gotcomma(char c, item *it, FILE *in) { return gotplain(c, it_COMMA, it, in); }
-static item *gotcolon(char c, item *it, FILE *in) { return gotplain(c, it_COLON, it, in); }
-static item *gotsemi(char c, item *it, FILE *in)  { return gotplain(c, it_SEMI, it, in); }
-static item *gotquest(char c, item *it, FILE *in) { return gotplain(c, it_QUEST, it, in); }
-static item *gotlpar(char c, item *it, FILE *in)  { return gotplain(c, it_LPAR, it, in); }
-static item *gotrpar(char c, item *it, FILE *in)  { return gotplain(c, it_RPAR, it, in); }
-static item *gotlbrk(char c, item *it, FILE *in)  { return gotplain(c, it_LBRK, it, in); }
-static item *gotrbrk(char c, item *it, FILE *in)  { return gotplain(c, it_RBRK, it, in); }
-static item *gotlbrc(char c, item *it, FILE *in)  { return gotplain(c, it_LBRC, it, in); }
-static item *gotrbrc(char c, item *it, FILE *in)  { return gotplain(c, it_RBRC, it, in); }
+static item *gotlt(char c, item *it, lxfile *in)    { return gotplain(c, it_LT, it, in); }
+static item *gotgt(char c, item *it, lxfile *in)    { return gotplain(c, it_GT, it, in); }
+static item *gotnot(char c, item *it, lxfile *in)   { return gotplain(c, it_NOT, it, in); }
+static item *gotquote(char c, item *it, lxfile *in) { return gotplain(c, it_QUOTE, it, in); }
+static item *gotplus(char c, item *it, lxfile *in)  { return gotplain(c, it_PLUS, it, in); }
+static item *gotminus(char c, item *it, lxfile *in) { return gotplain(c, it_MINUS, it, in); }
+static item *gotcomma(char c, item *it, lxfile *in) { return gotplain(c, it_COMMA, it, in); }
+static item *gotcolon(char c, item *it, lxfile *in) { return gotplain(c, it_COLON, it, in); }
+static item *gotsemi(char c, item *it, lxfile *in)  { return gotplain(c, it_SEMI, it, in); }
+static item *gotquest(char c, item *it, lxfile *in) { return gotplain(c, it_QUEST, it, in); }
+static item *gotlpar(char c, item *it, lxfile *in)  { return gotplain(c, it_LPAR, it, in); }
+static item *gotrpar(char c, item *it, lxfile *in)  { return gotplain(c, it_RPAR, it, in); }
+static item *gotlbrk(char c, item *it, lxfile *in)  { return gotplain(c, it_LBRK, it, in); }
+static item *gotrbrk(char c, item *it, lxfile *in)  { return gotplain(c, it_RBRK, it, in); }
+static item *gotlbrc(char c, item *it, lxfile *in)  { return gotplain(c, it_LBRC, it, in); }
+static item *gotrbrc(char c, item *it, lxfile *in)  { return gotplain(c, it_RBRC, it, in); }
 
 // return item, or NULL is end of file
-static item *gotchar(int c, item *it, FILE *in) {
+static item *gotchar(int c, item *it, lxfile *in) {
     if (c < 0) {
         return goteof(c, it, in);
     } else if (isdigit(c)) {
@@ -353,10 +405,10 @@ static item *gotchar(int c, item *it, FILE *in) {
         return gotsymbol(c, it, in);
     case '{':
         return gotlbrc(c, it, in);
+    case '|':
+        return gotbar(c, it, in);
     case '}':
         return gotrbrc(c, it, in);
-
-    // TODO '|'
 
     case '\r':
     case '\n':

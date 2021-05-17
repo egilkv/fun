@@ -13,13 +13,14 @@
 #include "io.h"
 #include "err.h"
 
-static void chomp(FILE *f);
+static void chomp(lxfile *f);
 
 int stdin_is_terminal; // TODO move
 
 int main(int argc, char * const argv[]) {
     int opt;
     int idx;
+    lxfile infile;
 
     cfun_init();
     stdin_is_terminal = isatty(fileno(stdin));
@@ -47,7 +48,8 @@ int main(int argc, char * const argv[]) {
         if (stdin_is_terminal) { // TODO more of this...
             fprintf(stdout, "Have fun");
         }
-	chomp(stdin);
+        lxfile_init(&infile, stdin);
+        chomp(&infile);
     } else {
         // filenames on command line?
         for (idx = optind; idx < argc; idx++) {
@@ -55,8 +57,9 @@ int main(int argc, char * const argv[]) {
             if (!f) {
                 error_cmdstr("cannot find", argv[idx]);
             } else {
-                chomp(f);
-                fclose(f);
+                lxfile_init(&infile, f);
+                chomp(&infile);
+                fclose(infile.f);
             }
 	}
     }
@@ -66,24 +69,25 @@ int main(int argc, char * const argv[]) {
     return 0;
 }
 
-static void chomp(FILE *f) {
+static void chomp(lxfile *lxf) {
     cell *ct;
 
     for (;;) {
-        if (f == stdin && stdin_is_terminal) {
+        // TODO move up
+        if (lxf->f == stdin && stdin_is_terminal) {
 	    fprintf(stdout, "\n--> ");
 	    fflush(stdout);
 	}
-	ct = expression(f);
+        ct = expression(lxf);
 	if (!ct) break; // eof
-	if (f == stdin) {
+        if (lxf->f == stdin) {
 	    if (opt_showparse) {
 		cell_print(stdout, ct);
                 printf(" --> ");
 	    }
 	}
         ct = eval(ct, NULL);
-        if (f == stdin) {
+        if (lxf->f == stdin) {
             cell_print(stdout, ct);
             if (!stdin_is_terminal) {
                 printf("\n");
@@ -91,7 +95,7 @@ static void chomp(FILE *f) {
 	}
         cell_unref(ct);
     }
-    if (f == stdin && stdin_is_terminal) {
+    if (lxf->f == stdin && stdin_is_terminal) {
         printf("\n");
     }
 }

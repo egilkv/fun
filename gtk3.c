@@ -12,8 +12,7 @@
 
 #include <gtk/gtk.h>
 
-#include "cell.h"
-#include "cfun.h"
+#include "cmod.h"
 #include "err.h"
 
 static const char *magic_gtk_app = "gtk_application";
@@ -149,6 +148,19 @@ static cell *cgtk_grid_attach(cell *grid, cell *widget, cell *coord) {
     return grid;
 }
 
+static cell *cgtk_init(cell *arglist) {
+    // TODO convert to argc, argv
+    // see also cgtk_application_run
+    gtk_init(0, NULL);
+    cell_unref(arglist);
+    return cell_ref(hash_void);
+}
+
+static cell *cgtk_main() {
+    gtk_main();
+    return cell_ref(hash_void);
+}
+
 static cell *cgtk_print(cell *args) {
     cell *a;
     while (list_split(args, &a, &args)) {
@@ -265,24 +277,30 @@ static cell *cgtk_application_window_new(cell *app) {
 }
 
 cell *module_gtk() {
-    // TODO should probably be multiple copies of same entity
-    cell *assoc = cell_assoc();
-    // TODO these functions are unpure
-    assoc_set(assoc, cell_symbol("application_new"), cell_cfunN(cgtk_application_new));
-    assoc_set(assoc, cell_symbol("application_run"), cell_cfun2(cgtk_application_run));
-    assoc_set(assoc, cell_symbol("application_window_new"), cell_cfun1(cgtk_application_window_new));
-    assoc_set(assoc, cell_symbol("button_new"), cell_cfunN(cgtk_button_new)); // also "button_new_with_label"
-    assoc_set(assoc, cell_symbol("button_box_new"), cell_cfunN(cgtk_button_box_new));
-    assoc_set(assoc, cell_symbol("container_add"), cell_cfun2(cgtk_container_add));
-    assoc_set(assoc, cell_symbol("container_set_border_width"), cell_cfun2(cgtk_container_set_border_width));
-    assoc_set(assoc, cell_symbol("grid_new"), cell_cfun0(cgtk_grid_new));
-    assoc_set(assoc, cell_symbol("grid_attach"), cell_cfun3(cgtk_grid_attach));
-    assoc_set(assoc, cell_symbol("print"), cell_cfunN(cgtk_print));
-    assoc_set(assoc, cell_symbol("signal_connect"), cell_cfun3(cgtk_signal_connect));
-    assoc_set(assoc, cell_symbol("widget_destroy"), cell_cfun1(cgtk_widget_destroy));
-    assoc_set(assoc, cell_symbol("window_set_title"), cell_cfun2(cgtk_window_set_title));
-    assoc_set(assoc, cell_symbol("window_set_default_size"), cell_cfun3(cgtk_window_set_default_size));
-    assoc_set(assoc, cell_symbol("widget_show_all"), cell_cfun1(cgtk_widget_show_all));
-    return assoc;
+    static cell *gtk_assoc = NIL;
+    if (!gtk_assoc) {
+        gtk_assoc = cell_assoc();
+
+        // TODO these functions are impure
+        assoc_set(gtk_assoc, cell_symbol("application_new"), cell_cfunN(cgtk_application_new));
+        assoc_set(gtk_assoc, cell_symbol("application_run"), cell_cfun2(cgtk_application_run));
+        assoc_set(gtk_assoc, cell_symbol("application_window_new"), cell_cfun1(cgtk_application_window_new));
+        assoc_set(gtk_assoc, cell_symbol("button_new"), cell_cfunN(cgtk_button_new)); // also "button_new_with_label"
+        assoc_set(gtk_assoc, cell_symbol("button_box_new"), cell_cfunN(cgtk_button_box_new));
+        assoc_set(gtk_assoc, cell_symbol("container_add"), cell_cfun2(cgtk_container_add));
+        assoc_set(gtk_assoc, cell_symbol("container_set_border_width"), cell_cfun2(cgtk_container_set_border_width));
+        assoc_set(gtk_assoc, cell_symbol("grid_new"), cell_cfun0(cgtk_grid_new));
+        assoc_set(gtk_assoc, cell_symbol("grid_attach"), cell_cfun3(cgtk_grid_attach));
+        assoc_set(gtk_assoc, cell_symbol("init"), cell_cfun1(cgtk_init));
+        assoc_set(gtk_assoc, cell_symbol("main"), cell_cfun0(cgtk_main));
+        assoc_set(gtk_assoc, cell_symbol("print"), cell_cfunN(cgtk_print));
+        assoc_set(gtk_assoc, cell_symbol("signal_connect"), cell_cfun3(cgtk_signal_connect));
+        assoc_set(gtk_assoc, cell_symbol("widget_destroy"), cell_cfun1(cgtk_widget_destroy));
+        assoc_set(gtk_assoc, cell_symbol("window_set_title"), cell_cfun2(cgtk_window_set_title));
+        assoc_set(gtk_assoc, cell_symbol("window_set_default_size"), cell_cfun3(cgtk_window_set_default_size));
+        assoc_set(gtk_assoc, cell_symbol("widget_show_all"), cell_cfun1(cgtk_widget_show_all));
+    }
+    // TODO static io_assoc owns one, but hard to avoid
+    return cell_ref(gtk_assoc);
 }
 

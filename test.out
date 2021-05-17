@@ -12,7 +12,7 @@
 #(#defq, v, #(#vector, 7, 8, "hello")) --> [ 7, 8, "hello" ] 
 #(#ref, v, 0) --> 7
 #(#ref, v, 2) --> "hello"
-#(#defq, aa, #(#assoc, (one : 1), (two : 2), (three : 3))) --> { two : 2, three : 3, one : 1 } 
+#(#defq, aa, #(#assoc, (one : 1), (two : 2), (three : 3))) --> { one : 1, two : 2, three : 3 } 
 #(#defq, ix, #(#quote, two)) --> two
 #(#ref, aa, #(#quote, one)) --> 1
 #(#ref, aa, ix) --> 2
@@ -20,7 +20,7 @@
 #(#refq, aa, one) --> 1
 #(#refq, aa, two) --> 2
 #(#refq, aa, three) --> 3
-#(#amp, aa, #(#assoc, (two : "TWO"))) --> error; list & not yet implemented: { two : 2, three : 3, one : 1 } 
+#(#amp, aa, #(#assoc, (two : "TWO"))) --> error; list & not yet implemented: { one : 1, two : 2, three : 3 } 
 #void
 #(#vector, (3 : 99), (0 : "test")) --> [ "test", #(), #(), 99 ] 
 #(#defq, list, #(#, 1, 2, 3)) --> #(1, 2, 3)
@@ -28,39 +28,39 @@
 #(#refq, list, 0) --> 1
 #(#amp, "abc", "def") --> "abcdef"
 #(#ref, "abcdef", 2) --> "c"
-error; expected matching right parenthesis
+error at 47:15; expected matching right parenthesis
 #(#defq, array1, #(#vector, 0)) --> [ 0 ] 
-error; misplaced item, syntax error: type is 16
+error at 47:15; misplaced item: operator is ".."
 (5 : 0) --> error; pair cannot be evaluated: (5 : 0)
 #void
-error; misplaced item, syntax error: type is 24
+error at 47:22; misplaced item: operator is "]"
 #(#ref, array1, 0) --> 0
 #(#ref, array1, 3) --> error; vector index out of bounds: 3
 #void
-error; expected matching right bracket for array
+error at 50:12; expected matching right bracket for array
 #(#ref, array1, 3) --> error; vector index out of bounds: 3
 #void
-error; misplaced item, syntax error: type is 16
+error at 50:12; misplaced item: operator is ".."
 4 --> 4
-error; misplaced item, syntax error: type is 24
-error; expected matching right parenthesis
+error at 50:15; misplaced item: operator is "]"
+error at 52:9; expected matching right parenthesis
 #(#defq, a, #(#vector, 0)) --> [ 0 ] 
-error; misplaced item, syntax error: type is 16
+error at 52:9; misplaced item: operator is ".."
 20 --> 20
-error; misplaced item, syntax error: type is 24
+error at 52:13; misplaced item: operator is "]"
 #(#assoc, #t) --> error; initialization item not in form of key colon value: #()
 { } 
 #(#defq, j, 15) --> 15
-error; misplaced item, syntax error: type is 16
-error; misplaced operator, syntax error: type is 25
+error at 55:5; misplaced item: operator is ".."
+error at 55:17; misplaced operator: operator is "{"
 #(#amp, #(#ref, a, #(#minus, j, 1)), #(#vector)) --> error; vector index out of bounds: 14
 error; operator & cannot be applied: #void
 #void
 #f --> #f
-error; misplaced item, syntax error: type is 26
-error; misplaced item, syntax error: type is 13
-error; expected matching right bracket for array
+error at 55:21; misplaced item: operator is "}"
+error at 55:24; misplaced item: operator is "&"
+error at 55:34; expected matching right bracket for array
 #(#ref, a, #(#plus, j, 1)) --> error; vector index out of bounds: 16
 #void
-error; misplaced item, syntax error: type is 16
-error; misplaced item, syntax error: type is 24
+error at 55:34; misplaced item: operator is ".."
+error at 55:35; misplaced item: operator is "]"

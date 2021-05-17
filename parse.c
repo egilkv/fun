@@ -7,28 +7,27 @@
 #include <string.h>
 #include <assert.h>
 
-#include "lex.h"
 #include "parse.h"
 #include "cfun.h"
 #include "err.h"
 
 #include "oblist.h"
 
-static cell *expr(precedence lv, FILE *in);
-static cell *getlist(item *op, token sep_token, token end_token, FILE *in);
-static cell *binary(cell *left, precedence lv, FILE *in);
+static cell *expr(precedence lv, lxfile *in);
+static cell *getlist(item *op, token sep_token, token end_token, lxfile *in);
+static cell *binary(cell *left, precedence lv, lxfile *in);
 
 static cell *badeof() {
-    error_par("unexpected end of file");
+    error_par(" at eof", "unexpected end of file");
     return 0;
 }
 
 // get expression at the outer level, where semicolon is separator
-cell *expression(FILE *in) {
+cell *expression(lxfile *in) {
     return expr(l_SEMI, in);
 }
 
-static cell *expr(precedence lv, FILE *in) {
+static cell *expr(precedence lv, lxfile *in) {
     cell *pt = 0;
     cell *p2 = 0;
     item *it;
@@ -95,7 +94,7 @@ static cell *expr(precedence lv, FILE *in) {
         } else {
             // must be an anomymous function defintion
             if (!it || it->type != it_LBRC) {
-		error_par("expected function body (left curly bracket)");
+		error_par(lxfile_info(in), "expected function body (left curly bracket)");
                 if (it) pushitem(it);
                 // assume empty function body
                 return cell_list(cell_ref(hash_lambda), cell_list(pt, NIL));
@@ -117,7 +116,7 @@ static cell *expr(precedence lv, FILE *in) {
 #if 0 // TODO
         it = lexical(in);
         if (!it || it->type != it_LBRC) {
-	    error_par("expected initializer (left curly bracket)");
+	    error_par(lxfile_info(in), "expected initializer (left curly bracket)");
             if (it) pushitem(it);
             // assume empty initializer
             return cell_list(cell_ref(hash_vector), cell_list(pt, NIL));
@@ -129,7 +128,7 @@ static cell *expr(precedence lv, FILE *in) {
 	    if ((cell_is_list(init) && cell_is_pair(cell_car(init)))
 	      || (pt == NIL && init == NIL)) {
 		if (pt) {
-		    error_pa1("length specified for assoc ignored", pt); // TODO rephrase?
+		    error_pa1(lxfile_info(in), "length specified for assoc ignored", pt); // TODO rephrase?
 		}
 
 	    } else { // vector
@@ -148,7 +147,7 @@ static cell *expr(precedence lv, FILE *in) {
     case it_SEMI:
         if (lv < l_SEMI) {
             // TODO sure???
-            error_pat("misplaced semicolon, syntax error", it->type);
+	    error_pat(lxfile_info(in), "misplaced semicolon", it->type);
         }
         dropitem(it);
         return expr(lv, in);
@@ -164,7 +163,9 @@ static cell *expr(precedence lv, FILE *in) {
     case it_NTEQ:
     case it_EQEQ:
     case it_AMP:
+    case it_BAR:
     case it_AND:
+    case it_OR:
     case it_STOP:
     case it_COMMA:
     case it_QUEST: // ternary
@@ -173,7 +174,7 @@ static cell *expr(precedence lv, FILE *in) {
     case it_RBRK:
     case it_RBRC:
     case it_COLON:
-	error_pat("misplaced item, syntax error", it->type);
+	error_pat(lxfile_info(in), "misplaced item", it->type);
         dropitem(it);
         return expr(lv, in);
 
@@ -184,7 +185,7 @@ static cell *expr(precedence lv, FILE *in) {
     return 0;
 }
 
-static cell *binary(cell *left, precedence lv, FILE *in) {
+static cell *binary(cell *left, precedence lv, lxfile *in) {
     precedence l2 = l_BOT;
     cell *s = 0;
     cell *right = 0;
@@ -214,8 +215,12 @@ static cell *binary(cell *left, precedence lv, FILE *in) {
         if (!s) { l2 = l_EQ;      s = cell_symbol("#eq"); }
     case it_AMP:
         if (!s) { l2 = l_AMP;     s = cell_ref(hash_amp); }
+    case it_BAR:
+        if (!s) { l2 = l_AMP;     s = cell_symbol("#bar"); } // TODO check
     case it_AND:
         if (!s) { l2 = l_AND;     s = cell_symbol("#and"); }
+    case it_OR:
+        if (!s) { l2 = l_OR;      s = cell_symbol("#or"); }
     case it_STOP:
         if (!s) { l2 = l_POST;    s = cell_ref(hash_refq); }
     case it_EQ:
@@ -305,7 +310,7 @@ static cell *binary(cell *left, precedence lv, FILE *in) {
         if (op->type == it_RBRK) {
             dropitem(op);
         } else {
-	    error_par("expected matching right bracket for array");
+	    error_par(lxfile_info(in), "expected matching right bracket for array");
             if (op) pushitem(op);
         }
         return binary(cell_list(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
@@ -362,10 +367,10 @@ static cell *binary(cell *left, precedence lv, FILE *in) {
     case it_SYMBOL:
         break;
     default:
-	error_pat("ASSERT operator", op->type); // TODO
+	error_pat(lxfile_info(in), "ASSERT operator", op->type); // TODO
         assert(0);
     }
-    error_pat("misplaced operator, syntax error", op->type);
+    error_pat(lxfile_info(in), "misplaced operator", op->type);
     dropitem(op);
     return left;
 }
@@ -374,7 +379,7 @@ static cell *binary(cell *left, precedence lv, FILE *in) {
 //
 // parse list of function arguments or parameters
 //
-static cell *getlist(item *op, token sep_token, token end_token, FILE *in) {
+static cell *getlist(item *op, token sep_token, token end_token, lxfile *in) {
     cell *arglist = 0;
     cell **nextp = &arglist;
     cell *arg;
@@ -409,7 +414,7 @@ static cell *getlist(item *op, token sep_token, token end_token, FILE *in) {
         dropitem(op);
     }
     if (op->type != end_token) {
-	error_par("expected matching right parenthesis");
+	error_par(lxfile_info(in), "expected matching right parenthesis");
         pushitem(op);
         return arglist;
     }

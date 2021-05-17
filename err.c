@@ -6,9 +6,44 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include "cfun.h" // hash_void
+#include "cmod.h"
 #include "err.h"
 #include "io.h"
+
+static const char *it_name[] = {
+   "'",         // it_QUOTE,   // 0
+   "+",         // it_PLUS,
+   "-",         // it_MINUS,
+   "*",         // it_MULT,
+   "/",         // it_DIV,
+   "<",         // it_LT,      // 5
+   "!",         // it_NOT,
+   ">",         // it_GT,
+   "=",         // it_EQ,
+   "<=",        // it_LTEQ,
+   ">=",        // it_GTEQ,    // 10
+   "!=",        // it_NTEQ,
+   "==",        // it_EQEQ,
+   "&",         // it_AMP,
+   "&&",        // it_AND,
+   ".",         // it_STOP,    // 15
+   "..",        // it_ELIP,
+   ",",         // it_COMMA,
+   ".",         // it_COLON,
+   ";",         // it_SEMI,
+   "?",         // it_QUEST,   // 20
+   "|",         // it_BAR,
+   "||",        // it_OR,
+   "(",         // it_LPAR,
+   ")",         // it_RPAR,
+   "[",         // it_LBRK,    // 25
+   "]",         // it_RBRK,
+   "{",         // it_LBRC,
+   "}",         // it_RBRC,
+   "integer",   // it_INTEGER,
+   "string",    // it_STRING,  // 30
+   "symbol"     // it_SYMBOL
+} ;
 
 // runtime error, 0 arguments
 // arg is consumed, return void
@@ -40,25 +75,25 @@ cell *error_rt1(const char *msg, cell *arg) {
 }
 
 // parsing error
-void error_par(const char *msg) {
+void error_par(const char *info, const char *msg) {
     fflush(stdout);
-    fprintf(stderr,"error; %s\n", msg);
+    fprintf(stderr,"error%s; %s\n", info, msg);
     fflush(stderr);
 }
 
 // parsing error, with type
-void error_pat(const char *msg, int type) {
+void error_pat(const char *info, const char *msg, int type) {
     fflush(stdout);
-    // TODO improve
-    fprintf(stderr,"error; %s: type is %d\n", msg, type);
+    // TODO make size type is within range and treat symbols strings numbers differently
+    fprintf(stderr,"error%s; %s: operator is \"%s\"\n", info, msg, it_name[type]);
     fflush(stderr);
 }
 
 // parsing error, 1 argument
 // arg is consumed
-void error_pa1(const char *msg, cell *arg) {
+void error_pa1(const char *info, const char *msg, cell *arg) {
     fflush(stdout);
-    fprintf(stderr,"error; %s: ", msg);
+    fprintf(stderr,"error%s; %s: ", info, msg);
     cell_print(stderr, arg);
     fprintf(stderr,"\n");
     fflush(stderr);
@@ -80,9 +115,9 @@ static void printable_c(int c) {
 }
 
 // lexical error, show character or -1 if none
-void error_lex(const char *msg, int c) {
+void error_lex(const char *info, const char *msg, int c) {
     fflush(stdout);
-    fprintf(stderr,"error; %s", msg);
+    fprintf(stderr,"error%s; %s", info, msg);
     printable_c(c);
     fprintf(stderr,"\n");
     fflush(stderr);
