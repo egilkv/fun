@@ -80,7 +80,7 @@ int arg2(cell *args, cell **ap, cell **bp) {
 
 // a in always unreffed
 // dump is unreffed only if error
-static int get_numeric(cell *a, integer_t *valuep, cell *dump) {
+int get_integer(cell *a, integer_t *valuep, cell *dump) {
     if (!cell_is_integer(a)) {
 	cell_unref(dump);
 	cell_unref(error_rt1("not a number", a));
@@ -91,9 +91,9 @@ static int get_numeric(cell *a, integer_t *valuep, cell *dump) {
     return 1;
 }
 
-static int get_index(cell *a, index_t *indexp, cell *dump) {
+int get_index(cell *a, index_t *indexp, cell *dump) {
     integer_t value;
-    if (!get_numeric(a, &value, dump)) return 0;
+    if (!get_integer(a, &value, dump)) return 0;
     if (value < 0) {
 	cell_unref(dump);
 	cell_unref(error_rti("cannot be negative", value));
@@ -105,10 +105,11 @@ static int get_index(cell *a, index_t *indexp, cell *dump) {
 
 // a in always unreffed
 // dump is unreffed only if error
-static int get_string(cell *a, char_t **valuep, cell *dump) {
+int get_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump) {
     if (a) switch (a->type) {
     case c_STRING:
 	*valuep = a->_.string.ptr;
+        *lengthp = a->_.string.len;
 	cell_unref(a);
 	return 1;
     default:
@@ -117,6 +118,28 @@ static int get_string(cell *a, char_t **valuep, cell *dump) {
     cell_unref(dump);
     cell_unref(error_rt1("not a string", a));
     return 0;
+}
+
+// a in always unreffed
+// dump is unreffed only if error
+int get_symbol(cell *a, char_t **valuep, cell *dump) {
+    if (a) switch (a->type) {
+    case c_SYMBOL:
+	*valuep = a->_.symbol.nam;
+	cell_unref(a);
+	return 1;
+    default:
+	break;
+    }
+    cell_unref(dump);
+    cell_unref(error_rt1("not a symbol", a));
+    return 0;
+}
+
+// as get_string, but nul-terminated C string is returned
+int get_cstring(cell *a, char **valuep, cell *dump) {
+    index_t dummy;
+    return get_string(a, valuep, &dummy, dump);
 }
 
 // a in always unreffed
@@ -221,7 +244,7 @@ static cell *cfunN_plus(cell *args) {
     integer_t operand;
     cell *a;
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void); // error
+        if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
         result += operand; // TODO overflow etc
     }
     assert(args == NIL);
@@ -233,14 +256,14 @@ static cell *cfunN_minus(cell *args) {
     integer_t operand;
     cell *a;
     if (list_split(args, &a, &args)) {
-	if (!get_numeric(a, &result, args)) return cell_ref(hash_void); // error
+        if (!get_integer(a, &result, args)) return cell_ref(hash_void); // error
 	if (args == NIL) {
             // special case, one argument
             result = -result; // TODO overflow
         }
     }
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void);
+        if (!get_integer(a, &operand, args)) return cell_ref(hash_void);
         result -= operand; // TODO overflow etc
     }
     assert(args == NIL);
@@ -252,7 +275,7 @@ static cell *cfunN_times(cell *args) {
     integer_t operand;
     cell *a;
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void);
+        if (!get_integer(a, &operand, args)) return cell_ref(hash_void);
         result *= operand; // TODO overflow etc
     }
     assert(args == NIL);
@@ -262,8 +285,8 @@ static cell *cfunN_times(cell *args) {
 static cell *cfun2_div(cell *a, cell *b) {
     integer_t result;
     integer_t operand;
-    if (!get_numeric(a, &result, b)) return cell_ref(hash_void); // error
-    if (!get_numeric(b, &operand, NIL)) return cell_ref(hash_void); // error
+    if (!get_integer(a, &result, b)) return cell_ref(hash_void); // error
+    if (!get_integer(b, &operand, NIL)) return cell_ref(hash_void); // error
 
     if (operand == 0) {
         return error_rt0("attempted division by zero");
@@ -280,7 +303,7 @@ static cell *cfunN_lt(cell *args) {
     cell *a;
     // TODO should be cfunQ_lt, do not evaluate more than necessary
     while (list_split(args, &a, &args)) {
-	if (!get_numeric(a, &operand, args)) return cell_ref(hash_void); // error
+        if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
 	if (argno++ == 0 || value < operand) { // condition satisfied?
 	    value = operand;
 	} else {
@@ -520,7 +543,7 @@ static cell *cfunQ_refq(cell *args, environment *env) {
 static cell *cfun1_use(cell *a) {
     char *str;
     cell_ref(a); // for error message
-    if (!get_string(a, &str, a)) {
+    if (!get_cstring(a, &str, a)) {
         return cell_ref(hash_void); // error
     }
     if (strcmp(str, "io") == 0) {

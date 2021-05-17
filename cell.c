@@ -238,14 +238,10 @@ cell *cell_assoc() {
     return node;
 }
 
-cell *cell_special(index_t size, const char *magic) {
+cell *cell_special(const char *magic, void *ptr) {
     cell *node = newcell(c_SPECIAL);
+    node->_.special.ptr = ptr;
     node->_.special.magic = magic;
-    if (size > 0) { // if length==0 table is NULL
-        node->_.special.ptr = malloc(size);
-        assert(node->_.special.ptr);
-        memset(node->_.special.ptr, 0, size);
-    }
     return node;
 }
 
@@ -289,8 +285,7 @@ static void cell_free(cell *node) {
         free(node);
         break;
     case c_SPECIAL:
-        // TODO invoke other free function
-        free(node->_.special.ptr);
+        // TODO invoke magic free function
         free(node);
         break;
     }

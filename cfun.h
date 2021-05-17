@@ -31,5 +31,11 @@ void arg0(cell *args);
 int arg1(cell *args, cell **ap);
 int arg2(cell *args, cell **ap, cell **bp);
 int arg3(cell *args, cell **ap, cell **bp, cell **cp);
+int get_integer(cell *a, integer_t *valuep, cell *dump);
+int get_index(cell *a, index_t *indexp, cell *dump);
+int get_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump);
+int get_cstring(cell *a, char **valuep, cell *dump);
+int get_symbol(cell *a, char_t **valuep, cell *dump);
+
 void cfun_init();
 void cfun_drop();

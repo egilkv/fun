@@ -43,7 +43,7 @@ struct cell_s {
 	    index_t size; // TODO not used size of hash table
         } assoc;
         struct {
-            char *ptr; // pointer to special content
+            void *ptr; // pointer to special content
             const char *magic; // type of special content
         } special;
         struct {
@@ -110,7 +110,7 @@ int cell_is_string(cell *cp);
 cell *cell_assoc();
 int cell_is_assoc(cell *cp);
 
-cell *cell_special(index_t size, const char *magic);
+cell *cell_special(const char *magic, void *ptr);
 int cell_is_special(cell *cp, const char *magic);
 
 cell *cell_integer(integer_t integer);
