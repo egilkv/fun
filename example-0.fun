@@ -3,19 +3,31 @@
 
 gtk = #use("gtk");
 
-// Alt1: Mutable object oriented style
-act = (app){
+/*
+// Alt1: Traditional style
+act = (a){
 
     // TODO is this parenthesis reqd
     (#use("io")).println("****callback****");
 
-    window = gtk.application_window_new(app);
+    window = gtk.application_window_new(a);
     gtk.window_set_title(window, "Window");
     gtk.window_set_default_size(window, 200, 200);
     gtk.widget_show_all(window)
 };
 app = gtk.application_new("org.gtk.example");
 gtk.signal_connect(app, 'activate, act);
+gtk.application_run(app, []);
+  */
+
+// Alt1bis: Lambda
+app = gtk.application_new("org.gtk.example");
+gtk.signal_connect(app, 'activate, (a){
+    window = gtk.application_window_new(a);
+    gtk.window_set_title(window, "Window");
+    gtk.window_set_default_size(window, 200, 200);
+    gtk.widget_show_all(window)
+});
 gtk.application_run(app, []);
 
 /*

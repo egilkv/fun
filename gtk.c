@@ -98,9 +98,8 @@ static cell *cgtk_print(cell *args) {
 static void do_callback(GtkApplication* gp, gpointer data) {
     assert(cell_is_list((cell *)data));
     assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app));
-    //TODO
- // assert(((GtkApplication *)(data->_.cons.car->_.special.ptr)) == gp);
-    printf("\n***callback***\n");
+    assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
+ // printf("\n***callback***\n");
 
     // TODO this function is in principle async
     // TODO should be continuation
