@@ -15,7 +15,9 @@ gtk.signal_connect(app, 'activate, (a){
     gtk.container_add(window, button_box);
 
     button = gtk.button_new("Hello World");
-    // TODO signal
+    gtk.signal_connect(button, 'clicked, (w){ gtk.print("Hello World\n") });
+    // TODO needs continuation
+    // gtk.signal_connect(button, 'clicked, (w){ gtk.widget_destroy(window) });
 
     gtk.container_add(button_box, button);
 

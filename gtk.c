@@ -1,6 +1,8 @@
 /* TAB-P
  *
- * module io
+ * module gtk
+ *
+ * TODO most functions return 1st argument, even on error??
  */
 
 #include <stdio.h>
@@ -19,10 +21,10 @@ static const char *magic_gtk_wid = "gtk_widget";
 
 // a in always unreffed
 // dump is unreffed only if error
-static int peek_special(cell *a, const char *magic, void **valuep, cell *dump) {
+static int peek_special(cell *a, const char *magic, void **valuep, const char *errmsg, cell *dump) {
     if (!cell_is_special(a, magic)) {
         cell_unref(dump);
-        cell_unref(error_rt1("not an appropriate argument", cell_ref(a)));
+        cell_unref(error_rt1(errmsg, cell_ref(a)));
         return 0;
     }
     *valuep = a->_.special.ptr;
@@ -30,11 +32,11 @@ static int peek_special(cell *a, const char *magic, void **valuep, cell *dump) {
 }
 
 static int peek_app_s(cell *app, GtkApplication **gpp, cell *dump) {
-    return peek_special(app, magic_gtk_app, (void **)gpp, dump);
+    return peek_special(app, magic_gtk_app, (void **)gpp, "not a gtk application", dump);
 }
 
 static int peek_wid_s(cell *wid, GtkWidget **wdp, cell *dump) {
-    return peek_special(wid, magic_gtk_wid, (void **)wdp, dump);
+    return peek_special(wid, magic_gtk_wid, (void **)wdp, "not a gtk widget", dump);
 }
 
 static cell *cgtk_application_new(cell *args) {
@@ -108,6 +110,45 @@ static cell *cgtk_container_add(cell *widget, cell *add) {
     return widget;
 }
 
+static cell *cgtk_container_set_border_width(cell *widget, cell *wid) {
+    GtkWidget *wp;
+    integer_t width;
+    if (peek_wid_s(widget, &wp, wid)
+     && get_integer(wid, &width, NIL)) {
+        gtk_container_set_border_width(GTK_CONTAINER(wp), width);
+    }
+    return widget;
+}
+
+static cell *cgtk_grid_new() {
+    GtkWidget *grid;
+    grid = gtk_grid_new();
+    // TODO errors?
+    return cell_special(magic_gtk_wid, (void *)grid);
+}
+
+static cell *cgtk_grid_attach(cell *grid, cell *widget, cell *coord) {
+    GtkWidget *gp;
+    GtkWidget *wp;
+    integer_t co[4] = { 0, 0, 1, 1 }; // x0, y0, xn, yn
+    int n;
+
+    if (!peek_wid_s(grid, &gp, widget)) {
+	cell_unref(coord);
+	return grid; // error
+    }
+    if (!peek_wid_s(widget, &wp, coord)) {
+	return grid;
+    }
+
+    for (n=0; n<4; ++n) {
+	cell *v = ref_index(coord, n);
+        if (!get_integer(v, &co[n], coord)) return grid;
+    }
+    gtk_grid_attach(GTK_GRID(gp), wp, co[0], co[1], co[2], co[3]);
+    return grid;
+}
+
 static cell *cgtk_print(cell *args) {
     cell *a;
     while (list_split(args, &a, &args)) {
@@ -133,8 +174,9 @@ static cell *cgtk_print(cell *args) {
 
 static void do_callback(GtkApplication* gp, gpointer data) {
     assert(cell_is_list((cell *)data));
-    assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app));
-    assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
+    assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app)
+        || cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_wid));
+ // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
  // printf("\n***callback***\n");
 
     // TODO this function is in principle async
@@ -144,19 +186,38 @@ static void do_callback(GtkApplication* gp, gpointer data) {
 
 static cell *cgtk_signal_connect(cell *app, cell *hook, cell *callback) {
     // TODO also works for widgets, any instance
+    // TODO signal names are separated by either - or _
 
-    GtkApplication *gp;
+    //GtkApplication *gp;
+    gpointer *gp;
     char_t *signal;
-    if (!peek_app_s(app, &gp, callback)) {
+    if (!peek_special(app, (const char *)0, (void **)&gp, "not a gtk entity", callback)) {
         cell_unref(hook); // TODO
     } else if (get_symbol(hook, &signal, callback)) {
+        if (app->_.special.magic != magic_gtk_app
+         && app->_.special.magic != magic_gtk_wid) {
+            cell_unref(error_rt1("not a ht widget or application", cell_ref(app)));
+            return app;
+        } else {
 
-        // TODO should be continuation instead
-        g_signal_connect(gp, signal, G_CALLBACK(do_callback),
-                         cell_list(callback, cell_list(app, NIL)));
-        // cell_unref(callback); // TODO when to unref callback ???
+            // TODO should be continuation instead
+            g_signal_connect(gp, signal, G_CALLBACK(do_callback),
+                             cell_list(callback, cell_list(app, NIL)));
+            // cell_unref(callback); // TODO when to unref callback ???
+        }
     }
     return app;
+}
+
+static cell *cgtk_widget_destroy(cell *widget) {
+    GtkWidget *wp;
+    if (peek_wid_s(widget, &wp, NIL)) {
+        gtk_widget_destroy(wp);
+    }
+    // TODO properly invalidate widget
+    widget->_.special.ptr = NULL;
+    widget->_.special.magic = NULL;
+    return widget;
 }
 
 static cell *cgtk_window_set_title(cell *widget, cell *title) {
@@ -213,8 +274,12 @@ cell *module_gtk() {
     assoc_set(assoc, cell_symbol("button_new"), cell_cfunN(cgtk_button_new)); // also "button_new_with_label"
     assoc_set(assoc, cell_symbol("button_box_new"), cell_cfunN(cgtk_button_box_new));
     assoc_set(assoc, cell_symbol("container_add"), cell_cfun2(cgtk_container_add));
+    assoc_set(assoc, cell_symbol("container_set_border_width"), cell_cfun2(cgtk_container_set_border_width));
+    assoc_set(assoc, cell_symbol("grid_new"), cell_cfun0(cgtk_grid_new));
+    assoc_set(assoc, cell_symbol("grid_attach"), cell_cfun3(cgtk_grid_attach));
     assoc_set(assoc, cell_symbol("print"), cell_cfunN(cgtk_print));
     assoc_set(assoc, cell_symbol("signal_connect"), cell_cfun3(cgtk_signal_connect));
+    assoc_set(assoc, cell_symbol("widget_destroy"), cell_cfun1(cgtk_widget_destroy));
     assoc_set(assoc, cell_symbol("window_set_title"), cell_cfun2(cgtk_window_set_title));
     assoc_set(assoc, cell_symbol("window_set_default_size"), cell_cfun3(cgtk_window_set_default_size));
     assoc_set(assoc, cell_symbol("widget_show_all"), cell_cfun1(cgtk_widget_show_all));

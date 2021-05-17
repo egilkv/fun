@@ -147,6 +147,12 @@ cell *cell_cfunN(struct cell_s *(*fun)(struct cell_s *)) {
     return node;
 }
 
+cell *cell_cfun0(struct cell_s *(*fun)(void)) {
+    cell *node = newcell(c_CFUN0);
+    node->_.cfun0.def = fun;
+    return node;
+}
+
 cell *cell_cfun1(struct cell_s *(*fun)(struct cell_s *)) {
     cell *node = newcell(c_CFUN1);
     node->_.cfun1.def = fun;
@@ -270,6 +276,7 @@ static void cell_free(cell *node) {
         free(node);
         break;
     case c_CFUNQ:
+    case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUN3:

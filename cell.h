@@ -19,6 +19,7 @@ enum cell_t {
    c_SPECIAL,
    c_LAMBDA,
    c_CFUNQ,
+   c_CFUN0,
    c_CFUN1,
    c_CFUN2,
    c_CFUN3,
@@ -58,6 +59,9 @@ struct cell_s {
             struct cell_s *(*def)(struct cell_s *, struct env_s *);
         } cfunq;
         struct {
+            struct cell_s *(*def)(void);
+        } cfun0;
+        struct {
             struct cell_s *(*def)(struct cell_s *);
         } cfun1;
         struct {
@@ -80,6 +84,7 @@ void cell_unref(cell *cp);
 
 cell *cell_cfunQ(struct cell_s *(*fun)(struct cell_s *, struct env_s *));
 cell *cell_cfunN(struct cell_s *(*fun)(struct cell_s *));
+cell *cell_cfun0(struct cell_s *(*fun)(void));
 cell *cell_cfun1(struct cell_s *(*fun)(struct cell_s *));
 cell *cell_cfun2(struct cell_s *(*fun)(struct cell_s *, struct cell_s *));
 cell *cell_cfun3(struct cell_s *(*fun)(struct cell_s *, struct cell_s *, struct cell_s *));

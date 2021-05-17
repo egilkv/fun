@@ -36,6 +36,7 @@ int get_index(cell *a, index_t *indexp, cell *dump);
 int get_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump);
 int get_cstring(cell *a, char **valuep, cell *dump);
 int get_symbol(cell *a, char_t **valuep, cell *dump);
+cell *ref_index(cell *a, index_t index);
 
 void cfun_init();
 void cfun_drop();

@@ -92,6 +92,7 @@ void cell_print(FILE *out, cell *ct) {
         cell_print(out, ct->_.cons.car);
         break;
     case c_CFUNQ:
+    case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUN3:
@@ -202,14 +203,18 @@ static cell *cfio_getline(cell *args) {
 }
 
 cell *module_io() {
-    // TODO should probably be multiple copies of same entity
-    cell *assoc = cell_assoc();
-    // TODO these functions are unpure
-    assoc_set(assoc, cell_symbol("print"), cell_cfunN(cfio_print)); // scheme 'display'
-    assoc_set(assoc, cell_symbol("println"), cell_cfunN(cfio_println));
-    assoc_set(assoc, cell_symbol("write"), cell_cfunN(cfio_write));
-    assoc_set(assoc, cell_symbol("read"), cell_cfunN(cfio_read));
-    assoc_set(assoc, cell_symbol("getline"), cell_cfunN(cfio_getline));
-    return assoc;
+    static cell *io_assoc = NIL;
+    if (!io_assoc) {
+        io_assoc = cell_assoc();
+
+        // TODO these functions are impure
+        assoc_set(io_assoc, cell_symbol("print"), cell_cfunN(cfio_print)); // scheme 'display'
+        assoc_set(io_assoc, cell_symbol("println"), cell_cfunN(cfio_println));
+        assoc_set(io_assoc, cell_symbol("write"), cell_cfunN(cfio_write));
+        assoc_set(io_assoc, cell_symbol("read"), cell_cfunN(cfio_read));
+        assoc_set(io_assoc, cell_symbol("getline"), cell_cfunN(cfio_getline));
+    }
+    // TODO static io_assoc owns one, hard to avoid
+    return cell_ref(io_assoc);
 }
 

@@ -447,21 +447,18 @@ static cell *cfunN_amp(cell *args) {
     return result;
 }
 
-static cell *cfun2_ref(cell *a, cell *b) {
+// does not consume a
+cell *ref_index(cell *a, index_t index) {
     cell *value;
-    index_t index;
     if (a) switch (a->type) {
 
     case c_VECTOR:
-	if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	if (!vector_get(a, index, &value)) {
             value = error_rti("vector index out of bounds", index);
 	}
-	cell_unref(a);
 	return value;
 
     case c_STRING:
-	if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	if (index < a->_.string.len) {
 	    char_t *s = malloc(1 + 1);
 	    assert(s);
@@ -471,38 +468,23 @@ static cell *cfun2_ref(cell *a, cell *b) {
         } else {
             return error_rti("string index out of bounds", index);
 	}
-	cell_unref(a);
-	return value;
-
-    case c_ASSOC:
-	if (!assoc_get(a, b, &value)) {
-	    cell_unref(a);
-	    return error_rt1("assoc key does not exist", b);
-	}
-	cell_unref(a);
-	cell_unref(b);
 	return value;
 
     case c_LIST:
+	value = NIL;
 	{
 	    index_t i = 0;
-	    value = NIL;
-	    if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	    do {
-		cell_unref(value);
-		if (a == NIL) {
+		if (!cell_is_list(a)) {
 		    return error_rti("list index out of bounds", index);
 		}
-		if (!list_split(a, &value, &a)) {
-		    return error_rt1("not a proper list", a);
-		}
+		value = cell_car(a);
+		a = cell_cdr(a);
 	    } while (i++ < index);
 	}
-	cell_unref(a);
-        return value;
+	return cell_ref(value);
 
     case c_PAIR:
-	if (!get_index(b, &index, NIL)) return cell_ref(hash_void); // error
 	switch (index) {
 	case 0:
 	    value = cell_ref(cell_car(a));
@@ -514,22 +496,34 @@ static cell *cfun2_ref(cell *a, cell *b) {
 	    value = error_rti("pair index out of bounds", index);
 	    break;
 	}
-	cell_unref(a);
         return value;
 
-    case c_LAMBDA:
-    case c_CFUNQ:
-    case c_CFUN1:
-    case c_CFUN2:
-    case c_CFUN3:
+    default:
     // TODO ref should work for functions ??
     case c_SPECIAL:
-    default:
+    case c_SYMBOL:
+    case c_INTEGER:
+    case c_ASSOC:
 	 break;
     }
+    return error_rt1("cannot referrence", cell_ref(a));
+}
+
+static cell *cfun2_ref(cell *a, cell *b) {
+    cell *value;
+    if (cell_is_assoc(a)) {
+	if (!assoc_get(a, b, &value)) {
+	    cell_unref(a);
+	    return error_rt1("assoc key does not exist", b);
+	}
+    } else {
+	index_t index;
+	if (!get_index(b, &index, a)) return cell_ref(hash_void); // error
+	value = ref_index(a, index);
+    }
     cell_unref(b);
-    return error_rt1("cannot referrence", a);
-    return 0;
+    cell_unref(a);
+    return value;
 }
 
 static cell *cfunQ_refq(cell *args, environment *env) {

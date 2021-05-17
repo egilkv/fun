@@ -103,6 +103,15 @@ cell *eval(cell *arg, environment *env) {
 		    }
 		    break;
 
+		case c_CFUN0:
+		    {
+			cell *(*def)(void) = fun->_.cfun0.def;
+			cell_unref(fun);
+			arg0(arg);
+			result = (*def)();
+		    }
+		    break;
+
 		case c_CFUN1:
 		    {
 			cell *(*def)(cell *) = fun->_.cfun1.def;
