@@ -32,7 +32,7 @@ cell *cell_pair(cell *car, cell *cdr) {
 }
 
 // TODO inline
-cell * cell_ref(cell *cp) {
+cell *cell_ref(cell *cp) {
     if (cp) ++(cp->ref);
     return cp;
 }
@@ -64,6 +64,10 @@ int cell_is_string(cell *cp) {
 // TODO inline
 int cell_is_assoc(cell *cp) {
     return cp && cp->type == c_ASSOC;
+}
+
+int cell_is_special(cell *cp, const char *magic) {
+    return cp && cp->type == c_SPECIAL && (!magic || cp->_.special.magic == magic);
 }
 
 // TODO inline
@@ -155,6 +159,12 @@ cell *cell_cfun2(struct cell_s *(*fun)(struct cell_s *, struct cell_s *)) {
     return node;
 }
 
+cell *cell_cfun3(struct cell_s *(*fun)(struct cell_s *, struct cell_s *, struct cell_s *)) {
+    cell *node = newcell(c_CFUN3);
+    node->_.cfun3.def = fun;
+    return node;
+}
+
 cell *cell_vector(index_t length) {
     cell *node = newcell(c_VECTOR);
     node->_.vector.len = length;
@@ -228,6 +238,17 @@ cell *cell_assoc() {
     return node;
 }
 
+cell *cell_special(index_t size, const char *magic) {
+    cell *node = newcell(c_SPECIAL);
+    node->_.special.magic = magic;
+    if (size > 0) { // if length==0 table is NULL
+        node->_.special.ptr = malloc(size);
+        assert(node->_.special.ptr);
+        memset(node->_.special.ptr, 0, size);
+    }
+    return node;
+}
+
 // TODO this will soon enough collapse
 static void cell_free(cell *node) {
     assert(node && node->ref == 0);
@@ -255,6 +276,7 @@ static void cell_free(cell *node) {
     case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
+    case c_CFUN3:
     case c_CFUNN:
         free(node);
         break;
@@ -264,6 +286,11 @@ static void cell_free(cell *node) {
         break;
     case c_ASSOC:
         assoc_drop(node);
+        free(node);
+        break;
+    case c_SPECIAL:
+        // TODO invoke other free function
+        free(node->_.special.ptr);
         free(node);
         break;
     }

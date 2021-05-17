@@ -232,7 +232,7 @@ static item *gotstop(char c, item *it, FILE *in) {
 
 static item *gotdiv(char c, item *it, FILE *in) {
     if (it) {
-        if (it->type == it_DIV) { // comment until end of line
+        if (it->type == it_DIV) { // double slash, comment until end of line
             dropitem(it);
             // TODO iteration
             int c;
@@ -246,7 +246,29 @@ static item *gotdiv(char c, item *it, FILE *in) {
             ungetc(c,in);
         }
     } else {
-        it = nextchar(newitem(it_DIV), in);
+        it = nextchar(newitem(it_DIV), in); // reqd for peek into next
+    }
+    return it;
+}
+
+static item *gotmult(char c, item *it, FILE *in) {
+    if (it) {
+        if (it->type == it_DIV) { // slash-star, comment until end of line
+            dropitem(it);
+            // TODO iteration
+            int c = 0;
+            int c0;
+            do {
+                c0 = c;
+                c = fgetc(in);
+                if (c < 0) return 0; // end of file
+            } while (c0 != '*' || c != '/');
+            it = nextchar(NULL, in);
+        } else {
+            ungetc(c,in);
+        }
+    } else {
+        it = newitem(it_MULT);
     }
     return it;
 }
@@ -263,7 +285,6 @@ static item *gotnot(char c, item *it, FILE *in)   { return gotplain(c, it_NOT, i
 static item *gotquote(char c, item *it, FILE *in) { return gotplain(c, it_QUOTE, it, in); }
 static item *gotplus(char c, item *it, FILE *in)  { return gotplain(c, it_PLUS, it, in); }
 static item *gotminus(char c, item *it, FILE *in) { return gotplain(c, it_MINUS, it, in); }
-static item *gotmult(char c, item *it, FILE *in)  { return gotplain(c, it_MULT, it, in); }
 static item *gotcomma(char c, item *it, FILE *in) { return gotplain(c, it_COMMA, it, in); }
 static item *gotcolon(char c, item *it, FILE *in) { return gotplain(c, it_COLON, it, in); }
 static item *gotsemi(char c, item *it, FILE *in)  { return gotplain(c, it_SEMI, it, in); }
@@ -328,6 +349,8 @@ static item *gotchar(int c, item *it, FILE *in) {
         return gotstring(c, it, in);
     case ']':
         return gotrbrk(c, it, in);
+    case '_':
+        return gotsymbol(c, it, in);
     case '{':
         return gotlbrc(c, it, in);
     case '}':

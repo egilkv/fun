@@ -1,6 +1,6 @@
 
 a = 1;
-b = 2;
+b = /* comment */ 2;
 c = a < b;
 a + b;
 (a + b);

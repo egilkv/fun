@@ -51,7 +51,7 @@ void cell_print(FILE *out, cell *ct) {
         fprintf(out, ")");
         break;
     case c_INTEGER:
-        fprintf(out, "%ld", ct->_.ivalue);
+        fprintf(out, "%lld", ct->_.ivalue);
         break;
     case c_STRING:
         {
@@ -94,8 +94,12 @@ void cell_print(FILE *out, cell *ct) {
     case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
+    case c_CFUN3:
     case c_CFUNN:
         fprintf(out, "#cfun()"); // TODO something better
+        break;
+    case c_SPECIAL:
+        fprintf(out, "#special_%s()", ct->_.special.magic);
         break;
     case c_VECTOR:
         {
@@ -200,7 +204,7 @@ static cell *cfio_getline(cell *args) {
 cell *module_io() {
     // TODO should probably be multiple copies of same entity
     cell *assoc = cell_assoc();
-    // TODO these functions are unure
+    // TODO these functions are unpure
     assoc_set(assoc, cell_symbol("print"), cell_cfunN(cfio_print)); // scheme 'display'
     assoc_set(assoc, cell_symbol("println"), cell_cfunN(cfio_println));
     assoc_set(assoc, cell_symbol("write"), cell_cfunN(cfio_write));

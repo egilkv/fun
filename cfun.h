@@ -5,6 +5,7 @@
 #include "cell.h"
 
 extern cell *hash_amp;
+extern cell *hash_args;
 extern cell *hash_assoc;
 extern cell *hash_defq;
 extern cell *hash_div;
@@ -29,5 +30,6 @@ extern cell *hash_void;
 void arg0(cell *args);
 int arg1(cell *args, cell **ap);
 int arg2(cell *args, cell **ap, cell **bp);
+int arg3(cell *args, cell **ap, cell **bp, cell **cp);
 void cfun_init();
 void cfun_drop();

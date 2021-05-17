@@ -124,6 +124,18 @@ cell *eval(cell *arg, environment *env) {
 		    }
 		    break;
 
+		case c_CFUN3:
+		    {
+			cell *(*def)(cell *, cell *, cell *) = fun->_.cfun3.def;
+			cell *b = NIL;
+			cell *c = NIL;
+			cell_unref(fun);
+			if (arg3(arg, &result, &b, &c)) { // if error, result is void
+			    result = (*def)(eval(result, env), eval(b, env), eval(c, env));
+			}
+		    }
+		    break;
+
 		case c_CFUNN:
 		    {
 			cell *(*def)(cell *) = fun->_.cfun1.def;

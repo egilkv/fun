@@ -10,9 +10,9 @@
 #include "cfun.h"
 #include "oblist.h"
 #include "err.h"
-#include "io.h"  // TODO module_io()
 
 cell *hash_amp;
+cell *hash_args;
 cell *hash_assoc;
 cell *hash_defq;
 cell *hash_div;
@@ -40,48 +40,55 @@ void arg0(cell *args) {
     }
 }
 
-// function with 1 argument
+// function with 3 arguments
 // if false, *ap is error value
-int arg1(cell *args, cell **ap) {
-    if (!list_split(args, ap, &args)) {
-	assert(args == NIL);
-	*ap = error_rt0("missing argument");
-	return 0;
-    }
-    arg0(args);
-    return 1;
-}
-
-// function with 2 arguments
-// if false, *ap is error value
-int arg2(cell *args, cell **ap, cell **bp) {
+int arg3(cell *args, cell **ap, cell **bp, cell **cp) {
     *ap = NIL;
     if (!list_split(args, ap, &args)) {
 	assert(args == NIL);
 	*ap = error_rt0("missing 1st argument");
 	return 0;
     }
-    if (!list_split(args, bp, &args)) {
+    if (bp && !list_split(args, bp, &args)) {
 	assert(args == NIL);
 	cell_unref(*ap);
 	*ap = error_rt0("missing 2nd argument");
+	return 0;
+    }
+    if (cp && !list_split(args, cp, &args)) {
+	assert(args == NIL);
+	cell_unref(*ap);
+	cell_unref(*bp);
+	*ap = error_rt0("missing 3rd argument");
 	return 0;
     }
     arg0(args);
     return 1;
 }
 
+// function with 1 argument
+// if false, *ap is error value
+int arg1(cell *args, cell **ap) {
+    return arg3(args, ap, NULL, NULL);
+}
+
+// function with 2 arguments
+// if false, *ap is error value
+int arg2(cell *args, cell **ap, cell **bp) {
+    return arg3(args, ap, bp, NULL);
+}
+
 // a in always unreffed
 // dump is unreffed only if error
 static int get_numeric(cell *a, integer_t *valuep, cell *dump) {
-    if (cell_is_integer(a)) {
-	*valuep = a->_.ivalue;
-	cell_unref(a);
-	return 1;
+    if (!cell_is_integer(a)) {
+	cell_unref(dump);
+	cell_unref(error_rt1("not a number", a));
+	return 0;
     }
-    cell_unref(dump);
-    cell_unref(error_rt1("not a number", a));
-    return 0;
+    *valuep = a->_.ivalue;
+    cell_unref(a);
+    return 1;
 }
 
 static int get_index(cell *a, index_t *indexp, cell *dump) {
@@ -445,16 +452,13 @@ static cell *cfun2_ref(cell *a, cell *b) {
 	return value;
 
     case c_ASSOC:
-	{
-	    cell *value;
-	    if (!assoc_get(a, b, &value)) {
-		cell_unref(a);
-		return error_rt1("assoc key does not exist", b);
-	    }
+	if (!assoc_get(a, b, &value)) {
 	    cell_unref(a);
-	    cell_unref(b);
-	    return value;
+	    return error_rt1("assoc key does not exist", b);
 	}
+	cell_unref(a);
+	cell_unref(b);
+	return value;
 
     case c_LIST:
 	{
@@ -494,9 +498,11 @@ static cell *cfun2_ref(cell *a, cell *b) {
     case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
+    case c_CFUN3:
     // TODO ref should work for functions ??
+    case c_SPECIAL:
     default:
-	    break;
+	 break;
     }
     cell_unref(b);
     return error_rt1("cannot referrence", a);
@@ -518,9 +524,17 @@ static cell *cfun1_use(cell *a) {
         return cell_ref(hash_void); // error
     }
     if (strcmp(str, "io") == 0) {
+	extern cell *module_io();
 	cell_unref(a);
 	return module_io();
     }
+#ifdef HAVE_GTK
+    if (strcmp(str, "gtk") == 0) {
+        extern cell *module_gtk();
+	cell_unref(a);
+        return module_gtk();
+    }
+#endif
     return error_rt1("module not found", a); // should
 }
 
@@ -545,10 +559,12 @@ void cfun_init() {
     hash_use     = oblistv("#use",     cell_cfun1(cfun1_use));
     hash_vector  = oblistv("#vector",  cell_cfunQ(cfunQ_vector));
 
-    // values are themselves
+    // values
     hash_f       = oblistv("#f",       NIL);
     hash_t       = oblistv("#t",       NIL);
     hash_void    = oblistv("#void",    NIL);
+    hash_args    = oblistv("#args",    NIL); // TODO argc, argv
+    // values are themselves
     oblist_set(hash_f,    cell_ref(hash_f));
     oblist_set(hash_t,    cell_ref(hash_t));
     oblist_set(hash_void, cell_ref(hash_void));

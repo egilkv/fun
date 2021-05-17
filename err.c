@@ -22,7 +22,7 @@ cell *error_rt0(const char *msg) {
 // runtime error, 1 numeric argument
 cell *error_rti(const char *msg, integer_t val) {
     fflush(stdout);
-    fprintf(stderr,"error; %s: %ld\n", msg, val);
+    fprintf(stderr,"error; %s: %lld\n", msg, val);
     fflush(stderr);
     return cell_ref(hash_void); // error
 }
