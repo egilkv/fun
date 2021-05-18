@@ -19,11 +19,11 @@ enum prec_ {
     l_AND,      // &&
     l_BAR,      // |            TODO revise
     l_AMP,      // &            TODO revise
-    l_EQ,       // == !=
+    l_EQEQ,     // == !=
     l_REL,      // < <= > >=
     l_ADD,      // + -
     l_MULT,     // * /
-    l_UNARY,    // + - !        TODO right-to-left etc
+    l_UNARY,    // - !          TODO right-to-left
     l_POST,     // () []
     l_STOP      // .            left-to-right, like C
 };

@@ -12,7 +12,7 @@
 #(#defq, v, #(#vector, 7, 8, "hello")) ==> [ 7, 8, "hello" ] 
 #(#ref, v, 0) ==> 7
 #(#ref, v, 2) ==> "hello"
-#(#defq, aa, #(#assoc, (one : 1), (two : 2), (three : 3))) ==> { one : 1, two : 2, three : 3 } 
+#(#defq, aa, #(#assoc, (one : 1), (two : 2), (three : 3))) ==> { one : 1, three : 3, two : 2 } 
 #(#defq, ix, #(#quote, two)) ==> two
 #(#ref, aa, #(#quote, one)) ==> 1
 #(#ref, aa, ix) ==> 2
@@ -20,7 +20,7 @@
 #(#refq, aa, one) ==> 1
 #(#refq, aa, two) ==> 2
 #(#refq, aa, three) ==> 3
-#(#amp, aa, #(#assoc, (two : "TWO"))) ==> error; list & not yet implemented: { one : 1, two : 2, three : 3 } 
+#(#amp, aa, #(#assoc, (two : "TWO"))) ==> error; list & not yet implemented: { one : 1, three : 3, two : 2 } 
 #void
 #(#vector, (3 : 99), (0 : "test")) ==> [ "test", #(), #(), 99 ] 
 #(#defq, list, #(#, 1, 2, 3)) ==> #(1, 2, 3)
@@ -65,3 +65,5 @@ error at 55:26; expected matching right bracket for array
 error at 55:26; misplaced item: operator is ".."
 error at 55:27; misplaced item: operator is "]"
 #(#defq, f, #(#defq, g, 9)) ==> 9
+#(#plus, g, f, 12) ==> 30
+#(#minus, #(#plus, g, f, 12), 30) ==> 0

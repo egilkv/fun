@@ -59,3 +59,5 @@ a[..j-1] & []{#f} & a[j+1..];
 
 // '=' binds right-to-left
 f = g = 9;
+g + f + 12;
+g + f + 12 - 30;

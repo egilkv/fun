@@ -185,6 +185,34 @@ static cell *expr(precedence lv, lxfile *in) {
     return 0;
 }
 
+static cell *binary_l2rN(cell *left, precedence l2, cell *func, item *op, precedence lv, lxfile *in) {
+    cell *args = NIL;
+    cell **next = &args;
+    cell *right;
+    token type0 = op->type;
+
+    if (lv >= l2) { // left-to-right
+        // look no further
+        cell_unref(func); // TODO inefficient
+        pushitem(op);
+        return left;
+    }
+    do {
+        dropitem(op);
+        right = expr(l2, in);
+        if (!right) {
+            badeof(); // end of file
+            return cell_list(func, cell_list(left, args));
+        }
+        *next = cell_list(right, NIL);
+        next = &((*next)->_.cons.cdr);
+        op = lexical(in);
+    } while (op->type == type0);
+    pushitem(op);
+
+    return binary(cell_list(func, cell_list(left, args)), lv, in);
+}
+
 static cell *binary_l2r(cell *left, precedence l2, cell *func, item *op, precedence lv, lxfile *in) {
     cell *right;
 
@@ -197,9 +225,8 @@ static cell *binary_l2r(cell *left, precedence l2, cell *func, item *op, precede
     dropitem(op);
     right = expr(l2, in);
     if (!right) {
-        cell_unref(func); // TODO
         badeof(); // end of file
-        return left;
+        return cell_list(func, cell_list(left, NIL));
     }
     return binary(cell_list(func, cell_list(left, cell_list(right, NIL))), lv, in);
 }
@@ -216,9 +243,8 @@ static cell *binary_r2l(cell *left, precedence l2, cell *func, item *op, precede
     dropitem(op);
     right = expr(l2, in);
     if (!right) {
-        cell_unref(func); // TODO
         badeof(); // end of file
-        return left;
+        return cell_list(func, cell_list(left, NIL));
     }
     return binary(cell_list(func, cell_list(left, cell_list(right, NIL))), lv, in);
 }
@@ -230,37 +256,52 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 
     switch (op->type) {
     case it_PLUS: // binary
-        return binary_l2r(left, l_ADD,   cell_ref(hash_plus), op, lv, in); // N args
+        return binary_l2rN(left, l_ADD,  cell_ref(hash_plus), op, lv, in);
+
     case it_MINUS:
-        return binary_l2r(left, l_ADD,   cell_ref(hash_minus), op, lv, in); // N args
+        return binary_l2rN(left, l_ADD,  cell_ref(hash_minus), op, lv, in);
+
     case it_MULT:
-        return binary_l2r(left, l_MULT,  cell_ref(hash_times), op, lv, in); // N args
+        return binary_l2rN(left, l_MULT, cell_ref(hash_times), op, lv, in);
+
     case it_DIV:
         return binary_l2r(left, l_MULT,  cell_ref(hash_div), op, lv, in); // 2 args
+
     case it_LT:
-        return binary_l2r(left, l_REL,   cell_ref(hash_lt), op, lv, in); // N args
+        return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);
+
     case it_GT:
-        return binary_l2r(left, l_REL,   cell_symbol("#gt"), op, lv, in); // N args
+        return binary_l2rN(left, l_REL,  cell_symbol("#gt"), op, lv, in);
+
     case it_LTEQ:
-        return binary_l2r(left, l_REL,   cell_symbol("#lteq"), op, lv, in); // N args
+        return binary_l2rN(left, l_REL,  cell_symbol("#lteq"), op, lv, in);
+
     case it_GTEQ:
-        return binary_l2r(left, l_REL,   cell_symbol("#gteq"), op, lv, in); // N args
+        return binary_l2rN(left, l_REL,  cell_symbol("#gteq"), op, lv, in);
+
     case it_NTEQ:
-        return binary_l2r(left, l_EQ,    cell_symbol("#noteq"), op, lv, in); // N args
+        return binary_l2rN(left, l_EQEQ, cell_symbol("#noteq"), op, lv, in);
+
     case it_EQEQ:
-        return binary_l2r(left, l_EQ,    cell_symbol("#eq"), op, lv, in); // N args
+        return binary_l2rN(left, l_EQEQ, cell_symbol("#eq"), op, lv, in);
+
     case it_AMP:
-        return binary_l2r(left, l_AMP,   cell_ref(hash_amp), op, lv, in); // N args
+        return binary_l2rN(left, l_AMP,  cell_ref(hash_amp), op, lv, in);
+
     case it_BAR:
-        return binary_l2r(left, l_BAR,   cell_symbol("#bar"), op, lv, in); // TODO check
+        return binary_l2r(left, l_BAR,   cell_symbol("#bar"), op, lv, in); // TODO check if N args
+
     case it_AND:
-        return binary_l2r(left, l_AND,   cell_symbol("#and"), op, lv, in); // N args
+        return binary_l2rN(left, l_AND,  cell_symbol("#and"), op, lv, in);
+
     case it_OR:
-        return binary_l2r(left, l_OR,    cell_symbol("#or"), op, lv, in); // N args
+        return binary_l2rN(left, l_OR,   cell_symbol("#or"), op, lv, in);
+
     case it_STOP:
         return binary_l2r(left, l_STOP,  cell_ref(hash_refq), op, lv, in); // 2 args
+
     case it_EQ:
-        return binary_r2l(left, l_EQ,    cell_ref(hash_defq), op, lv, in); // 2 args
+        return binary_r2l(left, l_DEF,   cell_ref(hash_defq), op, lv, in); // 2 args
 #if 1
     case it_QUEST:
         return binary_r2l(left, l_COND,  cell_ref(hash_if), op, lv, in); // 2 args

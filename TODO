@@ -18,7 +18,7 @@ Invocations of eval still uses C stack, so still not proper end recursion
 
 DO not have pair as a data type using :. Instead, : is a label data type (left side quoted).
 
-Implement semicolon as operator like C comma operator
+Possibly implement semicolon as operator like C comma operator
 Needs some refinement for sure
 
 When array and assoc initialization is Json style,
@@ -37,9 +37,6 @@ Try to nullify it. So in addition to { a : b }, we can also have { a }
 which means? And { a ; b }
 
 The & operator can update values in assocs? Probably | is better! What about vectors?
-
-5 > a > 1 should be implemented. What about 5 >= a > 1
-newlen > oldlen > 0  same as (oldlen > 0 && oldlen < newlen)
 
 Fully implement function call without use of C stack
 
