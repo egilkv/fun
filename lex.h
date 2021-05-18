@@ -43,9 +43,11 @@ typedef enum it_ token;
 
 struct file_s {
     FILE *f;
-    int is_terminal;
+    short is_terminal;
     int lineno;
-    int index;
+    ssize_t index; // index of next character, starting at 0
+    char *linebuf; // for terminal, allocated, NUL terminated
+    ssize_t linelen;
 } ;
 
 typedef struct file_s lxfile;
@@ -62,6 +64,8 @@ typedef struct item_s item;
 item *lexical(lxfile *in);
 void lxfile_init(lxfile *in, FILE *f);
 const char *lxfile_info(lxfile *in);
+
+char *lex_getline(FILE *f, ssize_t *lenp);
 
 void dropitem(item *it);
 void pushitem(item *it);

@@ -25,37 +25,87 @@ void lxfile_init(lxfile *in, FILE *f) {
     }
     in->lineno = 1;
     in->index = 0;
+    in->linebuf = NULL;
+    in->linelen = 0;
 }
 
 // BUG: static string
 const char *lxfile_info(lxfile *in) {
     static char infobuf[81];
-    snprintf(infobuf, sizeof(infobuf)-1, " at %d:%d", in->lineno, in->index);
+    snprintf(infobuf, sizeof(infobuf)-1, " at %d:%ld", in->lineno, in->index - 1);
     return infobuf;
+}
+
+// return allocated line
+// *lenp does not include trailing newline
+char *lex_getline(FILE *f, ssize_t *lenp) {
+    size_t buflen = 1;
+    ssize_t len;
+    char *buf = malloc(1); // if NULL, getline will malloc a huge buffer
+    if ((len = getline(&buf, &buflen, f)) < 0) {
+        // usually an eof but could be other type of error
+        // TODO errno is error
+        free(buf);
+        *lenp = 0;
+        return NULL;
+    }
+    assert(buf);
+    if (len > 0 && buf[len-1] == '\n') --len; // skip trailing newline
+    *lenp = len;
+    return buf;
 }
 
 // TODO inline
 static void lxungetc(char c, lxfile *in) {
-    if (c == '\n') {
-        --(in->lineno);
-        in->index = -1; // means end of line
+    if (in->is_terminal) {
+        assert(in->index > 0);
+        --(in->index);
+    } else {
+        --(in->index); // TODO handle -1 for end of previous line
+        ungetc(c == '\n' ? ' ' : c, in->f);
     }
-    ungetc(c, in->f);
 }
 
 // TODO inline
 static int lxgetc(lxfile *in) {
-    int c = fgetc(in->f);
-    switch (c) {
-    case '\n':
-        ++(in->lineno);
-        in->index = 0;
-        break;
-    case '\r':
-        break;
-    default:
-        ++(in->index);
-        break;
+    int c;
+    if (in->is_terminal) {
+        while (in->index >= in->linelen) { // reached end of line?
+            if (in->index == in->linelen) {
+                if (in->linebuf) {
+                    ++(in->index);
+                    return '\n';
+                }
+            }
+            // reached end of line, ask for next
+            if (in->linebuf) free(in->linebuf);
+            else if (in->lineno == 1) in->lineno = 0; // fix line number
+
+            // prompt
+	    fprintf(stdout, "\n--> ");
+	    fflush(stdout);
+            in->linebuf = lex_getline(in->f, &(in->linelen));
+            in->index = 0;
+            ++(in->lineno);
+            if (!(in->linebuf)) {
+                // TODO should keep state of this in lxfile
+                return -1; // end of file
+            }
+        }
+        c = in->linebuf[(in->index)++];
+    } else {
+        c = fgetc(in->f);
+        switch (c) {
+        case '\n':
+            ++(in->lineno);
+            in->index = 0;
+            break;
+        case '\r':
+            break;
+        default:
+            ++(in->index);
+            break;
+        }
     }
     return c;
 }
@@ -189,7 +239,7 @@ static item *gotstring(char c, item *it, lxfile *in) {
             }
         } else if (iscntrl(c)) {
             // TODO error
-            if (c == '\r' || c == '\n') {
+            if (c == '\n' || c == '\r') {
 		error_lex(lxfile_info(in), "string missing trailing quote", -1);
                 lxungetc(c, in);
                 return it;

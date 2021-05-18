@@ -53,7 +53,7 @@ void cell_print(FILE *out, cell *ct) {
         fprintf(out, ")");
         break;
     case c_INTEGER:
-        fprintf(out, "%lld", ct->_.ivalue);
+        fprintf(out, "%lld", ct->_.ivalue); // 64bit
         break;
     case c_STRING:
         {
@@ -192,19 +192,12 @@ static cell *cfio_read(cell *args) {
 }
 
 static cell *cfio_getline(cell *args) {
-    size_t len = 1;
-    char *line = malloc(1); // if 0, getline will malloc a huge buffer
-    arg0(args);
-    // TODO how to deal with error messages
-    // TODO threading
-    if (getline(&line, &len, stdin) < 0) {
-        // usually and eof but could be other type of error
-        // generate error message?
-        // TODO errno is error
-        free(line);
+    ssize_t len = 0;
+    char *line = lex_getline(stdin, &len);
+    if (!line || len < 0) {
         return cell_ref(hash_void);
     }
-    return cell_astring(line, len-1);
+    return cell_astring(line, len);
 }
 
 cell *module_io() {

@@ -70,11 +70,6 @@ static void chomp(lxfile *lxf) {
     cell *ct;
 
     for (;;) {
-        // TODO move up
-        if (lxf->is_terminal) {
-	    fprintf(stdout, "\n--> ");
-	    fflush(stdout);
-	}
         ct = expression(lxf);
 	if (!ct) break; // eof
         if (lxf->f == stdin) {
