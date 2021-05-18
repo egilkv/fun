@@ -96,6 +96,33 @@ void oblist_set(cell *sym, cell *val) {
     sym->_.symbol.val = val;
 }
 
+// search oblist for text matches, return allocated match in turn
+// TODO BUG: static state
+char *oblist_search(const char *lookfor, int state) {
+    static int h;
+    static struct ob_entry *p;
+    int len = strlen(lookfor);
+    char *result = NULL;
+    if (!state) {
+	h = 0;
+	p = ob_table[0];
+    }
+    for (;;) {
+	while (p) {
+	    struct ob_entry *q = p->next;
+            assert(cell_is_symbol(p->symdef));
+	    if (strncmp(p->symdef->_.symbol.nam, lookfor, len) == 0) {
+		result = strdup(p->symdef->_.symbol.nam);
+	    }
+	    p = q;
+	    if (result) return result;
+	}
+	++h;
+	if (h >= OBLIST_HASH_SIZE) return NULL; // list exhausted
+	p = ob_table[h];
+    }
+}
+
 // clean up on exit
 void oblist_drop(int show) {
     int h;

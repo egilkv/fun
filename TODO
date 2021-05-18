@@ -70,3 +70,4 @@ should prettyprint instead, so instead of #(#defq, a, b) say a = b
 
 #exit(n) sets return value, otherwise always zero?
 
+Readline tab completion could perhaps understand "io." and more of syntax

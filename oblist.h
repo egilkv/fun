@@ -7,6 +7,8 @@ cell *oblists(const char *sym);
 
 void oblist_set(cell *sym, cell *val);
 
+char *oblist_search(const char *lookfor, int state);
+
 void oblist_drop(int show);
 
 extern int oblist_teardown; // TODO for assert only

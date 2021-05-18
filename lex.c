@@ -11,6 +11,7 @@
 #ifdef HAVE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
+#include "oblist.h"
 #endif
 
 #include "lex.h"
@@ -19,6 +20,23 @@
 static item *pushback = 0;
 static item *gotchar(int c, item *it, lxfile *in);
 static item *gotsymbol(char c, item *it, lxfile *in);
+
+#ifdef HAVE_READLINE
+
+// https://thoughtbot.com/blog/tab-completion-in-gnu-readline
+// if there are no possible completions, return NULL.
+// if there is one possible completion, return an array 
+// containing that completion, followed by a NULL value.
+// if there are two or more possibilities, return an array
+// containing the longest common prefix of all the options, 
+// followed by each of the possible completions, followed
+// by a NULL value.
+static char **readline_completion(const char *text, int start, int end) {
+    rl_attempted_completion_over = 1; // do not fall back to filename completion
+//  return rl_completion_matches(text, character_name_generator);
+    return rl_completion_matches(text, oblist_search);
+}
+#endif // HAVE_READLINE
 
 void lxfile_init(lxfile *in, FILE *f) {
     in->f = f;
@@ -34,8 +52,12 @@ void lxfile_init(lxfile *in, FILE *f) {
     in->linelen = 0;
 
 #ifdef HAVE_READLINE
-    // disable default filename type TAB behaviour
-    rl_bind_key('\t', rl_insert);
+    // have our own TAB-completion
+    rl_attempted_completion_function = readline_completion;
+
+    // let readline know our quote characters etc
+    // rl_completer_quote_characters = "\"'";
+    // rl_completer_word_break_characters = " ";
 #endif
 }
 
