@@ -15,14 +15,11 @@
 
 static void chomp(lxfile *f);
 
-int stdin_is_terminal; // TODO move
-
 int main(int argc, char * const argv[]) {
     int opt;
     lxfile infile;
 
     cfun_init();
-    stdin_is_terminal = isatty(fileno(stdin));
 
     // opterr = 0; TODO
     while ((opt = getopt(argc, argv, "+OP")) >= 0) switch (opt) {
@@ -44,10 +41,10 @@ int main(int argc, char * const argv[]) {
     }
     if (optind >= argc) { // filename on command line?
         // interactive mode
-        if (stdin_is_terminal) { // TODO more of this...
+        lxfile_init(&infile, stdin);
+        if (infile.is_terminal) {
             fprintf(stdout, "Have fun");
         }
-        lxfile_init(&infile, stdin);
         cfun_args(0, NULL);
         chomp(&infile);
     } else {
@@ -74,7 +71,7 @@ static void chomp(lxfile *lxf) {
 
     for (;;) {
         // TODO move up
-        if (lxf->f == stdin && stdin_is_terminal) {
+        if (lxf->is_terminal) {
 	    fprintf(stdout, "\n--> ");
 	    fflush(stdout);
 	}
@@ -83,19 +80,19 @@ static void chomp(lxfile *lxf) {
         if (lxf->f == stdin) {
 	    if (opt_showparse) {
 		cell_print(stdout, ct);
-                printf(" --> ");
+                printf(" ==> ");
 	    }
 	}
         ct = eval(ct, NULL);
         if (lxf->f == stdin) {
             cell_print(stdout, ct);
-            if (!stdin_is_terminal) {
+            if (!(lxf->is_terminal)) {
                 printf("\n");
             }
 	}
         cell_unref(ct);
     }
-    if (lxf->f == stdin && stdin_is_terminal) {
+    if (lxf->is_terminal) {
         printf("\n");
     }
 }

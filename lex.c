@@ -3,6 +3,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
@@ -17,6 +18,11 @@ static item *gotsymbol(char c, item *it, lxfile *in);
 
 void lxfile_init(lxfile *in, FILE *f) {
     in->f = f;
+    if (f == stdin) {
+        in->is_terminal = isatty(fileno(stdin));
+    } else {
+        in->is_terminal = 0;
+    }
     in->lineno = 1;
     in->index = 0;
 }

@@ -43,6 +43,7 @@ typedef enum it_ token;
 
 struct file_s {
     FILE *f;
+    int is_terminal;
     int lineno;
     int index;
 } ;

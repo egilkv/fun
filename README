@@ -1,0 +1,3 @@
+
+#args
+A list of command line argumentse (not used by fun itself). #args[0] is the name of the program.

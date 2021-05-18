@@ -1,0 +1,4 @@
+
+sudo apt-get install  libreadline-dev
+
+Also optionally requires gtk3+
