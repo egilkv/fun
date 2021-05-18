@@ -28,42 +28,44 @@
 #(#refq, list, 0) ==> 1
 #(#amp, "abc", "def") ==> "abcdef"
 #(#ref, "abcdef", 2) ==> "c"
-error at 47:13; expected matching right parenthesis
+error at 47:14; expected matching right parenthesis
 #(#defq, array1, #(#vector, 0)) ==> [ 0 ] 
-error at 47:13; misplaced item: operator is ".."
+error at 47:14; misplaced item: operator is ".."
 (5 : 0) ==> error; pair cannot be evaluated: (5 : 0)
 #void
-error at 47:19; misplaced item: operator is "]"
+error at 47:20; misplaced item: operator is "]"
 #(#ref, array1, 0) ==> 0
 #(#ref, array1, 3) ==> error; vector index out of bounds: 3
 #void
-error at 50:9; expected matching right bracket for array
+error at 50:10; expected matching right bracket for array
 #(#ref, array1, 3) ==> error; vector index out of bounds: 3
 #void
-error at 50:9; misplaced item: operator is ".."
+error at 50:10; misplaced item: operator is ".."
 4 ==> 4
-error at 50:11; misplaced item: operator is "]"
-error at 52:7; expected matching right parenthesis
+error at 50:12; misplaced item: operator is "]"
+error at 52:8; expected matching right parenthesis
 #(#defq, a, #(#vector, 0)) ==> [ 0 ] 
-error at 52:7; misplaced item: operator is ".."
+error at 52:8; misplaced item: operator is ".."
 20 ==> 20
-error at 52:10; misplaced item: operator is "]"
+error at 52:11; misplaced item: operator is "]"
 #(#assoc, #t) ==> error; initialization item not in form of key colon value: #()
 { } 
 #(#defq, j, 15) ==> 15
-error at 55:3; misplaced item: operator is ".."
-error at 55:13; misplaced operator: operator is "{"
+error at 55:4; misplaced item: operator is ".."
+error at 55:14; misplaced operator: operator is "{"
 #(#amp, #(#ref, a, #(#minus, j, 1)), #(#vector)) ==> error; vector index out of bounds: 14
 error; operator & cannot be applied: #void
 #void
 #f ==> #f
-error at 55:16; misplaced item: operator is "}"
-error at 55:19; misplaced item: operator is "&"
-error at 55:26; expected matching right bracket for array
+error at 55:17; misplaced item: operator is "}"
+error at 55:20; misplaced item: operator is "&"
+error at 55:27; expected matching right bracket for array
 #(#ref, a, #(#plus, j, 1)) ==> error; vector index out of bounds: 16
 #void
-error at 55:26; misplaced item: operator is ".."
-error at 55:27; misplaced item: operator is "]"
+error at 55:27; misplaced item: operator is ".."
+error at 55:28; misplaced item: operator is "]"
 #(#defq, f, #(#defq, g, 9)) ==> 9
 #(#plus, g, f, 12) ==> 30
 #(#minus, #(#plus, g, f, 12), 30) ==> 0
+error at 66:2; bad character, ignored: "^"
+2 ==> 2

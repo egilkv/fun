@@ -64,7 +64,7 @@ void lxfile_init(lxfile *in, FILE *f) {
 // BUG: static string
 const char *lxfile_info(lxfile *in) {
     static char infobuf[81];
-    snprintf(infobuf, sizeof(infobuf)-1, " at %d:%ld", in->lineno, in->index - 1);
+    snprintf(infobuf, sizeof(infobuf)-1, " at %d:%ld", in->lineno, in->index);
     return infobuf;
 }
 

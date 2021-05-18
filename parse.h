@@ -9,6 +9,7 @@
 // https://www.tutorialspoint.com/cprogramming/c_operators_precedence.htm
 //
 // all associate left-to-right except where noted
+// several of these are N-ary
 enum prec_ {
     l_BOT,
     l_SEMI,     // ;            TODO new, same as ',' in C
