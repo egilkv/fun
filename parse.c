@@ -185,88 +185,85 @@ static cell *expr(precedence lv, lxfile *in) {
     return 0;
 }
 
+static cell *binary_l2r(cell *left, precedence l2, cell *func, item *op, precedence lv, lxfile *in) {
+    cell *right;
+
+    if (lv >= l2) { // left-to-right
+        // look no further
+        cell_unref(func); // TODO inefficient
+        pushitem(op);
+        return left;
+    }
+    dropitem(op);
+    right = expr(l2, in);
+    if (!right) {
+        cell_unref(func); // TODO
+        badeof(); // end of file
+        return left;
+    }
+    return binary(cell_list(func, cell_list(left, cell_list(right, NIL))), lv, in);
+}
+
+static cell *binary_r2l(cell *left, precedence l2, cell *func, item *op, precedence lv, lxfile *in) {
+    cell *right;
+
+    if (lv > l2) { // right-to-left
+        // look no further
+        cell_unref(func); // TODO inefficient
+        pushitem(op);
+        return left;
+    }
+    dropitem(op);
+    right = expr(l2, in);
+    if (!right) {
+        cell_unref(func); // TODO
+        badeof(); // end of file
+        return left;
+    }
+    return binary(cell_list(func, cell_list(left, cell_list(right, NIL))), lv, in);
+}
+
 static cell *binary(cell *left, precedence lv, lxfile *in) {
-    precedence l2 = l_BOT;
-    cell *s = 0;
     cell *right = 0;
     item *op = lexical(in);
     if (!op) return left; // end of file
 
     switch (op->type) {
     case it_PLUS: // binary
-	if (!s) { l2 = l_ADD;     s = cell_ref(hash_plus); } // N args
+        return binary_l2r(left, l_ADD,   cell_ref(hash_plus), op, lv, in); // N args
     case it_MINUS:
-	if (!s) { l2 = l_ADD;     s = cell_ref(hash_minus); } // N args
+        return binary_l2r(left, l_ADD,   cell_ref(hash_minus), op, lv, in); // N args
     case it_MULT:
-	if (!s) { l2 = l_MULT;    s = cell_ref(hash_times); } // N args
+        return binary_l2r(left, l_MULT,  cell_ref(hash_times), op, lv, in); // N args
     case it_DIV:
-	if (!s) { l2 = l_MULT;    s = cell_ref(hash_div); } // 2 args
+        return binary_l2r(left, l_MULT,  cell_ref(hash_div), op, lv, in); // 2 args
     case it_LT:
-	if (!s) { l2 = l_REL;     s = cell_ref(hash_lt); } // N args
+        return binary_l2r(left, l_REL,   cell_ref(hash_lt), op, lv, in); // N args
     case it_GT:
-	if (!s) { l2 = l_REL;     s = cell_symbol("#gt"); } // N args
+        return binary_l2r(left, l_REL,   cell_symbol("#gt"), op, lv, in); // N args
     case it_LTEQ:
-	if (!s) { l2 = l_REL;     s = cell_symbol("#lteq"); } // N args
+        return binary_l2r(left, l_REL,   cell_symbol("#lteq"), op, lv, in); // N args
     case it_GTEQ:
-	if (!s) { l2 = l_REL;     s = cell_symbol("#gteq"); } // N args
+        return binary_l2r(left, l_REL,   cell_symbol("#gteq"), op, lv, in); // N args
     case it_NTEQ:
-	if (!s) { l2 = l_EQ;      s = cell_symbol("#noteq"); } // N args
+        return binary_l2r(left, l_EQ,    cell_symbol("#noteq"), op, lv, in); // N args
     case it_EQEQ:
-	if (!s) { l2 = l_EQ;      s = cell_symbol("#eq"); } // N args
+        return binary_l2r(left, l_EQ,    cell_symbol("#eq"), op, lv, in); // N args
     case it_AMP:
-	if (!s) { l2 = l_AMP;     s = cell_ref(hash_amp); } // N args
+        return binary_l2r(left, l_AMP,   cell_ref(hash_amp), op, lv, in); // N args
     case it_BAR:
-	if (!s) { l2 = l_BAR;     s = cell_symbol("#bar"); } // TODO check
+        return binary_l2r(left, l_BAR,   cell_symbol("#bar"), op, lv, in); // TODO check
     case it_AND:
-	if (!s) { l2 = l_AND;     s = cell_symbol("#and"); } // N args
+        return binary_l2r(left, l_AND,   cell_symbol("#and"), op, lv, in); // N args
     case it_OR:
-	if (!s) { l2 = l_OR;      s = cell_symbol("#or"); } // N args
+        return binary_l2r(left, l_OR,    cell_symbol("#or"), op, lv, in); // N args
     case it_STOP:
-	if (!s) { l2 = l_STOP;    s = cell_ref(hash_refq); } // 2 args
-
-        if (lv >= l2) { // left-to-right
-            // look no further
-            pushitem(op);
-            return left;
-        }
-        dropitem(op);
-        right = expr(l2, in);
-        if (!right) {
-            badeof(); // end of file
-            return left;
-        }
-        return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv, in);
-
+        return binary_l2r(left, l_STOP,  cell_ref(hash_refq), op, lv, in); // 2 args
     case it_EQ:
-	if (!s) { l2 = l_DEF;     s = cell_ref(hash_defq); } // 2 args
-
-        if (lv > l2) { // right-to-left
-            // look no further
-            pushitem(op);
-            return left;
-        }
-        dropitem(op);
-        right = expr(l2, in);
-        if (!right) {
-            badeof(); // end of file
-            return left;
-        }
-        return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv, in);
-
-#if 1 // TODO combine with it_EQ above???
+        return binary_r2l(left, l_EQ,    cell_ref(hash_defq), op, lv, in); // 2 args
+#if 1
     case it_QUEST:
-	if (lv > l_COND) { // right-to-left
-            // look no further
-            pushitem(op);
-            return left;
-        }
-        dropitem(op);
-        right = expr(l_COND, in);
-        if (!right) {
-            badeof(); // end of file
-            return left;
-        }
-        return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
+        return binary_r2l(left, l_COND,  cell_ref(hash_if), op, lv, in); // 2 args
 #else
     case it_QUEST: // ternary
 	if (lv > l_COND) { // right-to-left
@@ -330,7 +327,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary(cell_list(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
 
     case it_COLON:
-        if (lv >= l_COLON) { // TODO left-to-right
+        if (lv >= l_COLON) { // left-to-right
             // look no further
             pushitem(op);
             return left;
