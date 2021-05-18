@@ -124,3 +124,65 @@ int get_cstring(cell *a, char **valuep, cell *dump) {
     return get_string(a, valuep, &dummy, dump);
 }
 
+// does not consume a
+cell *ref_index(cell *a, index_t index) {
+    cell *value;
+    if (a) switch (a->type) {
+
+    case c_VECTOR:
+	if (!vector_get(a, index, &value)) {
+            value = error_rti("vector index out of bounds", index);
+	}
+	return value;
+
+    case c_STRING:
+	if (index < a->_.string.len) {
+	    char_t *s = malloc(1 + 1);
+	    assert(s);
+	    s[0] = a->_.string.ptr[index];
+	    s[1] = '\0';
+	    value = cell_astring(s, 1);
+        } else {
+            return error_rti("string index out of bounds", index);
+	}
+	return value;
+
+    case c_LIST:
+	value = NIL;
+	{
+	    index_t i = 0;
+	    do {
+		if (!cell_is_list(a)) {
+		    return error_rti("list index out of bounds", index);
+		}
+		value = cell_car(a);
+		a = cell_cdr(a);
+	    } while (i++ < index);
+	}
+	return cell_ref(value);
+
+    case c_PAIR:
+	switch (index) {
+	case 0:
+	    value = cell_ref(cell_car(a));
+	    break;
+	case 1:
+	    value = cell_ref(cell_cdr(a));
+	    break;
+	default:
+	    value = error_rti("pair index out of bounds", index);
+	    break;
+	}
+        return value;
+
+    default:
+    // TODO ref should work for functions ??
+    case c_SPECIAL:
+    case c_SYMBOL:
+    case c_INTEGER:
+    case c_ASSOC:
+	 break;
+    }
+    return error_rt1("cannot referrence", cell_ref(a));
+}
+

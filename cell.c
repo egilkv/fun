@@ -172,6 +172,7 @@ cell *cell_cfun3(struct cell_s *(*fun)(struct cell_s *, struct cell_s *, struct 
 }
 
 cell *cell_vector(index_t length) {
+    // TODO or NIL if length==0
     cell *node = newcell(c_VECTOR);
     node->_.vector.len = length;
     if (length > 0) { // if length==0 table is NULL

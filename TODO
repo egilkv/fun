@@ -1,4 +1,6 @@
 
+Quote should be on both sides.
+
 Surely cannot be right?
 (#usr("io")).println("hello2");
 
@@ -17,7 +19,7 @@ Lists and vectors are the same, so drop lists (make it up to runtime to switch)
 
 Invocations of eval still uses C stack, so still not proper end recursion
 
-Possibly have pair as a data type instead, using :
+DO not have pair as a data type using :. Instead, : is a label data type (left side quoted).
 
 Implement semicolon as operator like C comma operator
 Needs some refinement for sure
@@ -32,20 +34,19 @@ Json keys are always strings. Reserved names and types:
     array [] and comma-separated elements.
     associative array
 
+{} is an empty assoc?
 What is the difference between (){} for function and {} for assoc, really.
 Try to nullify it. So in addition to { a : b }, we can also have { a }
 which means? And { a ; b }
 
-The & operator can update values in assocs. What about vectors?
+The & operator can update values in assocs? Probably | is better! What about vectors?
 
 5 > a > 1 should be implemented. What about 5 >= a > 1
 newlen > oldlen > 0  same as (oldlen > 0 && oldlen < newlen)
 
-Implement function call without use of C stack
+Fully implement function call without use of C stack
 
 Implement non-mutable 'variables'
-
-{} is an empty assoc?
 
 Function invocation and lists should be separate things. Really
 
@@ -66,3 +67,9 @@ Do we really need lists and vectors to be different things???
 Easy to use threading, like goroutines, i.e.: go function()
 
 Go interfaces - specifies only functions
+
+In error messages,
+should prettyprint instead, so instead of #(#defq, a, b) say a = b
+
+#exit(n) sets return value, otherwise always zero?
+

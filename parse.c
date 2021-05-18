@@ -194,39 +194,35 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 
     switch (op->type) {
     case it_PLUS: // binary
-	if (!s) { l2 = l_ADD;     s = cell_ref(hash_plus); }
+	if (!s) { l2 = l_ADD;     s = cell_ref(hash_plus); } // N args
     case it_MINUS:
-	if (!s) { l2 = l_ADD;     s = cell_ref(hash_minus); }
+	if (!s) { l2 = l_ADD;     s = cell_ref(hash_minus); } // N args
     case it_MULT:
-	if (!s) { l2 = l_MULT;    s = cell_ref(hash_times); }
+	if (!s) { l2 = l_MULT;    s = cell_ref(hash_times); } // N args
     case it_DIV:
 	if (!s) { l2 = l_MULT;    s = cell_ref(hash_div); } // 2 args
     case it_LT:
-        if (!s) { l2 = l_REL;     s = cell_ref(hash_lt); }
+	if (!s) { l2 = l_REL;     s = cell_ref(hash_lt); } // N args
     case it_GT:
-        if (!s) { l2 = l_REL;     s = cell_symbol("#gt"); }
+	if (!s) { l2 = l_REL;     s = cell_symbol("#gt"); } // N args
     case it_LTEQ:
-        if (!s) { l2 = l_REL;     s = cell_symbol("#lteq"); }
+	if (!s) { l2 = l_REL;     s = cell_symbol("#lteq"); } // N args
     case it_GTEQ:
-        if (!s) { l2 = l_REL;     s = cell_symbol("#gteq"); }
+	if (!s) { l2 = l_REL;     s = cell_symbol("#gteq"); } // N args
     case it_NTEQ:
-        if (!s) { l2 = l_EQ;      s = cell_symbol("#noteq"); }
+	if (!s) { l2 = l_EQ;      s = cell_symbol("#noteq"); } // N args
     case it_EQEQ:
-        if (!s) { l2 = l_EQ;      s = cell_symbol("#eq"); }
+	if (!s) { l2 = l_EQ;      s = cell_symbol("#eq"); } // N args
     case it_AMP:
-        if (!s) { l2 = l_AMP;     s = cell_ref(hash_amp); }
+	if (!s) { l2 = l_AMP;     s = cell_ref(hash_amp); } // N args
     case it_BAR:
-        if (!s) { l2 = l_AMP;     s = cell_symbol("#bar"); } // TODO check
+	if (!s) { l2 = l_BAR;     s = cell_symbol("#bar"); } // TODO check
     case it_AND:
-        if (!s) { l2 = l_AND;     s = cell_symbol("#and"); }
+	if (!s) { l2 = l_AND;     s = cell_symbol("#and"); } // N args
     case it_OR:
-        if (!s) { l2 = l_OR;      s = cell_symbol("#or"); }
-    case it_STOP:
-        if (!s) { l2 = l_POST;    s = cell_ref(hash_refq); }
-    case it_EQ:
-	if (!s) { l2 = l_DEF;     s = cell_ref(hash_defq); }
+	if (!s) { l2 = l_OR;      s = cell_symbol("#or"); } // N args
 
-        if (lv >= l2) { // TODO left-to-right
+        if (lv >= l2) { // left-to-right
             // look no further
             pushitem(op);
             return left;
@@ -239,9 +235,27 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         }
         return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv, in);
 
-#if 1 // TODO
+    case it_STOP:
+	if (!s) { l2 = l_STOP;    s = cell_ref(hash_refq); } // 2 args
+    case it_EQ:
+	if (!s) { l2 = l_DEF;     s = cell_ref(hash_defq); } // 2 args
+
+        if (lv > l2) { // right-to-left
+            // look no further
+            pushitem(op);
+            return left;
+        }
+        dropitem(op);
+        right = expr(l2, in);
+        if (!right) {
+            badeof(); // end of file
+            return left;
+        }
+        return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv, in);
+
+#if 1 // TODO combine with it_EQ above???
     case it_QUEST:
-        if (lv >= l_COND) { // TODO right to left
+	if (lv > l_COND) { // right-to-left
             // look no further
             pushitem(op);
             return left;
@@ -255,7 +269,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
 #else
     case it_QUEST: // ternary
-        if (lv >= l_COND) { // TODO right to left
+	if (lv > l_COND) { // right-to-left
             // look no further
             pushitem(op);
             return left;
@@ -286,7 +300,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 #endif
 
     case it_LPAR: // function
-        if (lv >= l_POST) { // TODO left-to-right
+	if (lv >= l_POST) { // left-to-right
             // look no further
             pushitem(op);
             return left;
@@ -294,7 +308,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return cell_list(left, getlist(op, it_COMMA, it_RPAR, in));
 
     case it_LBRK: // array
-        if (lv >= l_POST) { // TODO left-to-right
+	if (lv >= l_POST) { // left-to-right
             // look no further
             pushitem(op);
             return left;

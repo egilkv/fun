@@ -357,58 +357,70 @@ static item *gotchar(int c, item *it, lxfile *in) {
     } else if (isalnum(c)) {
         return gotsymbol(c, it, in);
     } else switch (c) {
-    case '#':
-        return gotsymbol(c, it, in);
-    case '\'':
-        return gotquote(c, it, in);
-    case '"':
-        return gotstring(c, it, in);
-    case '+':
-        return gotplus(c, it, in);
-    case '*':
-        return gotmult(c, it, in);
-    case '-':
-        return gotminus(c, it, in);
-    case '/':
-        return gotdiv(c, it, in);
-    case '<':
-        return gotlt(c, it, in);
-    case '>':
-        return gotgt(c, it, in);
     case '!':
         return gotnot(c, it, in);
+    case '"':
+        return gotstring(c, it, in);
+    case '#':
+        return gotsymbol(c, it, in);
+    case '$':
+        break; // not used
+    case '%':
+        break; // not used
     case '&':
         return gotamp(c, it, in);
-    case '=':
-        return goteq(c, it, in);
-    case '.':
-        return gotstop(c, it, in);
-    case ',':
-        return gotcomma(c, it, in);
-    case ':':
-        return gotcolon(c, it, in);
-    case ';':
-        return gotsemi(c, it, in);
-    case '?':
-        return gotquest(c, it, in);
+    case '\'':
+        return gotquote(c, it, in);
     case '(':
         return gotlpar(c, it, in);
     case ')':
         return gotrpar(c, it, in);
+    case '*':
+        return gotmult(c, it, in);
+    case '+':
+        return gotplus(c, it, in);
+    case ',':
+        return gotcomma(c, it, in);
+    case '-':
+        return gotminus(c, it, in);
+    case '.':
+        return gotstop(c, it, in);
+    case '/':
+        return gotdiv(c, it, in);
+    case ':':
+        return gotcolon(c, it, in);
+    case ';':
+        return gotsemi(c, it, in);
+    case '<':
+        return gotlt(c, it, in);
+    case '=':
+        return goteq(c, it, in);
+    case '>':
+        return gotgt(c, it, in);
+    case '?':
+        return gotquest(c, it, in);
+    case '@':
+        break; // not used
     case '[':
         return gotlbrk(c, it, in);
     case '\\':
         return gotstring(c, it, in);
     case ']':
         return gotrbrk(c, it, in);
+    case '^':
+        break; // not used
     case '_':
         return gotsymbol(c, it, in);
+    case '`':
+        break; // not used
     case '{':
         return gotlbrc(c, it, in);
     case '|':
         return gotbar(c, it, in);
     case '}':
         return gotrbrc(c, it, in);
+    case '~':
+        break; // not used
 
     case '\r':
     case '\n':

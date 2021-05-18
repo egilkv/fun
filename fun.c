@@ -19,14 +19,13 @@ int stdin_is_terminal; // TODO move
 
 int main(int argc, char * const argv[]) {
     int opt;
-    int idx;
     lxfile infile;
 
     cfun_init();
     stdin_is_terminal = isatty(fileno(stdin));
 
     // opterr = 0; TODO
-    while ((opt = getopt(argc, argv, "OP")) >= 0) switch (opt) {
+    while ((opt = getopt(argc, argv, "+OP")) >= 0) switch (opt) {
         case 'O':
             opt_showoblist = 1;
             break;
@@ -43,24 +42,25 @@ int main(int argc, char * const argv[]) {
         default:
             assert(0);
     }
-    if (optind >= argc) { // no files on command line
+    if (optind >= argc) { // filename on command line?
         // interactive mode
         if (stdin_is_terminal) { // TODO more of this...
             fprintf(stdout, "Have fun");
         }
         lxfile_init(&infile, stdin);
+        cfun_args(0, NULL);
         chomp(&infile);
     } else {
-        // filenames on command line?
-        for (idx = optind; idx < argc; idx++) {
-            FILE *f = fopen(argv[idx], "r");
-            if (!f) {
-                error_cmdstr("cannot find", argv[idx]);
-            } else {
-                lxfile_init(&infile, f);
-                chomp(&infile);
-                fclose(infile.f);
-            }
+	// filename on command line
+	FILE *f = fopen(argv[optind], "r");
+	if (!f) {
+	    error_cmdstr("cannot find", argv[optind]);
+	} else {
+	    lxfile_init(&infile, f);
+            // TODO consider setting linux program name too
+            cfun_args(argc-optind, &argv[optind]); // argv[0] is program name
+	    chomp(&infile);
+	    fclose(infile.f);
 	}
     }
 

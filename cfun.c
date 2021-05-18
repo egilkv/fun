@@ -335,68 +335,6 @@ static cell *cfunN_amp(cell *args) {
     return result;
 }
 
-// does not consume a
-cell *ref_index(cell *a, index_t index) {
-    cell *value;
-    if (a) switch (a->type) {
-
-    case c_VECTOR:
-	if (!vector_get(a, index, &value)) {
-            value = error_rti("vector index out of bounds", index);
-	}
-	return value;
-
-    case c_STRING:
-	if (index < a->_.string.len) {
-	    char_t *s = malloc(1 + 1);
-	    assert(s);
-	    s[0] = a->_.string.ptr[index];
-	    s[1] = '\0';
-	    value = cell_astring(s, 1);
-        } else {
-            return error_rti("string index out of bounds", index);
-	}
-	return value;
-
-    case c_LIST:
-	value = NIL;
-	{
-	    index_t i = 0;
-	    do {
-		if (!cell_is_list(a)) {
-		    return error_rti("list index out of bounds", index);
-		}
-		value = cell_car(a);
-		a = cell_cdr(a);
-	    } while (i++ < index);
-	}
-	return cell_ref(value);
-
-    case c_PAIR:
-	switch (index) {
-	case 0:
-	    value = cell_ref(cell_car(a));
-	    break;
-	case 1:
-	    value = cell_ref(cell_cdr(a));
-	    break;
-	default:
-	    value = error_rti("pair index out of bounds", index);
-	    break;
-	}
-        return value;
-
-    default:
-    // TODO ref should work for functions ??
-    case c_SPECIAL:
-    case c_SYMBOL:
-    case c_INTEGER:
-    case c_ASSOC:
-	 break;
-    }
-    return error_rt1("cannot referrence", cell_ref(a));
-}
-
 static cell *cfun2_ref(cell *a, cell *b) {
     cell *value;
     if (cell_is_assoc(a)) {
@@ -468,11 +406,26 @@ void cfun_init() {
     hash_f       = oblistv("#f",       NIL);
     hash_t       = oblistv("#t",       NIL);
     hash_void    = oblistv("#void",    NIL);
-    hash_args    = oblistv("#args",    NIL); // TODO argc, argv
     // values are themselves
     oblist_set(hash_f,    cell_ref(hash_f));
     oblist_set(hash_t,    cell_ref(hash_t));
     oblist_set(hash_void, cell_ref(hash_void));
+}
+
+void cfun_args(int argc, char * const argv[]) {
+    cell *vector = NIL;
+    assert(hash_args == NIL); // should not be invoked twice
+    if (argc > 0) {
+        int i;
+        vector = cell_vector(argc);
+        for (i = 0; i < argc; ++i) {
+            // TODO can optimize by not allocating fixed string here and in cfun_init
+	    char_t *s = strdup(argv[i]);
+	    assert(s);
+	    vector->_.vector.table[i] = cell_astring(s, strlen(s));
+        }
+    }
+    hash_args = oblistv("#args", vector);
 }
 
 void cfun_drop() {

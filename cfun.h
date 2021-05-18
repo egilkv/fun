@@ -26,4 +26,5 @@ extern cell *hash_use;
 extern cell *hash_vector;
 
 void cfun_init();
+void cfun_args(int argc, char * const argv[]);
 void cfun_drop();

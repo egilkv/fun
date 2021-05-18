@@ -57,3 +57,5 @@ a[..j-1] & []{#f} & a[j+1..];
 // TODO what happens to '.' here:
 // ((a) { a<=1 ? a : a*.(a-1) }) (5);
 
+// '=' binds right-to-left
+f = g = 9;

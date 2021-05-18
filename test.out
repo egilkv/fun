@@ -64,3 +64,4 @@ error at 55:34; expected matching right bracket for array
 #void
 error at 55:34; misplaced item: operator is ".."
 error at 55:35; misplaced item: operator is "]"
+#(#defq, f, #(#defq, g, 9)) --> 9

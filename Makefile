@@ -2,6 +2,8 @@
 #
 #
 
+all: fun fun-gtk
+
 fun-gtk: fun.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c oblist.h cmod.c cfun.c cmod.h cfun.h eval.c eval.h err.c err.h io.c io.h assoc.c assoc.h type.h opt.h gtk3.c
 	  gcc -g -Wall -DHAVE_GTK `pkg-config --cflags gtk+-3.0` \
 	    fun.c lex.c parse.c cell.c oblist.c cmod.c cfun.c eval.c err.c io.c assoc.c gtk3.c \
@@ -30,4 +32,4 @@ grind: fun
 #		--verbose \
 
 clean:
-	rm -f *~ fun a.out
+	rm -f *~ fun fun-gtk a.out out
