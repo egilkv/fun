@@ -16,6 +16,7 @@
 
 #include "lex.h"
 #include "err.h"
+#include "opt.h"
 
 static item *pushback = 0;
 static item *gotchar(int c, item *it, lxfile *in);
@@ -52,6 +53,9 @@ void lxfile_init(lxfile *in, FILE *f) {
     in->linelen = 0;
 
 #ifdef HAVE_READLINE
+    // disable tab completion
+    // rl_bind_key('\t', rl_insert);
+
     // have our own TAB-completion
     rl_attempted_completion_function = readline_completion;
 
@@ -112,32 +116,36 @@ static int lxgetc(lxfile *in) {
                 }
             }
             // reached end of line, ask for next
-            if (in->linebuf) free(in->linebuf);
+            if (in->linebuf) {
+                free(in->linebuf);
+            }
             else if (in->lineno == 1) in->lineno = 0; // fix line number
             in->index = 0;
 
 #ifdef HAVE_READLINE
-            in->linelen = 0;
-            in->linebuf = readline("\n--> ");
-            if (in->linebuf) {
+            if (!opt_noreadline) {
+                in->linelen = 0;
+                in->linebuf = readline("\n--> ");
+                if (!(in->linebuf)) {
+                    in->is_eof = 1;
+                    return -1; // end of file
+                }
                 in->linelen = strlen(in->linebuf);
                 if (in->linelen > 0) {
                     add_history(in->linebuf);
                 }
-            } else {
-                in->is_eof = 1;
-                return -1; // end of file
-            }
-#else
-            // prompt
-	    fprintf(stdout, "\n--> ");
-	    fflush(stdout);
-            in->linebuf = lex_getline(in->f, &(in->linelen));
-            if (!(in->linebuf)) {
-                in->is_eof = 1;
-                return -1; // end of file
-            }
+            } else
 #endif
+            {
+                // prompt
+                fprintf(stdout, "\n--> ");
+                fflush(stdout);
+                in->linebuf = lex_getline(in->f, &(in->linelen));
+                if (!(in->linebuf)) {
+                    in->is_eof = 1;
+                    return -1; // end of file
+                }
+            }
             ++(in->lineno);
         }
         if (!in->linebuf) {

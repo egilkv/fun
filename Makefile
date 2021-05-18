@@ -27,7 +27,7 @@ grind: fun
 	valgrind --leak-check=full \
 		--show-leak-kinds=all \
 		--track-origins=yes \
-		./fun
+		./fun -R
 
 #		--verbose \
 

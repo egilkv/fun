@@ -5,27 +5,28 @@
 #include "cell.h"
 #include "cmod.h"
 
-extern cell *hash_amp;
-extern cell *hash_args;
-extern cell *hash_assoc;
-extern cell *hash_defq;
-extern cell *hash_div;
-extern cell *hash_do;
-extern cell *hash_eq;
-extern cell *hash_if;
-extern cell *hash_lambda;
-extern cell *hash_list;
-extern cell *hash_lt;
-extern cell *hash_minus;
-extern cell *hash_not;
-extern cell *hash_noteq;
-extern cell *hash_plus;
-extern cell *hash_quote;
-extern cell *hash_ref;
-extern cell *hash_refq;
-extern cell *hash_times;
-extern cell *hash_vector;
+cell *hash_amp;
+cell *hash_and;
+cell *hash_args;
+cell *hash_assoc;
+cell *hash_defq;
+cell *hash_do;
+cell *hash_eq;
+cell *hash_if;
+cell *hash_lambda;
+cell *hash_list;
+cell *hash_lt;
+cell *hash_minus;
+cell *hash_not;
+cell *hash_noteq;
+cell *hash_or;
+cell *hash_plus;
+cell *hash_quote;
+cell *hash_quotient;
+cell *hash_ref;
+cell *hash_refq;
+cell *hash_times;
+cell *hash_vector;
 
 void cfun_init();
 void cfun_args(int argc, char * const argv[]);
-void cfun_drop();

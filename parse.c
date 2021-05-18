@@ -64,12 +64,12 @@ static cell *expr(precedence lv, lxfile *in) {
         p2 = expr(l_UNARY, in);
         if (!p2) return badeof();
 	if (cell_is_integer(p2)) {
-	    // handle unary minus of number
+	    // handle unary minus of number here
 	    // TODO deal with overflow
             p2->_.ivalue = -(p2->_.ivalue);
 	    return p2;
 	}
-        return cell_list(cell_ref(hash_minus), cell_list(p2, NIL));
+	return cell_list(cell_ref(hash_minus), cell_list(p2, NIL));
 
     case it_QUOTE:
         dropitem(it);
@@ -256,16 +256,16 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 
     switch (op->type) {
     case it_PLUS: // binary
-        return binary_l2rN(left, l_ADD,  cell_ref(hash_plus), op, lv, in);
+	return binary_l2rN(left, l_ADD,  cell_ref(hash_plus), op, lv, in);
 
     case it_MINUS:
-        return binary_l2rN(left, l_ADD,  cell_ref(hash_minus), op, lv, in);
+	return binary_l2rN(left, l_ADD,  cell_ref(hash_minus), op, lv, in);
 
     case it_MULT:
         return binary_l2rN(left, l_MULT, cell_ref(hash_times), op, lv, in);
 
     case it_DIV:
-        return binary_l2r(left, l_MULT,  cell_ref(hash_div), op, lv, in); // 2 args
+	return binary_l2r(left, l_MULT,  cell_ref(hash_quotient), op, lv, in); // 2 args
 
     case it_LT:
         return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);
@@ -292,10 +292,10 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2r(left, l_BAR,   cell_symbol("#bar"), op, lv, in); // TODO check if N args
 
     case it_AND:
-        return binary_l2rN(left, l_AND,  cell_symbol("#and"), op, lv, in);
+        return binary_l2rN(left, l_AND,  cell_ref(hash_and), op, lv, in);
 
     case it_OR:
-        return binary_l2rN(left, l_OR,   cell_symbol("#or"), op, lv, in);
+	return binary_l2rN(left, l_OR,   cell_ref(hash_or), op, lv, in);
 
     case it_STOP:
         return binary_l2r(left, l_STOP,  cell_ref(hash_refq), op, lv, in); // 2 args

@@ -68,3 +68,5 @@ In error messages,
 should prettyprint instead, so instead of #(#defq, a, b) say a = b
 
 Readline tab completion could perhaps understand "io." and more of syntax
+
+Sort assocs when printing (by default) to stabilize output generated

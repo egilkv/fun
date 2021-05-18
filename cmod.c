@@ -124,6 +124,23 @@ int get_cstring(cell *a, char **valuep, cell *dump) {
     return get_string(a, valuep, &dummy, dump);
 }
 
+// a in always unreffed
+// dump is unreffed only if error
+int get_boolean(cell *a, int *boolp, cell *dump) {
+    if (a == hash_t) {
+        *boolp = 1;
+        cell_unref(a);
+        return 1;
+    } else if (a == hash_f) {
+        *boolp = 0;
+        cell_unref(a);
+        return 1;
+    }
+    cell_unref(dump);
+    cell_unref(error_rt1("not a boolean", a));
+    return 0;
+}
+
 // does not consume a
 cell *ref_index(cell *a, index_t index) {
     cell *value;

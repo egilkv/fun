@@ -11,42 +11,7 @@
 #include "oblist.h"
 #include "err.h"
 
-cell *hash_amp;
-cell *hash_args;
-cell *hash_assoc;
-cell *hash_defq;
-cell *hash_div;
-cell *hash_eq;
-cell *hash_if;
-cell *hash_lambda;
-cell *hash_list;
-cell *hash_lt;
-cell *hash_minus;
-cell *hash_not;
-cell *hash_noteq;
-cell *hash_plus;
-cell *hash_quote;
-cell *hash_ref;
-cell *hash_refq;
-cell *hash_times;
-cell *hash_vector;
-
-// a in always unreffed
-// dump is unreffed only if error
-static int pick_boolean(cell *a, int *boolp, cell *dump) {
-    if (a == hash_t) {
-        *boolp = 1;
-        cell_unref(a);
-        return 1;
-    } else if (a == hash_f) {
-        *boolp = 0;
-        cell_unref(a);
-        return 1;
-    }
-    cell_unref(dump);
-    cell_unref(error_rt1("not a boolean", a));
-    return 0;
-}
+static void cfun_exit(void);
 
 static cell *cfunQ_defq(cell *args, environment *env) {
     cell *a, *b;
@@ -72,9 +37,43 @@ static cell *cfunQ_defq(cell *args, environment *env) {
     return b;
 }
 
+static cell *cfunQ_and(cell *args, environment *env) {
+    int bool = 1;
+    cell *a;
+
+    while (list_split(args, &a, &args)) {
+	a = eval(a, env);
+	if (!get_boolean(a, &bool, args)) {
+	    return cell_ref(hash_void); // error
+	}
+	if (!bool) {
+	    cell_unref(args);
+	    break;
+	}
+    }
+    return cell_ref(bool ? hash_t : hash_f);
+}
+
+static cell *cfunQ_or(cell *args, environment *env) {
+    int bool = 0;
+    cell *a;
+
+    while (list_split(args, &a, &args)) {
+	a = eval(a, env);
+	if (!get_boolean(a, &bool, args)) {
+	    return cell_ref(hash_void); // error
+	}
+	if (bool) {
+	    cell_unref(args);
+	    break;
+	}
+    }
+    return cell_ref(bool ? hash_t : hash_f);
+}
+
 static cell *cfun1_not(cell *a) {
     int bool;
-    if (!pick_boolean(a, &bool, NIL)) {
+    if (!get_boolean(a, &bool, NIL)) {
 	return cell_ref(hash_void); // error
     }
     return bool ? cell_ref(hash_f) : cell_ref(hash_t);
@@ -87,7 +86,7 @@ static cell *cfunQ_if(cell *args, environment *env) {
 	return a; // error
     }
     a = eval(a, env);
-    if (!pick_boolean(a, &bool, b)) {
+    if (!get_boolean(a, &bool, b)) {
         return cell_ref(hash_void); // error
     }
     if (bool) {
@@ -170,7 +169,7 @@ static cell *cfunN_times(cell *args) {
     return cell_integer(result);
 }
 
-static cell *cfun2_div(cell *a, cell *b) {
+static cell *cfun2_quotient(cell *a, cell *b) {
     integer_t result;
     integer_t operand;
     if (!get_integer(a, &result, b)) return cell_ref(hash_void); // error
@@ -442,9 +441,6 @@ static cell *cfun1_exit(cell *a) {
     if (!get_integer(a, &val, NIL)) { // optional...
         val = 0;
     }
-    // clean exit
-    cfun_drop();
-    oblist_drop(0);
 
     // TODO check range
     exit(val);
@@ -453,40 +449,7 @@ static cell *cfun1_exit(cell *a) {
     return NIL;
 }
 
-void cfun_init() {
-    // TODO hash_amp etc are unrefferenced, and depends on oblist
-    //      to keep symbols in play
-    hash_amp     = oblistv("#amp",     cell_cfunN(cfunN_amp));
-    hash_assoc   = oblistv("#assoc",   cell_cfunQ(cfunQ_assoc));
-    hash_defq    = oblistv("#defq",    cell_cfunQ(cfunQ_defq));
-    hash_div     = oblistv("#div",     cell_cfun2(cfun2_div));
-    hash_eq      = oblistv("#eq",      cell_cfunN(cfunN_eq));
-                   oblistv("#exit",    cell_cfunN(cfun1_exit));
-    hash_if      = oblistv("#if",      cell_cfunQ(cfunQ_if));
-    hash_lambda  = oblistv("#lambda",  cell_cfunQ(cfunQ_lambda));
-    hash_lt      = oblistv("#lt",      cell_cfunN(cfunN_lt));
-    hash_list    = oblistv("#",        cell_cfunN(cfunN_list));
-    hash_minus   = oblistv("#minus",   cell_cfunN(cfunN_minus));
-    hash_not     = oblistv("#not",     cell_cfun1(cfun1_not));
-    hash_noteq   = oblistv("#noteq",   cell_cfunN(cfunN_noteq));
-    hash_plus    = oblistv("#plus",    cell_cfunN(cfunN_plus));
-    hash_quote   = oblistv("#quote",   cell_cfunQ(cfunQ_quote));
-    hash_ref     = oblistv("#ref",     cell_cfun2(cfun2_ref));
-    hash_refq    = oblistv("#refq",    cell_cfunQ(cfunQ_refq));
-    hash_times   = oblistv("#times",   cell_cfunN(cfunN_times));
-                   oblistv("#use",     cell_cfun1(cfun1_use));
-    hash_vector  = oblistv("#vector",  cell_cfunQ(cfunQ_vector));
-
-    // values
-    hash_f       = oblistv("#f",       NIL);
-    hash_t       = oblistv("#t",       NIL);
-    hash_void    = oblistv("#void",    NIL);
-    // values are themselves
-    oblist_set(hash_f,    cell_ref(hash_f));
-    oblist_set(hash_t,    cell_ref(hash_t));
-    oblist_set(hash_void, cell_ref(hash_void));
-}
-
+// set #args
 void cfun_args(int argc, char * const argv[]) {
     cell *vector = NIL;
     assert(hash_args == NIL); // should not be invoked twice
@@ -503,7 +466,45 @@ void cfun_args(int argc, char * const argv[]) {
     hash_args = oblistv("#args", vector);
 }
 
-void cfun_drop() {
+void cfun_init() {
+    // TODO hash_amp etc are unrefferenced, and depends on oblist
+    //      to keep symbols in play
+    hash_amp      = oblistv("#amp",      cell_cfunN(cfunN_amp));
+    hash_and      = oblistv("#and",      cell_cfunQ(cfunQ_and));
+    hash_assoc    = oblistv("#assoc",    cell_cfunQ(cfunQ_assoc));
+    hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
+    hash_quotient = oblistv("#quotient", cell_cfun2(cfun2_quotient));
+    hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
+		    oblistv("#exit",     cell_cfunN(cfun1_exit));
+    hash_if       = oblistv("#if",       cell_cfunQ(cfunQ_if));
+    hash_lambda   = oblistv("#lambda",   cell_cfunQ(cfunQ_lambda));
+    hash_lt       = oblistv("#lt",       cell_cfunN(cfunN_lt));
+    hash_list     = oblistv("#",         cell_cfunN(cfunN_list)); // TODO
+    hash_minus    = oblistv("#minus",    cell_cfunN(cfunN_minus));
+    hash_not      = oblistv("#not",      cell_cfun1(cfun1_not));
+    hash_noteq    = oblistv("#noteq",    cell_cfunN(cfunN_noteq));
+    hash_or       = oblistv("#or",       cell_cfunQ(cfunQ_or));
+    hash_plus     = oblistv("#plus",     cell_cfunN(cfunN_plus));
+    hash_quote    = oblistv("#quote",    cell_cfunQ(cfunQ_quote));
+    hash_ref      = oblistv("#ref",      cell_cfun2(cfun2_ref));
+    hash_refq     = oblistv("#refq",     cell_cfunQ(cfunQ_refq));
+    hash_times    = oblistv("#times",    cell_cfunN(cfunN_times));
+		    oblistv("#use",      cell_cfun1(cfun1_use));
+    hash_vector   = oblistv("#vector",   cell_cfunQ(cfunQ_vector));
+
+    // values
+    hash_f       = oblistv("#f",       NIL);
+    hash_t       = oblistv("#t",       NIL);
+    hash_void    = oblistv("#void",    NIL);
+    // values are themselves
+    oblist_set(hash_f,    cell_ref(hash_f));
+    oblist_set(hash_t,    cell_ref(hash_t));
+    oblist_set(hash_void, cell_ref(hash_void));
+
+    atexit(cfun_exit);
+}
+
+static void cfun_exit(void) {
     // loose circular definitions
     oblist_set(hash_f, NIL);
     oblist_set(hash_t, NIL);

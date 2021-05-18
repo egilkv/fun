@@ -10,6 +10,7 @@
 #include <assert.h>
 
 #include "oblist.h"
+#include "opt.h"
 
 #define OBLIST_HASH_SIZE 256
 
@@ -124,24 +125,27 @@ char *oblist_search(const char *lookfor, int state) {
 }
 
 // clean up on exit
-void oblist_drop(int show) {
+static void oblist_exit() {
     int h;
     struct ob_entry *p;
     oblist_teardown = 1;
-    if (show) printf("\n\noblist:\n");
+    if (opt_showoblist) printf("\n\noblist:\n");
     for (h = 0; h < OBLIST_HASH_SIZE; ++h) {
 	p = ob_table[h];
 	ob_table[h] = 0;
 	while (p) {
 	    struct ob_entry *q = p->next;
             assert(cell_is_symbol(p->symdef));
-            if (show) printf("%s ", p->symdef->_.symbol.nam);
+	    if (opt_showoblist) printf("%s ", p->symdef->_.symbol.nam);
             cell_unref(p->symdef);
 	    free(p);
 	    p = q;
 	}
     }
     oblist_teardown = 0;
-    if (show) printf("\n");
+    if (opt_showoblist) printf("\n");
 }
 
+void oblist_init() {
+    atexit(oblist_exit);
+}

@@ -3,6 +3,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
 
@@ -16,29 +17,39 @@
 static void chomp(lxfile *f);
 
 int main(int argc, char * const argv[]) {
+    int stop = -1;
     int opt;
     lxfile infile;
 
+    oblist_init();
     cfun_init();
 
-    // opterr = 0; TODO
-    while ((opt = getopt(argc, argv, "+OP")) >= 0) switch (opt) {
+    opterr = 0;
+    while ((opt = getopt(argc, argv, "+:OPR")) >= 0) switch (opt) {
         case 'O':
             opt_showoblist = 1;
             break;
         case 'P':
             opt_showparse = 1;
             break;
-        case '?': // error message generated // TODO can override with opterr
-            error_cmdopt("unknown option", optopt);
+        case 'R':
+            opt_noreadline = 1;
+            break;
+        case '?':
+            error_cmdopt("invalid option", optopt);
+	    stop = 2;
 	    break;
         case ':':
-            error_cmdopt("bad option argument", optopt); // TODO really?
+	    error_cmdopt("missing argument for option", optopt);
+	    stop = 2;
 	    break;
-
         default:
             assert(0);
     }
+    if (stop >= 0) {
+	exit(stop);
+    }
+
     if (optind >= argc) { // filename on command line?
         // interactive mode
         lxfile_init(&infile, stdin);
@@ -61,8 +72,6 @@ int main(int argc, char * const argv[]) {
 	}
     }
 
-    cfun_drop();
-    oblist_drop(opt_showoblist);
     // always status 0 on normal exit
     return 0;
 }
