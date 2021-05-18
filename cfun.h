@@ -24,7 +24,6 @@ extern cell *hash_quote;
 extern cell *hash_ref;
 extern cell *hash_refq;
 extern cell *hash_times;
-extern cell *hash_use;
 extern cell *hash_vector;
 
 void cfun_init();

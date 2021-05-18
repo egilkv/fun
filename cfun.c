@@ -29,7 +29,6 @@ cell *hash_quote;
 cell *hash_ref;
 cell *hash_refq;
 cell *hash_times;
-cell *hash_use;
 cell *hash_vector;
 
 // a in always unreffed
@@ -420,7 +419,7 @@ static cell *cfunQ_refq(cell *args, environment *env) {
 static cell *cfun1_use(cell *a) {
     char *str;
     cell_ref(a); // for error message
-    if (!get_cstring(a, &str, a)) {
+    if (!get_cstring(a, &str, NIL)) {
         return cell_ref(hash_void); // error
     }
     if (strcmp(str, "io") == 0) {
@@ -438,6 +437,22 @@ static cell *cfun1_use(cell *a) {
     return error_rt1("module not found", a); // should
 }
 
+static cell *cfun1_exit(cell *a) {
+    integer_t val;
+    if (!get_integer(a, &val, NIL)) { // optional...
+        val = 0;
+    }
+    // clean exit
+    cfun_drop();
+    oblist_drop(0);
+
+    // TODO check range
+    exit(val);
+
+    assert(0); // should never reach here
+    return NIL;
+}
+
 void cfun_init() {
     // TODO hash_amp etc are unrefferenced, and depends on oblist
     //      to keep symbols in play
@@ -446,6 +461,7 @@ void cfun_init() {
     hash_defq    = oblistv("#defq",    cell_cfunQ(cfunQ_defq));
     hash_div     = oblistv("#div",     cell_cfun2(cfun2_div));
     hash_eq      = oblistv("#eq",      cell_cfunN(cfunN_eq));
+                   oblistv("#exit",    cell_cfunN(cfun1_exit));
     hash_if      = oblistv("#if",      cell_cfunQ(cfunQ_if));
     hash_lambda  = oblistv("#lambda",  cell_cfunQ(cfunQ_lambda));
     hash_lt      = oblistv("#lt",      cell_cfunN(cfunN_lt));
@@ -458,7 +474,7 @@ void cfun_init() {
     hash_ref     = oblistv("#ref",     cell_cfun2(cfun2_ref));
     hash_refq    = oblistv("#refq",    cell_cfunQ(cfunQ_refq));
     hash_times   = oblistv("#times",   cell_cfunN(cfunN_times));
-    hash_use     = oblistv("#use",     cell_cfun1(cfun1_use));
+                   oblistv("#use",     cell_cfun1(cfun1_use));
     hash_vector  = oblistv("#vector",  cell_cfunQ(cfunQ_vector));
 
     // values

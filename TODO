@@ -1,6 +1,8 @@
 
 Quote should be on both sides.
 
+[] should continue parsing...
+
 Functions within assocs must be able to refer to their own assoc
 
 |-operator is for replacements, so somewhat related to &.
@@ -58,7 +60,7 @@ ELM uses ++ instead of & to concatenate.
 
 Do we really need lists and vectors to be different things???
 
-Easy to use threading, like goroutines, i.e.: go function()
+Easy to use threading, like goroutines, i.e.: go function() i.e. !! function()
 
 Go interfaces - specifies only functions
 
