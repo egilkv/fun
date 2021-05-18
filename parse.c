@@ -221,6 +221,8 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 	if (!s) { l2 = l_AND;     s = cell_symbol("#and"); } // N args
     case it_OR:
 	if (!s) { l2 = l_OR;      s = cell_symbol("#or"); } // N args
+    case it_STOP:
+	if (!s) { l2 = l_STOP;    s = cell_ref(hash_refq); } // 2 args
 
         if (lv >= l2) { // left-to-right
             // look no further
@@ -235,8 +237,6 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         }
         return binary(cell_list(s, cell_list(left, cell_list(right, NIL))), lv, in);
 
-    case it_STOP:
-	if (!s) { l2 = l_STOP;    s = cell_ref(hash_refq); } // 2 args
     case it_EQ:
 	if (!s) { l2 = l_DEF;     s = cell_ref(hash_defq); } // 2 args
 

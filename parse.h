@@ -25,7 +25,7 @@ enum prec_ {
     l_MULT,     // * /
     l_UNARY,    // + - !        TODO right-to-left etc
     l_POST,     // () []
-    l_STOP      // .            TODO new, '.' is right-to-left, unlike C?
+    l_STOP      // .            left-to-right, like C
 };
 
 typedef enum prec_ precedence;
