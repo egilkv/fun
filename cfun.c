@@ -16,12 +16,14 @@ cell *hash_args;
 cell *hash_assoc;
 cell *hash_defq;
 cell *hash_div;
+cell *hash_eq;
 cell *hash_if;
 cell *hash_lambda;
 cell *hash_list;
 cell *hash_lt;
 cell *hash_minus;
 cell *hash_not;
+cell *hash_noteq;
 cell *hash_plus;
 cell *hash_quote;
 cell *hash_ref;
@@ -143,12 +145,11 @@ static cell *cfunN_minus(cell *args) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
-    if (list_split(args, &a, &args)) {
-        if (!get_integer(a, &result, args)) return cell_ref(hash_void); // error
-	if (args == NIL) {
-            // special case, one argument
-            result = -result; // TODO overflow
-        }
+    if (!list_split(args, &a, &args)
+     || !get_integer(a, &result, args)) return cell_ref(hash_void); // error
+    if (args == NIL) {
+        // special case, one argument
+        result = -result; // TODO overflow
     }
     while (list_split(args, &a, &args)) {
         if (!get_integer(a, &operand, args)) return cell_ref(hash_void);
@@ -335,6 +336,62 @@ static cell *cfunN_amp(cell *args) {
     return result;
 }
 
+// equals
+// TODO evaluate only as far as required. Also applies to gt, and etc
+static cell *cfunN_eq(cell *args) {
+    cell *first;
+    cell *a = NIL;
+    int eq = 1;
+    if (!list_split(args, &first, &args)) {
+        return cell_ref(hash_void); // error
+    }
+    while (list_split(args, &a, &args)) {
+        if (a != first) switch (a ? a->type : c_LIST) {
+
+        case c_STRING:
+            if (!cell_is_string(first)
+             || first->_.string.len != a->_.string.len
+             || memcmp(first->_.string.ptr, a->_.string.ptr, a->_.string.len) != 0) {
+                eq = 0;
+                cell_unref(args);
+                args = NIL;
+            }
+            break;
+
+        case c_INTEGER:
+            if (!cell_is_integer(first)
+             || first->_.ivalue != a->_.ivalue) {
+                eq = 0;
+                cell_unref(args);
+                args = NIL;
+            }
+            break;
+
+        case c_ASSOC:  // TODO not (yet) implemented
+        case c_LIST:   // TODO not (yet) implemented
+        case c_VECTOR: // TODO not (yet) implemented
+        case c_SYMBOL: // straight comparison is enough
+        default:
+            eq = 0;
+            cell_unref(args);
+            args = NIL;
+            break;
+        }
+        a = NIL;
+    }
+    cell_unref(first);
+    cell_unref(a);
+    cell_unref(args);
+    return cell_ref(eq ? hash_t : hash_f);
+}
+
+static cell *cfunN_noteq(cell *args) {
+    cell *eq = cfunN_eq(args);
+    cell *result = cell_ref((eq == hash_t) ? hash_f : hash_t);
+    cell_unref(eq);
+    return result;
+}
+
 static cell *cfun2_ref(cell *a, cell *b) {
     cell *value;
     if (cell_is_assoc(a)) {
@@ -388,12 +445,14 @@ void cfun_init() {
     hash_assoc   = oblistv("#assoc",   cell_cfunQ(cfunQ_assoc));
     hash_defq    = oblistv("#defq",    cell_cfunQ(cfunQ_defq));
     hash_div     = oblistv("#div",     cell_cfun2(cfun2_div));
+    hash_eq      = oblistv("#eq",      cell_cfunN(cfunN_eq));
     hash_if      = oblistv("#if",      cell_cfunQ(cfunQ_if));
     hash_lambda  = oblistv("#lambda",  cell_cfunQ(cfunQ_lambda));
     hash_lt      = oblistv("#lt",      cell_cfunN(cfunN_lt));
     hash_list    = oblistv("#",        cell_cfunN(cfunN_list));
     hash_minus   = oblistv("#minus",   cell_cfunN(cfunN_minus));
     hash_not     = oblistv("#not",     cell_cfun1(cfun1_not));
+    hash_noteq   = oblistv("#noteq",   cell_cfunN(cfunN_noteq));
     hash_plus    = oblistv("#plus",    cell_cfunN(cfunN_plus));
     hash_quote   = oblistv("#quote",   cell_cfunQ(cfunQ_quote));
     hash_ref     = oblistv("#ref",     cell_cfun2(cfun2_ref));

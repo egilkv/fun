@@ -392,6 +392,12 @@ static item *gotstop(char c, item *it, lxfile *in) {
     return it;
 }
 
+static item *gotnot(char c, item *it, lxfile *in) {
+    if (it) lxungetc(c, in);
+    else it = nextchar(newitem(it_NOT), in);
+    return it;
+}
+
 static item *gotdiv(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_DIV) { // double slash, comment until end of line
@@ -443,7 +449,6 @@ static item *gotplain(char c, token type, item *it, lxfile *in) {
 
 static item *gotlt(char c, item *it, lxfile *in)    { return gotplain(c, it_LT, it, in); }
 static item *gotgt(char c, item *it, lxfile *in)    { return gotplain(c, it_GT, it, in); }
-static item *gotnot(char c, item *it, lxfile *in)   { return gotplain(c, it_NOT, it, in); }
 static item *gotquote(char c, item *it, lxfile *in) { return gotplain(c, it_QUOTE, it, in); }
 static item *gotplus(char c, item *it, lxfile *in)  { return gotplain(c, it_PLUS, it, in); }
 static item *gotminus(char c, item *it, lxfile *in) { return gotplain(c, it_MINUS, it, in); }

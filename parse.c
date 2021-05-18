@@ -280,10 +280,10 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_REL,  cell_symbol("#gteq"), op, lv, in);
 
     case it_NTEQ:
-        return binary_l2rN(left, l_EQEQ, cell_symbol("#noteq"), op, lv, in);
+        return binary_l2rN(left, l_EQEQ, cell_ref(hash_noteq), op, lv, in);
 
     case it_EQEQ:
-        return binary_l2rN(left, l_EQEQ, cell_symbol("#eq"), op, lv, in);
+        return binary_l2rN(left, l_EQEQ, cell_ref(hash_eq), op, lv, in);
 
     case it_AMP:
         return binary_l2rN(left, l_AMP,  cell_ref(hash_amp), op, lv, in);
