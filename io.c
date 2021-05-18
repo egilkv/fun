@@ -13,6 +13,8 @@
 #include "cmod.h"
 #include "parse.h"
 
+static cell *io_assoc = NIL;
+
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
         // end of list
@@ -149,7 +151,7 @@ static cell *cfio_write(cell *args) {
 	cell_unref(a);
     }
     assert(args == NIL);
-    return cell_ref(hash_void);
+    return cell_ref(io_assoc); // return assoc
 }
 
 static cell *cfio_print(cell *args) {
@@ -170,7 +172,7 @@ static cell *cfio_print(cell *args) {
         cell_unref(a);
     }
     assert(args == NIL);
-    return cell_ref(hash_void);
+    return cell_ref(io_assoc); // return assoc
 }
 
 static cell *cfio_println(cell *args) {
@@ -206,7 +208,6 @@ static cell *cfio_getline(cell *args) {
 }
 
 cell *module_io() {
-    static cell *io_assoc = NIL;
     if (!io_assoc) {
         io_assoc = cell_assoc();
 

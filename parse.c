@@ -305,7 +305,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
             pushitem(op);
             return left;
         }
-        return cell_list(left, getlist(op, it_COMMA, it_RPAR, in));
+        return binary(cell_list(left, getlist(op, it_COMMA, it_RPAR, in)), lv, in);
 
     case it_LBRK: // array
 	if (lv >= l_POST) { // left-to-right

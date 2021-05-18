@@ -1,9 +1,6 @@
 
 Quote should be on both sides.
 
-Surely cannot be right?
-(#usr("io")).println("hello2");
-
 Functions within assocs must be able to refer to their own assoc
 
 |-operator is for replacements, so somewhat related to &.
