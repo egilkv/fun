@@ -63,6 +63,7 @@ int main(int argc, char * const argv[]) {
 
     cfun_drop();
     oblist_drop(opt_showoblist);
+    // always status 0 on normal exit
     return 0;
 }
 
