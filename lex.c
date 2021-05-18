@@ -8,6 +8,10 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+#ifdef HAVE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
 
 #include "lex.h"
 #include "err.h"
@@ -23,10 +27,16 @@ void lxfile_init(lxfile *in, FILE *f) {
     } else {
         in->is_terminal = 0;
     }
+    in->is_eof = 0;
     in->lineno = 1;
     in->index = 0;
     in->linebuf = NULL;
     in->linelen = 0;
+
+#ifdef HAVE_READLINE
+    // disable default filename type TAB behaviour
+    rl_bind_key('\t', rl_insert);
+#endif
 }
 
 // BUG: static string
@@ -36,7 +46,7 @@ const char *lxfile_info(lxfile *in) {
     return infobuf;
 }
 
-// return allocated line
+// return allocated line from stdin or file
 // *lenp does not include trailing newline
 char *lex_getline(FILE *f, ssize_t *lenp) {
     size_t buflen = 1;
@@ -75,22 +85,41 @@ static int lxgetc(lxfile *in) {
                 if (in->linebuf) {
                     ++(in->index);
                     return '\n';
+                } else {
+                    if (in->is_eof) return -1;
                 }
             }
             // reached end of line, ask for next
             if (in->linebuf) free(in->linebuf);
             else if (in->lineno == 1) in->lineno = 0; // fix line number
+            in->index = 0;
 
+#ifdef HAVE_READLINE
+            in->linelen = 0;
+            in->linebuf = readline("\n--> ");
+            if (in->linebuf) {
+                in->linelen = strlen(in->linebuf);
+                if (in->linelen > 0) {
+                    add_history(in->linebuf);
+                }
+            } else {
+                in->is_eof = 1;
+                return -1; // end of file
+            }
+#else
             // prompt
 	    fprintf(stdout, "\n--> ");
 	    fflush(stdout);
             in->linebuf = lex_getline(in->f, &(in->linelen));
-            in->index = 0;
-            ++(in->lineno);
             if (!(in->linebuf)) {
-                // TODO should keep state of this in lxfile
+                in->is_eof = 1;
                 return -1; // end of file
             }
+#endif
+            ++(in->lineno);
+        }
+        if (!in->linebuf) {
+            return -1;
         }
         c = in->linebuf[(in->index)++];
     } else {
@@ -101,6 +130,9 @@ static int lxgetc(lxfile *in) {
             in->index = 0;
             break;
         case '\r':
+            break;
+        case -1:
+            in->is_eof = 1;
             break;
         default:
             ++(in->index);

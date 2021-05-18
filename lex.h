@@ -44,6 +44,7 @@ typedef enum it_ token;
 struct file_s {
     FILE *f;
     short is_terminal;
+    short is_eof;
     int lineno;
     ssize_t index; // index of next character, starting at 0
     char *linebuf; // for terminal, allocated, NUL terminated
