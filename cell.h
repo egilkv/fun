@@ -5,12 +5,12 @@
 #ifndef CELL_H
 
 #include "assoc.h"
-#include "eval.h"
-#include "type.h"
+ #include "type.h"
 
 enum cell_t {
    c_LIST,
    c_FUNC,
+   c_ENV,
    c_PAIR,
    c_SYMBOL,
    c_STRING,
@@ -28,8 +28,8 @@ enum cell_t {
 } ;
 
 struct cell_s {
-    unsigned ref     : 32; // TODO tricky 64bit
-    enum cell_t type : 4;
+    unsigned ref     : 32; // TODO will limit total # of cells; 64bit
+    enum cell_t type : 5;
     union {
         struct {
             struct cell_s *car;
@@ -57,7 +57,7 @@ struct cell_s {
             char_t *nam;
         } symbol;
         struct {
-            struct cell_s *(*def)(struct cell_s *, struct env_s *);
+            struct cell_s *(*def)(struct cell_s *, struct cell_s *); // 2nd arg is env
         } cfunq;
         struct {
             struct cell_s *(*def)(void);
@@ -83,24 +83,31 @@ typedef struct cell_s cell;
 cell * cell_ref(cell *cp);
 void cell_unref(cell *cp);
 
-cell *cell_cfunQ(struct cell_s *(*fun)(struct cell_s *, struct env_s *));
-cell *cell_cfunN(struct cell_s *(*fun)(struct cell_s *));
-cell *cell_cfun0(struct cell_s *(*fun)(void));
-cell *cell_cfun1(struct cell_s *(*fun)(struct cell_s *));
-cell *cell_cfun2(struct cell_s *(*fun)(struct cell_s *, struct cell_s *));
-cell *cell_cfun3(struct cell_s *(*fun)(struct cell_s *, struct cell_s *, struct cell_s *));
+cell *cell_cfunQ(cell *(*fun)(cell *, cell *));
+cell *cell_cfunN(cell *(*fun)(cell *));
+cell *cell_cfun0(cell *(*fun)(void));
+cell *cell_cfun1(cell *(*fun)(cell *));
+cell *cell_cfun2(cell *(*fun)(cell *, cell *));
+cell *cell_cfun3(cell *(*fun)(cell *, cell *, cell *));
 
 cell *cell_list(cell *car, cell *cdr);
 cell *cell_func(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
 int cell_is_list(cell *cp);
 int cell_is_func(cell *cp);
+int cell_is_env(cell *cp);
 int cell_is_pair(cell *cp);
 cell *cell_car(cell *cp);
 cell *cell_cdr(cell *cp);
 int list_split(cell *cp, cell **carp, cell **cdrp);
-int func_split(cell *cp, cell **carp, cell **cdrp);
 int pair_split(cell *cp, cell **carp, cell **cdrp);
+
+cell *cell_env(cell *next, cell *assoc, cell *prog);
+void env_replace(cell *ep, cell *newassoc, cell *newprog);
+cell *env_prev(cell *ep);
+cell *env_assoc(cell *ep);
+cell *env_prog(cell *ep);
+cell **env_progp(cell *ep);
 
 cell *cell_vector(index_t length);
 int cell_is_vector(cell *cp);
@@ -124,6 +131,8 @@ int cell_is_special(cell *cp, const char *magic);
 
 cell *cell_integer(integer_t integer);
 int cell_is_integer(cell *cp);
+
+cell *eval(cell *arg, cell *env); // defined in eval.c
 
 #endif
 

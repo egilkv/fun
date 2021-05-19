@@ -13,7 +13,7 @@
 
 static void cfun_exit(void);
 
-static cell *cfunQ_defq(cell *args, environment *env) {
+static cell *cfunQ_defq(cell *args, cell *env) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
 	return a; // error
@@ -24,8 +24,8 @@ static cell *cfunQ_defq(cell *args, environment *env) {
     }
     b = eval(b, env);
     if (env) {
-	assert(env->assoc);
-	if (!assoc_set(env->assoc, a, cell_ref(b))) {
+	assert(env_assoc(env));
+	if (!assoc_set(env_assoc(env), a, cell_ref(b))) {
 	    cell_unref(b);
 	    cell_unref(error_rt1("cannot redefine immutable", a));
 	}
@@ -37,7 +37,7 @@ static cell *cfunQ_defq(cell *args, environment *env) {
     return b;
 }
 
-static cell *cfunQ_and(cell *args, environment *env) {
+static cell *cfunQ_and(cell *args, cell *env) {
     int bool = 1;
     cell *a;
 
@@ -54,7 +54,7 @@ static cell *cfunQ_and(cell *args, environment *env) {
     return cell_ref(bool ? hash_t : hash_f);
 }
 
-static cell *cfunQ_or(cell *args, environment *env) {
+static cell *cfunQ_or(cell *args, cell *env) {
     int bool = 0;
     cell *a;
 
@@ -79,7 +79,7 @@ static cell *cfun1_not(cell *a) {
     return bool ? cell_ref(hash_f) : cell_ref(hash_t);
 }
 
-static cell *cfunQ_if(cell *args, environment *env) {
+static cell *cfunQ_if(cell *args, cell *env) {
     int bool;
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
@@ -103,20 +103,20 @@ static cell *cfunQ_if(cell *args, environment *env) {
     }
     if (env) {
         // evalutae in-line
-	env->prog = cell_list(a, env->prog);
+	*env_progp(env) = cell_list(a, env_prog(env));
         return NIL;
     } else {
         return eval(a, env);
     }
 }
 
-static cell *cfunQ_quote(cell *args, environment *env) {
+static cell *cfunQ_quote(cell *args, cell *env) {
     cell *a;
     arg1(args, &a); // sets void if error
     return a;
 }
 
-static cell *cfunQ_lambda(cell *args, environment *env) {
+static cell *cfunQ_lambda(cell *args, cell *env) {
     cell *arglist;
     cell *cp;
     if (!list_split(args, &arglist, &args)) {
@@ -206,7 +206,7 @@ static cell *cfunN_list(cell *args) {
     return args;
 }
 
-static cell *cfunQ_vector(cell *args, environment *env) {
+static cell *cfunQ_vector(cell *args, cell *env) {
     cell *vector;
     index_t len;
     cell *a;
@@ -240,7 +240,7 @@ static cell *cfunQ_vector(cell *args, environment *env) {
     return vector;
 }
 
-static cell *cfunQ_assoc(cell *args, environment *env) {
+static cell *cfunQ_assoc(cell *args, cell *env) {
     cell *a;
     cell *b;
     cell *assoc = cell_assoc();
@@ -408,7 +408,7 @@ static cell *cfun2_ref(cell *a, cell *b) {
     return value;
 }
 
-static cell *cfunQ_refq(cell *args, environment *env) {
+static cell *cfunQ_refq(cell *args, cell *env) {
     cell *a, *b;
     if (arg2(args, &a, &b)) {
 	a = cfun2_ref(eval(a, env), b);

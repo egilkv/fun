@@ -53,6 +53,10 @@ int cell_is_func(cell *cp) {
     return cp && cp->type == c_FUNC;
 }
 
+int cell_is_env(cell *cp) {
+    return cp && cp->type == c_ENV;
+}
+
 int cell_is_pair(cell *cp) {
     return cp && cp->type == c_PAIR;
 }
@@ -86,6 +90,7 @@ int cell_is_integer(cell *cp) {
     return cp && cp->type == c_INTEGER;
 }
 
+// TODO inline
 cell *cell_car(cell *cp) {
     assert(cp && (cp->type == c_LIST || cp->type == c_FUNC || cp->type == c_PAIR));
     return cp->_.cons.car;
@@ -96,21 +101,47 @@ cell *cell_cdr(cell *cp) {
     return cp->_.cons.cdr;
 }
 
-int list_split(cell *cp, cell **carp, cell **cdrp) {
-    if (cell_is_list(cp)) {
-        if (carp) *carp = cell_ref(cp->_.cons.car);
-        if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
-        cell_unref(cp);
-        return 1;
-     } else {
-        *carp = NIL;
-        *cdrp = NIL;
-        return 0;
-     }
+cell *cell_env(cell *prev, cell *assoc, cell *prog) {
+    cell *node = newcell(c_ENV);
+    node->_.cons.car = prev;
+    node->_.cons.cdr = cell_pair(assoc, prog);
+    return node;
 }
 
-int func_split(cell *cp, cell **carp, cell **cdrp) {
-    if (cell_is_func(cp)) {
+void env_replace(cell *ep, cell *newassoc, cell *newprog) {
+    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
+    cell_unref(ep->_.cons.cdr->_.cons.car);
+    ep->_.cons.cdr->_.cons.car = newassoc;
+    cell_unref(ep->_.cons.cdr->_.cons.cdr);
+    ep->_.cons.cdr->_.cons.cdr = newprog;
+}
+
+// TODO inline
+cell *env_prev(cell *ep) {
+    assert(ep && ep->type == c_ENV);
+    return ep->_.cons.car;
+}
+
+// TODO inline
+cell *env_assoc(cell *ep) {
+    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
+    return ep->_.cons.cdr->_.cons.car;
+}
+
+// TODO inline
+cell *env_prog(cell *ep) {
+    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
+    return ep->_.cons.cdr->_.cons.cdr;
+}
+
+// TODO inline
+cell **env_progp(cell *ep) {
+    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
+    return &(ep->_.cons.cdr->_.cons.cdr);
+}
+
+int list_split(cell *cp, cell **carp, cell **cdrp) {
+    if (cell_is_list(cp)) {
         if (carp) *carp = cell_ref(cp->_.cons.car);
         if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
         cell_unref(cp);
@@ -159,13 +190,13 @@ cell *cell_integer(integer_t integer) {
     return node;
 }
 
-cell *cell_cfunQ(struct cell_s *(*fun)(struct cell_s *, struct env_s *)) {
+cell *cell_cfunQ(struct cell_s *(*fun)(cell *, cell *)) {
     cell *node = newcell(c_CFUNQ);
     node->_.cfunq.def = fun;
     return node;
 }
 
-cell *cell_cfunN(struct cell_s *(*fun)(struct cell_s *)) {
+cell *cell_cfunN(struct cell_s *(*fun)(cell *)) {
     cell *node = newcell(c_CFUNN);
     node->_.cfun1.def = fun;
     return node;
@@ -177,19 +208,19 @@ cell *cell_cfun0(struct cell_s *(*fun)(void)) {
     return node;
 }
 
-cell *cell_cfun1(struct cell_s *(*fun)(struct cell_s *)) {
+cell *cell_cfun1(struct cell_s *(*fun)(cell *)) {
     cell *node = newcell(c_CFUN1);
     node->_.cfun1.def = fun;
     return node;
 }
 
-cell *cell_cfun2(struct cell_s *(*fun)(struct cell_s *, struct cell_s *)) {
+cell *cell_cfun2(struct cell_s *(*fun)(cell *, cell *)) {
     cell *node = newcell(c_CFUN2);
     node->_.cfun2.def = fun;
     return node;
 }
 
-cell *cell_cfun3(struct cell_s *(*fun)(struct cell_s *, struct cell_s *, struct cell_s *)) {
+cell *cell_cfun3(struct cell_s *(*fun)(cell *, cell *, cell *)) {
     cell *node = newcell(c_CFUN3);
     node->_.cfun3.def = fun;
     return node;
@@ -282,6 +313,7 @@ static void cell_free(cell *node) {
     switch (node->type) {
     case c_LIST:
     case c_FUNC:
+    case c_ENV:
     case c_PAIR:
     case c_LAMBDA:
         cell_unref(node->_.cons.car);

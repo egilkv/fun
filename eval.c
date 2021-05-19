@@ -9,23 +9,19 @@
 #include "cmod.h"
 #include "err.h"
 
-static void insert_prog(cell *newprog, cell* newassoc, environment **envp) {
-    if (*envp && (*envp)->prog == NIL) {
+static void insert_prog(cell *newprog, cell* newassoc, cell **envp) {
+    if (*envp && env_prog(*envp) == NIL) {
 	// end recursion, reuse environment
-	cell_unref((*envp)->assoc);
-	(*envp)->assoc = newassoc;
+        env_replace(*envp, newassoc, newprog);
     } else {
 	// add one level to environment
-	struct env_s *newenv = malloc(sizeof(environment));
-	newenv->prev = *envp;
-	newenv->assoc = newassoc;
+        cell *newenv = cell_env(*envp, newassoc, newprog);
 	*envp = newenv;
     }
-    (*envp)->prog = newprog;
 }
 
 // TODO check is this is right...
-static void apply_lambda(cell *fun, cell* args, environment **envp) {
+static void apply_lambda(cell *fun, cell* args, cell **envp) {
     assert(fun->type == c_LAMBDA);
     cell *nam;
     cell *val;
@@ -55,9 +51,9 @@ static void apply_lambda(cell *fun, cell* args, environment **envp) {
 }
 
 // evalute the one thing in arg
-cell *eval(cell *arg, environment *env) {
-    environment *end_env = env;
-    cell *end_prog = env ? env->prog : NIL; // unreffed
+cell *eval(cell *arg, cell *env) {
+    cell *end_env = env;
+    cell *end_prog = env ? env_prog(env) : NIL; // unreffed
     cell *result = NIL;
 
     for (;;) {
@@ -70,17 +66,17 @@ cell *eval(cell *arg, environment *env) {
 
 	case c_SYMBOL: // evaluate symbol
 	    {
-		environment *e = env;
+                cell *e = env;
 		for (;;) {
 		    if (!e) {
 			// global
 			result = cell_ref(arg->_.symbol.val);
 			break;
 		    }
-		    if (assoc_get(e->assoc, arg, &result)) {
+                    if (assoc_get(env_assoc(e), arg, &result)) {
 			break;
 		    }
-		    e = e->prev;
+                    e = env_prev(e);
 		}
 	    }
 	    cell_unref(arg);
@@ -88,17 +84,20 @@ cell *eval(cell *arg, environment *env) {
 
 	case c_FUNC:
 	    {
-		cell *fun;
-		func_split(arg, &fun, &arg);
+                cell *fun = cell_ref(arg->_.cons.car);
+                cell *args = cell_ref(arg->_.cons.cdr);
+                cell_unref(arg);
+                arg = NIL;
+
 		fun = eval(fun, env);
 		// TODO may consider moving evaluation out of functions
 
 		switch (fun ? fun->type : c_LIST) {
 		case c_CFUNQ:
 		    {
-			struct cell_s *(*def)(struct cell_s *, struct env_s *) = fun->_.cfunq.def;
+                        struct cell_s *(*def)(cell *, cell *) = fun->_.cfunq.def;
 			cell_unref(fun);
-			result = (*def)(arg, env);
+                        result = (*def)(args, env);
 		    }
 		    break;
 
@@ -106,7 +105,7 @@ cell *eval(cell *arg, environment *env) {
 		    {
 			cell *(*def)(void) = fun->_.cfun0.def;
 			cell_unref(fun);
-			arg0(arg);
+                        arg0(args);
 			result = (*def)();
 		    }
 		    break;
@@ -115,7 +114,7 @@ cell *eval(cell *arg, environment *env) {
 		    {
 			cell *(*def)(cell *) = fun->_.cfun1.def;
 			cell_unref(fun);
-			if (arg1(arg, &result)) { // if error, result is void
+                        if (arg1(args, &result)) { // if error, result is void
 			    result = (*def)(eval(result, env));
 			}
 		    }
@@ -126,7 +125,7 @@ cell *eval(cell *arg, environment *env) {
 			cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
 			cell *b = NIL;
 			cell_unref(fun);
-			if (arg2(arg, &result, &b)) { // if error, result is void
+                        if (arg2(args, &result, &b)) { // if error, result is void
 			    result = (*def)(eval(result, env), eval(b, env));
 			}
 		    }
@@ -138,7 +137,7 @@ cell *eval(cell *arg, environment *env) {
 			cell *b = NIL;
 			cell *c = NIL;
 			cell_unref(fun);
-			if (arg3(arg, &result, &b, &c)) { // if error, result is void
+                        if (arg3(args, &result, &b, &c)) { // if error, result is void
 			    result = (*def)(eval(result, env), eval(b, env), eval(c, env));
 			}
 		    }
@@ -150,48 +149,51 @@ cell *eval(cell *arg, environment *env) {
 			cell_unref(fun);
 			cell *e = NIL;
 			cell **pp = &e;
-			while (list_split(arg, &result, &arg)) {
+                        while (list_split(args, &result, &args)) {
 			    *pp = cell_list(eval(result, env), NIL);
 			    pp = &((*pp)->_.cons.cdr);
 			}
-			assert(arg == NIL);
+                        assert(args == NIL);
 			result = (*def)(e);
 		    }
 		    break;
 
 		case c_LAMBDA:
-		    apply_lambda(fun, arg, &env);
+                    apply_lambda(fun, args, &env);
 		    result = NIL; // TODO probably #void
 		    break; // continue executing
 
 		default: // not a function
 		    // TODO show item before eval
-		    cell_unref(arg);
+                    cell_unref(args);
 		    result = error_rt1("not a function", fun);
 		    break;
 		}
 	    }
 	    break;
 
+        case c_LIST:
+	    result = error_rt1("list cannot be evaluated", arg);
+	    break;
 	case c_PAIR:
 	    result = error_rt1("pair cannot be evaluated", arg);
 	    break;
 	}
 
+        // TODO can all be made more efficient
 	for (;;) {
 	    if (!env) {
 		return result; // reached top level
 	    }
-	    if (env == end_env && env->prog == end_prog) {
+            if (env == end_env && env_prog(env) == end_prog) {
 		// arg fully done
 		return result;
 	    }
-	    if (env->prog == NIL) {
+            if (env_prog(env) == NIL) {
 		// reached end of current level
 		// drop one level of environment
-		environment *prevenv = env->prev;
-		cell_unref(env->assoc);
-		free(env);
+                cell *prevenv = cell_ref(env_prev(env)); 
+                cell_unref(env);
 		env = prevenv;
 	    } else {
 		break;
@@ -199,7 +201,8 @@ cell *eval(cell *arg, environment *env) {
 	}
 	// eval one more expression
 	cell_unref(result);
-	if (!list_split(env->prog, &arg, &(env->prog))) {
+        // TODO make more efficient
+        if (!list_split(env_prog(env), &arg, env_progp(env))) {
 	    assert(0);
 	}
     }

@@ -107,6 +107,9 @@ void cell_print(FILE *out, cell *ct) {
     case c_CFUNN:
         fprintf(out, "#cfun()"); // TODO something better
         break;
+    case c_ENV:
+        fprintf(out, "#env()"); // TODO something better
+        break;
     case c_SPECIAL:
         fprintf(out, "#special_%s()", ct->_.special.magic);
         break;
