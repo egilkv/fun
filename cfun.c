@@ -369,6 +369,7 @@ static cell *cfunN_eq(cell *args) {
         case c_LIST:   // TODO not (yet) implemented
         case c_VECTOR: // TODO not (yet) implemented
         case c_SYMBOL: // straight comparison is enough
+	case c_FUNC:
         default:
             eq = 0;
             cell_unref(args);

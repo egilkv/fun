@@ -86,10 +86,10 @@ cell *eval(cell *arg, environment *env) {
 	    cell_unref(arg);
 	    break;
 
-	case c_LIST:
+	case c_FUNC:
 	    {
 		cell *fun;
-		list_split(arg, &fun, &arg);
+		func_split(arg, &fun, &arg);
 		fun = eval(fun, env);
 		// TODO may consider moving evaluation out of functions
 

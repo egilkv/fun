@@ -10,6 +10,7 @@
 
 enum cell_t {
    c_LIST,
+   c_FUNC,
    c_PAIR,
    c_SYMBOL,
    c_STRING,
@@ -90,12 +91,15 @@ cell *cell_cfun2(struct cell_s *(*fun)(struct cell_s *, struct cell_s *));
 cell *cell_cfun3(struct cell_s *(*fun)(struct cell_s *, struct cell_s *, struct cell_s *));
 
 cell *cell_list(cell *car, cell *cdr);
+cell *cell_func(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
 int cell_is_list(cell *cp);
+int cell_is_func(cell *cp);
 int cell_is_pair(cell *cp);
 cell *cell_car(cell *cp);
 cell *cell_cdr(cell *cp);
 int list_split(cell *cp, cell **carp, cell **cdrp);
+int func_split(cell *cp, cell **carp, cell **cdrp);
 int pair_split(cell *cp, cell **carp, cell **cdrp);
 
 cell *cell_vector(index_t length);

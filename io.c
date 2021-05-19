@@ -45,6 +45,12 @@ void cell_print(FILE *out, cell *ct) {
         show_list(out, ct);
         fprintf(out, ")");
         break;
+    case c_FUNC:
+        cell_print(out, cell_car(ct));
+        fprintf(out, "(");
+        show_list(out, cell_cdr(ct));
+        fprintf(out, ")");
+        break;
     case c_PAIR:
         fprintf(out, "(");
         cell_print(out, cell_car(ct));

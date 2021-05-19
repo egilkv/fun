@@ -24,6 +24,13 @@ cell *cell_list(cell *car, cell *cdr) {
     return node;
 }
 
+cell *cell_func(cell *car, cell *cdr) {
+    cell *node = newcell(c_FUNC);
+    node->_.cons.car = car;
+    node->_.cons.cdr = cdr;
+    return node;
+}
+
 cell *cell_pair(cell *car, cell *cdr) {
     cell *node = newcell(c_PAIR);
     node->_.cons.car = car;
@@ -40,6 +47,10 @@ cell *cell_ref(cell *cp) {
 // TODO inline
 int cell_is_list(cell *cp) {
     return cp && cp->type == c_LIST;
+}
+
+int cell_is_func(cell *cp) {
+    return cp && cp->type == c_FUNC;
 }
 
 int cell_is_pair(cell *cp) {
@@ -76,17 +87,30 @@ int cell_is_integer(cell *cp) {
 }
 
 cell *cell_car(cell *cp) {
-    assert(cell_is_list(cp) || cell_is_pair(cp));
+    assert(cp && (cp->type == c_LIST || cp->type == c_FUNC || cp->type == c_PAIR));
     return cp->_.cons.car;
 }
 
 cell *cell_cdr(cell *cp) {
-    assert(cell_is_list(cp) || cell_is_pair(cp));
+    assert(cp && (cp->type == c_LIST || cp->type == c_FUNC || cp->type == c_PAIR));
     return cp->_.cons.cdr;
 }
 
 int list_split(cell *cp, cell **carp, cell **cdrp) {
     if (cell_is_list(cp)) {
+        if (carp) *carp = cell_ref(cp->_.cons.car);
+        if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
+        cell_unref(cp);
+        return 1;
+     } else {
+        *carp = NIL;
+        *cdrp = NIL;
+        return 0;
+     }
+}
+
+int func_split(cell *cp, cell **carp, cell **cdrp) {
+    if (cell_is_func(cp)) {
         if (carp) *carp = cell_ref(cp->_.cons.car);
         if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
         cell_unref(cp);
@@ -257,6 +281,7 @@ static void cell_free(cell *node) {
     assert(node && node->ref == 0);
     switch (node->type) {
     case c_LIST:
+    case c_FUNC:
     case c_PAIR:
     case c_LAMBDA:
         cell_unref(node->_.cons.car);

@@ -1,71 +1,71 @@
-#(#defq, a, 1) ==> 1
-#(#defq, b, 2) ==> 2
-#(#defq, c, #(#lt, a, b)) ==> #t
-#(#plus, a, b) ==> 3
-#(#plus, a, b) ==> 3
-#(#plus, a, b) ==> 3
-#(#if, c, (a : b)) ==> 1
-#(#defq, factorial, #(#lambda, #(n), #(#if, #(#lt, n, 2), (1 : #(#times, n, #(factorial, #(#minus, n, 1))))))) ==> #lambda#(n)
-#(factorial, 10) ==> 3628800
-#(#defq, ft, #(#lambda, #(a, b), #(#defq, c, a), #(#defq, d, b), #(#plus, c, d))) ==> #lambda#(a, b)
-#(ft, 50, 5) ==> 55
-#(#defq, v, #(#vector, 7, 8, "hello")) ==> [ 7, 8, "hello" ] 
-#(#ref, v, 0) ==> 7
-#(#ref, v, 2) ==> "hello"
-#(#defq, aa, #(#assoc, (one : 1), (two : 2), (three : 3))) ==> { one : 1, three : 3, two : 2 } 
-#(#defq, ix, #(#quote, two)) ==> two
-#(#ref, aa, #(#quote, one)) ==> 1
-#(#ref, aa, ix) ==> 2
-#(#ref, aa, #(#quote, three)) ==> 3
-#(#refq, aa, one) ==> 1
-#(#refq, aa, two) ==> 2
-#(#refq, aa, three) ==> 3
-#(#amp, aa, #(#assoc, (two : "TWO"))) ==> error; list & not yet implemented: { one : 1, three : 3, two : 2 } 
+#defq(a, 1) ==> 1
+#defq(b, 2) ==> 2
+#defq(c, #lt(a, b)) ==> #t
+#plus(a, b) ==> 3
+#plus(a, b) ==> 3
+#plus(a, b) ==> 3
+#if(c, (a : b)) ==> 1
+#defq(factorial, #lambda(#(n), #if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))) ==> #lambda#(n)
+factorial(10) ==> 3628800
+#defq(ft, #lambda(#(a, b), #defq(c, a), #defq(d, b), #plus(c, d))) ==> #lambda#(a, b)
+ft(50, 5) ==> 55
+#defq(v, #vector(7, 8, "hello")) ==> [ 7, 8, "hello" ] 
+#ref(v, 0) ==> 7
+#ref(v, 2) ==> "hello"
+#defq(aa, #assoc((one : 1), (two : 2), (three : 3))) ==> { three : 3, one : 1, two : 2 } 
+#defq(ix, #quote(two)) ==> two
+#ref(aa, #quote(one)) ==> 1
+#ref(aa, ix) ==> 2
+#ref(aa, #quote(three)) ==> 3
+#refq(aa, one) ==> 1
+#refq(aa, two) ==> 2
+#refq(aa, three) ==> 3
+#amp(aa, #assoc((two : "TWO"))) ==> error; list & not yet implemented: { three : 3, one : 1, two : 2 } 
 #void
-#(#vector, (3 : 99), (0 : "test")) ==> [ "test", #(), #(), 99 ] 
-#(#defq, list, #(#, 1, 2, 3)) ==> #(1, 2, 3)
-#(#ref, list, 0) ==> 1
-#(#refq, list, 0) ==> 1
-#(#amp, "abc", "def") ==> "abcdef"
-#(#ref, "abcdef", 2) ==> "c"
+#vector((3 : 99), (0 : "test")) ==> [ "test", #(), #(), 99 ] 
+#defq(list, #(1, 2, 3)) ==> #(1, 2, 3)
+#ref(list, 0) ==> 1
+#refq(list, 0) ==> 1
+#amp("abc", "def") ==> "abcdef"
+#ref("abcdef", 2) ==> "c"
 error at 47:14; expected matching right parenthesis
-#(#defq, array1, #(#vector, 0)) ==> [ 0 ] 
+#defq(array1, #vector(0)) ==> [ 0 ] 
 error at 47:14; misplaced item: operator is ".."
 (5 : 0) ==> error; pair cannot be evaluated: (5 : 0)
 #void
 error at 47:20; misplaced item: operator is "]"
-#(#ref, array1, 0) ==> 0
-#(#ref, array1, 3) ==> error; vector index out of bounds: 3
+#ref(array1, 0) ==> 0
+#ref(array1, 3) ==> error; vector index out of bounds: 3
 #void
 error at 50:10; expected matching right bracket for array
-#(#ref, array1, 3) ==> error; vector index out of bounds: 3
+#ref(array1, 3) ==> error; vector index out of bounds: 3
 #void
 error at 50:10; misplaced item: operator is ".."
 4 ==> 4
 error at 50:12; misplaced item: operator is "]"
 error at 52:8; expected matching right parenthesis
-#(#defq, a, #(#vector, 0)) ==> [ 0 ] 
+#defq(a, #vector(0)) ==> [ 0 ] 
 error at 52:8; misplaced item: operator is ".."
 20 ==> 20
 error at 52:11; misplaced item: operator is "]"
-#(#assoc, #t) ==> error; initialization item not in form of key colon value: #()
+#assoc(#t) ==> error; initialization item not in form of key colon value: #()
 { } 
-#(#defq, j, 15) ==> 15
+#defq(j, 15) ==> 15
 error at 55:4; misplaced item: operator is ".."
 error at 55:14; misplaced operator: operator is "{"
-#(#amp, #(#ref, a, #(#minus, j, 1)), #(#vector)) ==> error; vector index out of bounds: 14
+#amp(#ref(a, #minus(j, 1)), #vector()) ==> error; vector index out of bounds: 14
 error; operator & cannot be applied: #void
 #void
 #f ==> #f
 error at 55:17; misplaced item: operator is "}"
 error at 55:20; misplaced item: operator is "&"
 error at 55:27; expected matching right bracket for array
-#(#ref, a, #(#plus, j, 1)) ==> error; vector index out of bounds: 16
+#ref(a, #plus(j, 1)) ==> error; vector index out of bounds: 16
 #void
 error at 55:27; misplaced item: operator is ".."
 error at 55:28; misplaced item: operator is "]"
-#(#defq, f, #(#defq, g, 9)) ==> 9
-#(#plus, g, f, 12) ==> 30
-#(#minus, #(#plus, g, f, 12), 30) ==> 0
+#defq(f, #defq(g, 9)) ==> 9
+#plus(g, f, 12) ==> 30
+#minus(#plus(g, f, 12), 30) ==> 0
 error at 66:2; bad character, ignored: "^"
 2 ==> 2

@@ -57,7 +57,7 @@ static cell *expr(precedence lv, lxfile *in) {
         dropitem(it);
         p2 = expr(l_UNARY, in);
         if (!p2) return badeof();
-        return cell_list(cell_ref(hash_not), cell_list(p2, NIL));
+        return cell_func(cell_ref(hash_not), cell_list(p2, NIL));
 
     case it_MINUS:
         dropitem(it);
@@ -69,13 +69,13 @@ static cell *expr(precedence lv, lxfile *in) {
             p2->_.ivalue = -(p2->_.ivalue);
 	    return p2;
 	}
-	return cell_list(cell_ref(hash_minus), cell_list(p2, NIL));
+        return cell_func(cell_ref(hash_minus), cell_list(p2, NIL));
 
     case it_QUOTE:
         dropitem(it);
         p2 = expr(l_UNARY, in);
         if (!p2) return badeof();
-        return cell_list(cell_ref(hash_quote), cell_list(p2, NIL));
+        return cell_func(cell_ref(hash_quote), cell_list(p2, NIL));
 
     case it_LPAR:
         // read as list
@@ -97,29 +97,29 @@ static cell *expr(precedence lv, lxfile *in) {
 		error_par(lxfile_info(in), "expected function body (left curly bracket)");
                 if (it) pushitem(it);
                 // assume empty function body
-                return cell_list(cell_ref(hash_lambda), cell_list(pt, NIL));
+                return cell_func(cell_ref(hash_lambda), cell_list(pt, NIL));
             }
         }
         {
             cell *body = getlist(it, it_SEMI, it_RBRC, in);
-            return cell_list(cell_ref(hash_lambda), cell_list(pt, body));
+            return cell_func(cell_ref(hash_lambda), cell_list(pt, body));
         }
 
     case it_LBRC: // assoc definition
         pt = getlist(it, it_COMMA, it_RBRC, in);
         // TODO implement optional final semicolon
-	return cell_list(cell_ref(hash_assoc), pt);
+        return cell_func(cell_ref(hash_assoc), pt);
 
     case it_LBRK: // array definition
         pt = getlist(it, it_COMMA, it_RBRK, in);
-	return cell_list(cell_ref(hash_vector), pt);
+        return cell_func(cell_ref(hash_vector), pt);
 #if 0 // TODO
         it = lexical(in);
         if (!it || it->type != it_LBRC) {
 	    error_par(lxfile_info(in), "expected initializer (left curly bracket)");
             if (it) pushitem(it);
             // assume empty initializer
-            return cell_list(cell_ref(hash_vector), cell_list(pt, NIL));
+            return cell_func(cell_ref(hash_vector), cell_list(pt, NIL));
         }
         {
             cell *init = getlist(it, it_COMMA, it_RBRC, in);
@@ -139,7 +139,7 @@ static cell *expr(precedence lv, lxfile *in) {
 		}
                 // TODO what if more than two items???
                 // TODO also support for rvalues???
-		return cell_list(cell_ref(hash_vector), cell_list(pt, init));
+                return cell_func(cell_ref(hash_vector), cell_list(pt, init));
 	    }
         }
 #endif
@@ -202,7 +202,7 @@ static cell *binary_l2rN(cell *left, precedence l2, cell *func, item *op, preced
         right = expr(l2, in);
         if (!right) {
             badeof(); // end of file
-            return cell_list(func, cell_list(left, args));
+            return cell_func(func, cell_list(left, args));
         }
         *next = cell_list(right, NIL);
         next = &((*next)->_.cons.cdr);
@@ -210,7 +210,7 @@ static cell *binary_l2rN(cell *left, precedence l2, cell *func, item *op, preced
     } while (op->type == type0);
     pushitem(op);
 
-    return binary(cell_list(func, cell_list(left, args)), lv, in);
+    return binary(cell_func(func, cell_list(left, args)), lv, in);
 }
 
 static cell *binary_l2r(cell *left, precedence l2, cell *func, item *op, precedence lv, lxfile *in) {
@@ -226,9 +226,9 @@ static cell *binary_l2r(cell *left, precedence l2, cell *func, item *op, precede
     right = expr(l2, in);
     if (!right) {
         badeof(); // end of file
-        return cell_list(func, cell_list(left, NIL));
+        return cell_func(func, cell_list(left, NIL));
     }
-    return binary(cell_list(func, cell_list(left, cell_list(right, NIL))), lv, in);
+    return binary(cell_func(func, cell_list(left, cell_list(right, NIL))), lv, in);
 }
 
 static cell *binary_r2l(cell *left, precedence l2, cell *func, item *op, precedence lv, lxfile *in) {
@@ -244,9 +244,9 @@ static cell *binary_r2l(cell *left, precedence l2, cell *func, item *op, precede
     right = expr(l2, in);
     if (!right) {
         badeof(); // end of file
-        return cell_list(func, cell_list(left, NIL));
+        return cell_func(func, cell_list(left, NIL));
     }
-    return binary(cell_list(func, cell_list(left, cell_list(right, NIL))), lv, in);
+    return binary(cell_func(func, cell_list(left, cell_list(right, NIL))), lv, in);
 }
 
 static cell *binary(cell *left, precedence lv, lxfile *in) {
@@ -323,7 +323,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
             // "if" without an "else"
             // TODO should that be allowed?
             if (op) pushitem(op);
-            return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
+            return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
         }
         dropitem(op);
         {
@@ -331,9 +331,9 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
             third = expr(l_COND, in);
             if (!third) {
                 badeof(); // end of file
-                return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
+                return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
             }
-            return binary(cell_list(cell_ref(hash_if), cell_list(left, cell_list(right, cell_list(third, NIL)))), lv, in);
+            return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, cell_list(third, NIL)))), lv, in);
         }
 #endif
 
@@ -343,7 +343,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
             pushitem(op);
             return left;
         }
-        return binary(cell_list(left, getlist(op, it_COMMA, it_RPAR, in)), lv, in);
+        return binary(cell_func(left, getlist(op, it_COMMA, it_RPAR, in)), lv, in);
 
     case it_LBRK: // array
 	if (lv >= l_POST) { // left-to-right
@@ -365,7 +365,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 	    error_par(lxfile_info(in), "expected matching right bracket for array");
             if (op) pushitem(op);
         }
-        return binary(cell_list(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
+        return binary(cell_func(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
 
     case it_COLON:
         if (lv >= l_COLON) { // left-to-right
@@ -396,10 +396,10 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         }
         // TODO as with '+' and '*' and '>' etc, catenate
         // TODO we do not really need the #do, do we?
-        // return binary(cell_list(cell_ref(hash_do), cell_list(left, cell_list(right, NIL))), lv, in);
+        // return binary(cell_func(cell_ref(hash_do), cell_list(left, cell_list(right, NIL))), lv, in);
         // return binary(cell_list(left, cell_list(right, NIL)), lv, in);
         // this is a lambda with empty argument list
-        return cell_list(cell_ref(hash_lambda), cell_list(NIL, cell_list(left, cell_list(right, NIL))));
+        return cell_func(cell_ref(hash_lambda), cell_list(NIL, cell_list(left, cell_list(right, NIL))));
 #endif
 
     case it_RPAR:
