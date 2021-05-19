@@ -1,8 +1,8 @@
-/* TAB-P
+/*  TAB-P
  *
- * module gtk
+ *  module gtk
  *
- * TODO most functions return 1st argument, even on error??
+ *  TODO most functions return 1st argument, even on error??
  */
 
 #include <stdio.h>

@@ -1,6 +1,6 @@
-/* TAB-P
+/*  TAB-P
  *
- * module io
+ *  module io
  */
 
 #include <stdio.h>

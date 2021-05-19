@@ -1,4 +1,4 @@
-/*  TAB P
+/*  TAB-P
  *
  *  association list, using symbols as keys
  */

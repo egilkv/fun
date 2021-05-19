@@ -1,4 +1,4 @@
-/*  TAB P
+/*  TAB-P
  *
  *  TODO should all symbols have values?
  *  Or only symbols that have been defined? Probably

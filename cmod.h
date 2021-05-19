@@ -1,6 +1,6 @@
-/* TAB P
+/*  TAB-P
  *
- * suppoer for C language bindings in modules
+ *  support for C language bindings in modules
  */
 
 #include "cell.h"

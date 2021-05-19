@@ -1,6 +1,6 @@
-/* TAB P
+/*  TAB-P
  *
- * TODO should evaluation happen in functions? perhaps
+ *  TODO should evaluation happen in functions? perhaps
  */
 
 #include <assert.h>

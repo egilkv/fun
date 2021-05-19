@@ -1,6 +1,6 @@
-/* TAB P
+/*  TAB-P
  *
- * C binding helpers
+ *  C binding helpers
  */
 
 #include <stdlib.h>
