@@ -44,8 +44,6 @@ Fully implement function call without use of C stack
 
 Implement non-mutable 'variables'
 
-Function invocation and lists should be separate things. Really
-
 TODO allow for byte order mark and other Unicode stuff in reader
 
 Assoc keys can be symbols, integers. Or strings?
