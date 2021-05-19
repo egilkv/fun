@@ -265,7 +265,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_MULT, cell_ref(hash_times), op, lv, in);
 
     case it_DIV:
-	return binary_l2r(left, l_MULT,  cell_ref(hash_quotient), op, lv, in); // 2 args
+        return binary_l2rN(left, l_MULT, cell_ref(hash_quotient), op, lv, in);
 
     case it_LT:
         return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);

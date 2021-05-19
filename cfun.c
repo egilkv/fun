@@ -169,17 +169,25 @@ static cell *cfunN_times(cell *args) {
     return cell_integer(result);
 }
 
-static cell *cfun2_quotient(cell *a, cell *b) {
+// TODO div mod quotient - in standard lisp quotient is integer division
+static cell *cfunN_quotient(cell *args) {
     integer_t result;
     integer_t operand;
-    if (!get_integer(a, &result, b)) return cell_ref(hash_void); // error
-    if (!get_integer(b, &operand, NIL)) return cell_ref(hash_void); // error
-
-    if (operand == 0) {
-        return error_rt0("attempted division by zero");
+    cell *a;
+    if (!list_split(args, &a, &args)) {
+        return error_rt1("at least one argument required", args);
     }
-    // TODO div mod quotient
-    result /= operand;
+    // in standard lisp (/ 5) is shorthand for 1/5
+    if (!get_integer(a, &result, args)) return cell_ref(hash_void); // error
+
+    while (list_split(args, &a, &args)) {
+        if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
+
+        if (operand == 0) {
+            return error_rt0("attempted division by zero");
+        }
+        result /= operand;
+    }
     return cell_integer(result);
 }
 
@@ -474,7 +482,7 @@ void cfun_init() {
     hash_and      = oblistv("#and",      cell_cfunQ(cfunQ_and));
     hash_assoc    = oblistv("#assoc",    cell_cfunQ(cfunQ_assoc));
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
-    hash_quotient = oblistv("#quotient", cell_cfun2(cfun2_quotient));
+    hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
 		    oblistv("#exit",     cell_cfunN(cfun1_exit));
     hash_if       = oblistv("#if",       cell_cfunQ(cfunQ_if));
