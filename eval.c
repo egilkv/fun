@@ -13,7 +13,7 @@ static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *conten
 #if 0
     if (*envp && env_prog(*envp) == NIL) {
 	// end recursion, reuse environment
-        env_replace(*envp, newassoc, newprog, contenv);
+        env_replace(*envp, newprog, newassoc, contenv);
     } else 
 #endif
     {

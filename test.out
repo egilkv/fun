@@ -17,10 +17,18 @@ factorial(10) ==> 3628800
   cont: #()
 ) 
 ft(50, 5) ==> 55
-#defq(v, #vector(7, 8, "hello")) ==> [ 7, 8, "hello" ] 
+#defq(v, #vector(7, 8, "hello")) ==> [ 
+  7,
+  8,
+  "hello"
+] 
 #ref(v, 0) ==> 7
 #ref(v, 2) ==> "hello"
-#defq(aa, #assoc((one : 1), (two : 2), (three : 3))) ==> { one : 1, two : 2, three : 3 } 
+#defq(aa, #assoc((one : 1), (two : 2), (three : 3))) ==> { 
+  one : 1,
+  two : 2,
+  three : 3
+} 
 #defq(ix, #quote(two)) ==> two
 #ref(aa, #quote(one)) ==> 1
 #ref(aa, ix) ==> 2
@@ -28,9 +36,18 @@ ft(50, 5) ==> 55
 #refq(aa, one) ==> 1
 #refq(aa, two) ==> 2
 #refq(aa, three) ==> 3
-#amp(aa, #assoc((two : "TWO"))) ==> error; list & not yet implemented: { one : 1, two : 2, three : 3 } 
+#amp(aa, #assoc((two : "TWO"))) ==> error; list & not yet implemented: { 
+  one : 1,
+  two : 2,
+  three : 3
+} 
 #void
-#vector((3 : 99), (0 : "test")) ==> [ "test", #(), #(), 99 ] 
+#vector((3 : 99), (0 : "test")) ==> [ 
+  "test",
+  #(),
+  #(),
+  99
+] 
 #defq(list, #(1, 2, 3)) ==> #(1, 2, 3)
 #ref(list, 0) ==> 1
 #refq(list, 0) ==> 1
@@ -48,7 +65,13 @@ error at 66:2; bad character, ignored: "^"
 2 ==> 2
 #quotient(100, 2, 2) ==> 25
 undefined ==> #undefined
-#defq(io, #use("io")) ==> { write : #cfun(), getline : #cfun(), read : #cfun(), print : #cfun(), println : #cfun() } 
+#defq(io, #use("io")) ==> { 
+  write : #cfunN(),
+  getline : #cfun0(),
+  read : #cfun0(),
+  print : #cfunN(),
+  println : #cfunN()
+} 
 #defq(text1, "ECHO") ==> "ECHO"
 #defq(text2, "DELTA") ==> "DELTA"
 #defq(invoke, #lambda(#(fn), #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #cont(
@@ -72,7 +95,27 @@ func() ==> case 2 is ALICE and DELTA
 #plus(#quotient(1, 2), #quotient(1, 3)) ==> 5/6
 #plus(#quotient(1.0, 2), #quotient(1, 3)) ==> 0.833333333333333
 #minus(#quotient(1, 2), 0.5) ==> 0.0
-#defq(m, #use("math")) ==> { pi : 3.14159265358979, asin : #cfun(), ceil : #cfun(), floor : #cfun(), log10 : #cfun(), pow : #cfun(), sqrt : #cfun(), e : 2.71828182845905, acos : #cfun(), atan : #cfun(), cos : #cfun(), log : #cfun(), sin : #cfun(), tan : #cfun(), abs : #cfun(), div : #cfun(), mod : #cfun() } 
+#defq(m, #use("math")) ==> { 
+  mod : #cfun2(),
+  acos : #cfun1(),
+  atan : #cfun1(),
+  ceil : #cfun1(),
+  floor : #cfun1(),
+  log : #cfun1(),
+  pow : #cfun2(),
+  sqrt : #cfun1(),
+  e : 2.71828182845905,
+  pi : 3.14159265358979,
+  asin : #cfun1(),
+  atan2 : #cfun2(),
+  cos : #cfun1(),
+  log10 : #cfun1(),
+  sin : #cfun1(),
+  abs : #cfun1(),
+  div : #cfun2(),
+  tan : #cfun1(),
+  int : #cfun1()
+} 
 #refq(m, sqrt)(2) ==> 1.4142135623731
 #refq(m, sqrt)(-2) ==> error; no real square root
 #void
@@ -90,3 +133,9 @@ func() ==> case 2 is ALICE and DELTA
 #refq(m, abs)(#minus(12.34)) ==> 12.34
 #refq(m, abs)(-12) ==> 12
 #refq(m, abs)(#minus(#quotient(12, 34))) ==> 6/17
+#refq(m, int)(12.1) ==> 12
+#refq(m, int)(12.6) ==> 13
+#refq(m, int)(#minus(12.1)) ==> -12
+#refq(m, int)(#minus(12.6)) ==> -13
+#refq(m, int)(#quotient(10, 3)) ==> 3
+#refq(m, int)(#quotient(11, 3)) ==> 4

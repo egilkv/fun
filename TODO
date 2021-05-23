@@ -54,6 +54,11 @@ The & operator can update values in assocs? Probably | is better! What about vec
 
 Fully implement function call without use of C stack
 
+c_STRING8
+c_STRING16
+c_STRING24?
+c_STRINGU // UTF8
+
 Implement non-mutable 'variables'
 
 TODO allow for byte order mark and other Unicode stuff in reader
@@ -88,3 +93,4 @@ Improve GCD algorithm? Method of least absolute remainders https://en.wikipedia.
 Should boolean be a separate type? May still make sense to refer to the same cells
 
 Allow infinite as a number?
+

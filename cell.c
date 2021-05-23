@@ -129,12 +129,14 @@ cell *cell_env(cell *prevenv, cell *prog, cell *assoc, cell *contenv) {
 // all parameters are supposed to be reffed already
 void env_replace(cell *ep, cell *newprog, cell *newassoc, cell *newcontenv) {
     assert(ep && ep->type == c_ENV && ep->_.cons.car->type == c_PAIR && ep->_.cons.cdr->type == c_PAIR);
-    cell_unref(ep->_.cons.car->_.cons.cdr);
+    assert(ep->_.cons.car->_.cons.cdr == NIL); // old program should be exhausted
+    cell *oldassoc = ep->_.cons.cdr->_.cons.car;
+    cell *oldcontenv = ep->_.cons.cdr->_.cons.cdr;
     ep->_.cons.car->_.cons.cdr = newprog;
-    cell_unref(ep->_.cons.cdr->_.cons.car);
     ep->_.cons.cdr->_.cons.car = newassoc;
-    cell_unref(ep->_.cons.cdr->_.cons.cdr);
     ep->_.cons.cdr->_.cons.cdr = newcontenv;
+    cell_unref(oldassoc);
+    cell_unref(oldcontenv);
 }
 
 // TODO inline

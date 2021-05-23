@@ -134,12 +134,22 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         return;
 
     case c_CFUNQ:
+        fprintf(out, "#cfunQ()");
+        return;
     case c_CFUN0:
+        fprintf(out, "#cfun0()");
+        return;
     case c_CFUN1:
+        fprintf(out, "#cfun1()");
+        return;
     case c_CFUN2:
+        fprintf(out, "#cfun2()");
+        return;
     case c_CFUN3:
+        fprintf(out, "#cfun3()");
+        return;
     case c_CFUNN:
-        fprintf(out, "#cfun()"); // TODO something better
+        fprintf(out, "#cfunN()");
         return;
 
     case c_ENV:
@@ -165,7 +175,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             index_t i;
             fprintf(out, "[ ");
             for (i = 0; i < n; ++i) {
-#if 0 // TODO multiline
+#if 1 // TODO multiline
                 fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
 #else
                 if (more) fprintf(out, ", ");
@@ -173,7 +183,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
                 more = 1;
                 cell_writei(out, ct->_.vector.table[i], indent+4);
             }
-#if 0 // TODO multiline
+#if 1 // TODO multiline
             fprintf(out, "\n%*s] ", indent,"");
 #else
             fprintf(out, more ? " ] ":"] ");
@@ -191,7 +201,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 	    if ( ct->_.assoc.table) for (i = 0; i < n; ++i) {
 		p = ct->_.assoc.table[i];
 		while (p) {
-#if 0 // TODO multiline
+#if 1 // TODO multiline
                     fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
 #else
                     if (more) fprintf(out, ", ");
@@ -203,7 +213,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 		    p = p->next;
 		}
 	    }
-#if 0 // TODO multiline
+#if 1 // TODO multiline
             fprintf(out, "\n%*s} ", indent,"");
 #else
             fprintf(out, more ? " } ":"} ");
@@ -257,8 +267,7 @@ static cell *cfio_println(cell *args) {
     return v;
 }
 
-static cell *cfio_read(cell *args) {
-    arg0(args);
+static cell *cfio_read() {
     // TODO how to deal with error messages
     // TODO threading
     // TODO should probably continue previous lxfile
@@ -267,7 +276,7 @@ static cell *cfio_read(cell *args) {
     return expression(&infile);
 }
 
-static cell *cfio_getline(cell *args) {
+static cell *cfio_getline() {
     ssize_t len = 0;
     char *line = lex_getline(stdin, &len);
     if (!line || len < 0) {
@@ -281,11 +290,11 @@ cell *module_io() {
         io_assoc = cell_assoc();
 
         // TODO these functions are impure
-        assoc_set(io_assoc, cell_symbol("print"), cell_cfunN(cfio_print)); // scheme 'display'
+        assoc_set(io_assoc, cell_symbol("print"),   cell_cfunN(cfio_print)); // scheme 'display'
         assoc_set(io_assoc, cell_symbol("println"), cell_cfunN(cfio_println));
-        assoc_set(io_assoc, cell_symbol("write"), cell_cfunN(cfio_write));
-        assoc_set(io_assoc, cell_symbol("read"), cell_cfunN(cfio_read));
-        assoc_set(io_assoc, cell_symbol("getline"), cell_cfunN(cfio_getline));
+        assoc_set(io_assoc, cell_symbol("write"),   cell_cfunN(cfio_write));
+        assoc_set(io_assoc, cell_symbol("read"),    cell_cfun0(cfio_read));
+        assoc_set(io_assoc, cell_symbol("getline"), cell_cfun0(cfio_getline));
     }
     // TODO static io_assoc owns one, hard to avoid
     return cell_ref(io_assoc);

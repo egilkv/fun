@@ -44,7 +44,7 @@ static cell *cmath_abs(cell *a) {
     number na;
     if (!get_number(a, &na, NIL)) return cell_ref(hash_void); // error
 
-    // TODO can optimize to return called if >= 0
+    // TODO can optimize to return argument if >= 0
     if (na.divisor == 0) {
         if (na.dividend.fval < 0) {
             na.dividend.fval = -na.dividend.fval;
@@ -53,6 +53,31 @@ static cell *cmath_abs(cell *a) {
         if (na.dividend.ival < 0) {
             na.dividend.ival = -na.dividend.ival;
         }
+    }
+    return cell_number(&na);
+}
+
+// convert to integer, rounding to closest
+static cell *cmath_int(cell *a) {
+    number na;
+    if (!get_number(a, &na, NIL)) return cell_ref(hash_void); // error
+
+    switch (na.divisor) {
+    default:
+        na.dividend.fval = (1.0 * na.dividend.ival) / na.divisor;
+        // fall through...
+    case 0:
+        if (na.dividend.fval > 0.0) {
+            na.dividend.fval += 0.5;
+        } else if (na.dividend.fval < 0.0) {
+            na.dividend.fval -= 0.5;
+        }
+        na.dividend.ival = na.dividend.fval;
+        na.divisor = 1;
+        break;
+    case 1:
+        // TODO can optimize to return argument
+        break;
     }
     return cell_number(&na);
 }
@@ -176,9 +201,10 @@ cell *module_math() {
         // TODO these functions are impure
         assoc_set(math_assoc, cell_symbol("abs"),   cell_cfun1(cmath_abs));
         assoc_set(math_assoc, cell_symbol("div"),   cell_cfun2(cmath_div));
-        assoc_set(math_assoc, cell_symbol("e"),     cell_real(2.71828182845904523536));
+        assoc_set(math_assoc, cell_symbol("e"),     cell_real(M_E));
+        assoc_set(math_assoc, cell_symbol("int"),   cell_cfun1(cmath_int));
         assoc_set(math_assoc, cell_symbol("mod"),   cell_cfun2(cmath_mod));
-        assoc_set(math_assoc, cell_symbol("pi"),    cell_real(3.14159265358979323846));
+        assoc_set(math_assoc, cell_symbol("pi"),    cell_real(M_PI));
 #if HAVE_MATH
         assoc_set(math_assoc, cell_symbol("acos"),  cell_cfun1(cmath_acos));
         assoc_set(math_assoc, cell_symbol("asin"),  cell_cfun1(cmath_asin));
