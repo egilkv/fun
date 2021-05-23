@@ -44,10 +44,10 @@ static cell *cgtk_application_new(cell *args) {
     cell *app;
     GtkApplication *gp;
 
-    if (list_split2(&args, &aname)) {
+    if (list_pop(&args, &aname)) {
 	// TODO pick string
 	cell_unref(aname);
-        if (list_split2(&args, &flags)) {
+        if (list_pop(&args, &flags)) {
 	    // TODO implement
 	    cell_unref(flags);
 	}
@@ -86,7 +86,7 @@ static cell *cgtk_button_box_new(cell *flags) {
 static cell *cgtk_button_new(cell *args) {
     GtkWidget *button;
     cell *label = NIL;
-    if (list_split2(&args, &label)) {
+    if (list_pop(&args, &label)) {
         char *label_s;
         if (!get_cstring(label, &label_s, NIL)) {
             return cell_ref(hash_void); // error
@@ -163,7 +163,7 @@ static cell *cgtk_main() {
 
 static cell *cgtk_print(cell *args) {
     cell *a;
-    while (list_split2(&args, &a)) {
+    while (list_pop(&args, &a)) {
         if (a) switch (a->type) { // NIL prints as nothing
         case c_STRING:
             g_print("%s", a->_.string.ptr); // print to NUL

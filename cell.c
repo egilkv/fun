@@ -171,8 +171,8 @@ cell **env_progp(cell *ep) {
     return &(ep->_.cons.car->_.cons.cdr);
 }
 
-// remove first element of list
-int list_split2(cell **cpp, cell **carp) {
+// pop first element off list
+int list_pop(cell **cpp, cell **carp) {
     if (cell_is_list(*cpp)) {
         cell *cdr = cell_ref((*cpp)->_.cons.cdr);
         *carp = cell_ref((*cpp)->_.cons.car);

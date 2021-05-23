@@ -33,9 +33,9 @@ static void apply_cont(cell *fun, cell* args, cell *contenv, cell **envp) {
     cell *newassoc = cell_assoc();
 
     // pick up arguments one by one and add to assoc
-    while (list_split2(&argnames, &nam)) {
+    while (list_pop(&argnames, &nam)) {
 	assert(cell_is_symbol(nam));
-        if (!list_split2(&args, &val)) {
+        if (!list_pop(&args, &val)) {
 	    // TODO if more than one, have one message
 	    cell_unref(error_rt1("missing value for", cell_ref(nam)));
 	    val = cell_ref(hash_void);
@@ -152,7 +152,7 @@ cell *eval(cell *arg, cell *env) {
 			cell_unref(fun);
 			cell *e = NIL;
 			cell **pp = &e;
-                        while (list_split2(&args, &result)) {
+                        while (list_pop(&args, &result)) {
 			    *pp = cell_list(eval(result, env), NIL);
 			    pp = &((*pp)->_.cons.cdr);
 			}
@@ -217,7 +217,7 @@ cell *eval(cell *arg, cell *env) {
 	// eval one more expression
 	cell_unref(result);
         // TODO make more efficient
-        if (!list_split2(env_progp(env), &arg)) {
+        if (!list_pop(env_progp(env), &arg)) {
             // assert(0);
             return error_rt1("bad program", env_prog(env));
         }
