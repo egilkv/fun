@@ -140,15 +140,16 @@ cell **env_progp(cell *ep) {
     return &(ep->_.cons.cdr->_.cons.cdr);
 }
 
-int list_split(cell *cp, cell **carp, cell **cdrp) {
-    if (cell_is_list(cp)) {
-        if (carp) *carp = cell_ref(cp->_.cons.car);
-        if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
-        cell_unref(cp);
+// remove first element of list
+int list_split2(cell **cpp, cell **carp) {
+    if (cell_is_list(*cpp)) {
+        cell *cdr = cell_ref((*cpp)->_.cons.cdr);
+        *carp = cell_ref((*cpp)->_.cons.car);
+        cell_unref(*cpp);
+        *cpp = cdr;
         return 1;
      } else {
         *carp = NIL;
-        *cdrp = NIL;
         return 0;
      }
 }

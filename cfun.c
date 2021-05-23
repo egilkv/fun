@@ -41,7 +41,7 @@ static cell *cfunQ_and(cell *args, cell *env) {
     int bool = 1;
     cell *a;
 
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
 	a = eval(a, env);
 	if (!get_boolean(a, &bool, args)) {
 	    return cell_ref(hash_void); // error
@@ -58,7 +58,7 @@ static cell *cfunQ_or(cell *args, cell *env) {
     int bool = 0;
     cell *a;
 
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
 	a = eval(a, env);
 	if (!get_boolean(a, &bool, args)) {
 	    return cell_ref(hash_void); // error
@@ -119,7 +119,7 @@ static cell *cfunQ_quote(cell *args, cell *env) {
 static cell *cfunQ_lambda(cell *args, cell *env) {
     cell *arglist;
     cell *cp;
-    if (!list_split(args, &arglist, &args)) {
+    if (!list_split2(&args, &arglist)) {
         return error_rt1("Missing function argument list", args);
     }
     cp = cell_list(arglist, args);
@@ -131,7 +131,7 @@ static cell *cfunN_plus(cell *args) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
         result += operand; // TODO overflow etc
     }
@@ -143,13 +143,13 @@ static cell *cfunN_minus(cell *args) {
     integer_t result = 0;
     integer_t operand;
     cell *a;
-    if (!list_split(args, &a, &args)
+    if (!list_split2(&args, &a)
      || !get_integer(a, &result, args)) return cell_ref(hash_void); // error
     if (args == NIL) {
         // special case, one argument
         result = -result; // TODO overflow
     }
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_ref(hash_void);
         result -= operand; // TODO overflow etc
     }
@@ -161,7 +161,7 @@ static cell *cfunN_times(cell *args) {
     integer_t result = 1;
     integer_t operand;
     cell *a;
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_ref(hash_void);
         result *= operand; // TODO overflow etc
     }
@@ -174,13 +174,13 @@ static cell *cfunN_quotient(cell *args) {
     integer_t result;
     integer_t operand;
     cell *a;
-    if (!list_split(args, &a, &args)) {
+    if (!list_split2(&args, &a)) {
         return error_rt1("at least one argument required", args);
     }
     // in standard lisp (/ 5) is shorthand for 1/5
     if (!get_integer(a, &result, args)) return cell_ref(hash_void); // error
 
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
 
         if (operand == 0) {
@@ -197,7 +197,7 @@ static cell *cfunN_lt(cell *args) {
     integer_t operand;
     cell *a;
     // TODO should be cfunQ_lt, do not evaluate more than necessary
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
 	if (argno++ == 0 || value < operand) { // condition satisfied?
 	    value = operand;
@@ -222,7 +222,7 @@ static cell *cfunQ_vector(cell *args, cell *env) {
     len = 0;
     vector = cell_vector(0);
     // TODO rather inefficient
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (cell_is_pair(a)) {  // index : value
 	    index_t index;
             cell *b;
@@ -252,7 +252,7 @@ static cell *cfunQ_assoc(cell *args, cell *env) {
     cell *a;
     cell *b;
     cell *assoc = cell_assoc();
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (!pair_split(a, &a, &b)) {
 	    cell_unref(error_rt1("initialization item not in form of key colon value", a));
         } else {
@@ -270,7 +270,7 @@ static cell *cfunQ_assoc(cell *args, cell *env) {
 static cell *cfunN_amp(cell *args) {
     cell *a;
     cell *result = NIL;
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
 	switch (a ? a->type : c_LIST) {
 
         case c_STRING:
@@ -348,10 +348,10 @@ static cell *cfunN_eq(cell *args) {
     cell *first;
     cell *a = NIL;
     int eq = 1;
-    if (!list_split(args, &first, &args)) {
+    if (!list_split2(&args, &first)) {
         return cell_ref(hash_void); // error
     }
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (a != first) switch (a ? a->type : c_LIST) {
 
         case c_STRING:

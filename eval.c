@@ -30,9 +30,9 @@ static void apply_lambda(cell *fun, cell* args, cell **envp) {
     cell *newassoc = cell_assoc();
 
     // pick up arguments one by one and add to assoc
-    while (list_split(argnames, &nam, &argnames)) {
+    while (list_split2(&argnames, &nam)) {
 	assert(cell_is_symbol(nam));
-	if (!list_split(args, &val, &args)) {
+        if (!list_split2(&args, &val)) {
 	    // TODO if more than one, have one message
 	    cell_unref(error_rt1("missing value for", cell_ref(nam)));
 	    val = cell_ref(hash_void);
@@ -149,7 +149,7 @@ cell *eval(cell *arg, cell *env) {
 			cell_unref(fun);
 			cell *e = NIL;
 			cell **pp = &e;
-                        while (list_split(args, &result, &args)) {
+                        while (list_split2(&args, &result)) {
 			    *pp = cell_list(eval(result, env), NIL);
 			    pp = &((*pp)->_.cons.cdr);
 			}
@@ -202,7 +202,7 @@ cell *eval(cell *arg, cell *env) {
 	// eval one more expression
 	cell_unref(result);
         // TODO make more efficient
-        if (!list_split(env_prog(env), &arg, env_progp(env))) {
+        if (!list_split2(env_progp(env), &arg)) {
 	    assert(0);
 	}
     }

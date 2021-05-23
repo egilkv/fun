@@ -26,18 +26,18 @@ void arg0(cell *args) {
 // if false, *ap is error value
 int arg3(cell *args, cell **ap, cell **bp, cell **cp) {
     *ap = NIL;
-    if (!list_split(args, ap, &args)) {
+    if (!list_split2(&args, ap)) {
 	assert(args == NIL);
 	*ap = error_rt0("missing 1st argument");
 	return 0;
     }
-    if (bp && !list_split(args, bp, &args)) {
+    if (bp && !list_split2(&args, bp)) {
 	assert(args == NIL);
 	cell_unref(*ap);
 	*ap = error_rt0("missing 2nd argument");
 	return 0;
     }
-    if (cp && !list_split(args, cp, &args)) {
+    if (cp && !list_split2(&args, cp)) {
 	assert(args == NIL);
 	cell_unref(*ap);
 	cell_unref(*bp);

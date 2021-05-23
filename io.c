@@ -155,7 +155,7 @@ void cell_print(FILE *out, cell *ct) {
 
 static cell *cfio_write(cell *args) {
     cell *a;
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
 	cell_print(stdout, a);
 	cell_unref(a);
     }
@@ -165,7 +165,7 @@ static cell *cfio_write(cell *args) {
 
 static cell *cfio_print(cell *args) {
     cell *a;
-    while (list_split(args, &a, &args)) {
+    while (list_split2(&args, &a)) {
         if (a) switch (a->type) { // NIL prints as nothing
         case c_STRING:
             fwrite(a->_.string.ptr, sizeof(char_t), a->_.string.len, stdout);

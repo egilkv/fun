@@ -99,7 +99,7 @@ int cell_is_env(cell *cp);
 int cell_is_pair(cell *cp);
 cell *cell_car(cell *cp);
 cell *cell_cdr(cell *cp);
-int list_split(cell *cp, cell **carp, cell **cdrp);
+int list_split2(cell **cp, cell **carp);
 int pair_split(cell *cp, cell **carp, cell **cdrp);
 
 cell *cell_env(cell *next, cell *assoc, cell *prog);
