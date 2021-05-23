@@ -64,3 +64,32 @@ g + f + 12 - 30;
 
 // error reporting
 2^;
+
+// '/' associates left-to-right
+100 / 2 / 2;
+
+undefined;
+
+// continuation
+io = #use("io");
+
+text1 = "ECHO";
+text2 = "DELTA";
+
+invoke = (fn){
+    text1 = "BOB";
+    text2 = "CAROLINE";
+    fn();
+    text2 // value is local text
+};
+
+invoke( (){ io.println("case 1 is ", text1, " and ", text2) } );
+
+func = (){
+    text1 = "ALICE";
+    invoke( (){ io.println("case 2 is ", text1, " and ", text2) } )
+};
+
+func();
+
+((text2){ invoke( (){ io.println("case 3 is ", text1, " and ", text2) } ) })("ZZZ");

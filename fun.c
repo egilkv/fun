@@ -84,13 +84,13 @@ static void chomp(lxfile *lxf) {
 	if (!ct) break; // eof
         if (lxf->f == stdin) {
 	    if (opt_showparse) {
-		cell_print(stdout, ct);
+                cell_write(stdout, ct);
                 printf(" ==> ");
 	    }
 	}
         ct = eval(ct, NULL);
         if (lxf->f == stdin) {
-            cell_print(stdout, ct);
+            cell_write(stdout, ct);
             if (!(lxf->is_terminal)) {
                 printf("\n");
             }

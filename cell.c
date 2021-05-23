@@ -101,43 +101,74 @@ cell *cell_cdr(cell *cp) {
     return cp->_.cons.cdr;
 }
 
-cell *cell_env(cell *prev, cell *assoc, cell *prog) {
-    cell *node = newcell(c_ENV);
-    node->_.cons.car = prev;
-    node->_.cons.cdr = cell_pair(assoc, prog);
+cell *cell_lambda(cell *args, cell *body) {
+    cell *node = newcell(c_LAMBDA);
+    node->_.cons.car = args;
+    node->_.cons.cdr = body;
     return node;
 }
 
-void env_replace(cell *ep, cell *newassoc, cell *newprog) {
-    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
+cell *cell_cont(cell *lambda, cell *env) {
+    cell *node = newcell(c_CONT);
+    node->_.cons.car = lambda;
+    node->_.cons.cdr = env;
+    return node;
+}
+
+cell *cell_env(cell *prevenv, cell *prog, cell *assoc, cell *contenv) {
+    cell *node = newcell(c_ENV);
+    node->_.cons.car = cell_pair(prevenv, prog);
+    node->_.cons.cdr = cell_pair(assoc, contenv);
+    return node;
+}
+
+// all parameters are supposed to be reffed already
+void env_replace(cell *ep, cell *newprog, cell *newassoc, cell *newcontenv) {
+    assert(ep && ep->type == c_ENV && ep->_.cons.car->type == c_PAIR && ep->_.cons.cdr->type == c_PAIR);
+    cell_unref(ep->_.cons.car->_.cons.cdr);
+    ep->_.cons.car->_.cons.cdr = newprog;
     cell_unref(ep->_.cons.cdr->_.cons.car);
     ep->_.cons.cdr->_.cons.car = newassoc;
     cell_unref(ep->_.cons.cdr->_.cons.cdr);
-    ep->_.cons.cdr->_.cons.cdr = newprog;
+    ep->_.cons.cdr->_.cons.cdr = newcontenv;
 }
 
 // TODO inline
+// get unreffed previous environment
 cell *env_prev(cell *ep) {
-    assert(ep && ep->type == c_ENV);
-    return ep->_.cons.car;
+    assert(ep && ep->type == c_ENV && ep->_.cons.car->type == c_PAIR);
+    return ep->_.cons.car->_.cons.car;
 }
 
 // TODO inline
+// get unreffed previous environment, i.e. continuation
+cell *env_cont_env(cell *ep) {
+    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
+    return ep->_.cons.cdr->_.cons.cdr;
+}
+
+// TODO inline
+// get unreffed local assoc
 cell *env_assoc(cell *ep) {
     assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
     return ep->_.cons.cdr->_.cons.car;
 }
 
 // TODO inline
+// get unreffed program pointer
 cell *env_prog(cell *ep) {
-    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
-    return ep->_.cons.cdr->_.cons.cdr;
+    // assert(ep && ep->type == c_ENV && ep->_.cons.car->type == c_PAIR);
+    // TODO debug
+    if (!(ep && ep->type == c_ENV && ep->_.cons.car->type == c_PAIR)) {
+        assert(0);
+    }
+    return ep->_.cons.car->_.cons.cdr;
 }
 
 // TODO inline
 cell **env_progp(cell *ep) {
-    assert(ep && ep->type == c_ENV && ep->_.cons.cdr->type == c_PAIR);
-    return &(ep->_.cons.cdr->_.cons.cdr);
+    assert(ep && ep->type == c_ENV && ep->_.cons.car->type == c_PAIR);
+    return &(ep->_.cons.car->_.cons.cdr);
 }
 
 // remove first element of list
@@ -311,28 +342,29 @@ cell *cell_special(const char *magic, void *ptr) {
 // TODO this will soon enough collapse
 static void cell_free(cell *node) {
     assert(node && node->ref == 0);
+
     switch (node->type) {
     case c_LIST:
     case c_FUNC:
-    case c_ENV:
     case c_PAIR:
+    case c_CONT:
     case c_LAMBDA:
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
-        free(node);
+        break;
+    case c_ENV:
+        cell_unref(node->_.cons.car);
+        cell_unref(node->_.cons.cdr);
         break;
     case c_SYMBOL: 
         assert(oblist_teardown); // these exist only on oblist
         cell_unref(node->_.symbol.val);
         free(node->_.symbol.nam);
-        free(node);
         break;
     case c_STRING:
         free(node->_.string.ptr);
-        free(node);
         break;
     case c_INTEGER:
-        free(node);
         break;
     case c_CFUNQ:
     case c_CFUN0:
@@ -340,28 +372,29 @@ static void cell_free(cell *node) {
     case c_CFUN2:
     case c_CFUN3:
     case c_CFUNN:
-        free(node);
         break;
     case c_VECTOR:
         vector_resize(node, 0);
-        free(node);
         break;
     case c_ASSOC:
         assoc_drop(node);
-        free(node);
         break;
     case c_SPECIAL:
         // TODO invoke magic free function
-        free(node);
         break;
     }
+    free(node);
 }
 
 // asym is allocated already
 // return unreffed reference
 cell *cell_oblist_item(char_t *asym) {
     cell *node = newcell(c_SYMBOL);
-    // node->_.symbol.val = NIL; // TODO should probably be #void instead
+    extern cell *hash_undefined;
+    // TODO should create error message is reffed
+    if (hash_undefined) {
+        node->_.symbol.val = cell_ref(hash_undefined);
+    }
     node->_.symbol.nam = asym; // allocated already
     return node;
 }

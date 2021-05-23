@@ -122,8 +122,11 @@ static cell *cfunQ_lambda(cell *args, cell *env) {
     if (!list_split2(&args, &arglist)) {
         return error_rt1("Missing function argument list", args);
     }
-    cp = cell_list(arglist, args);
-    cp->type = c_LAMBDA;
+    cp = cell_lambda(arglist, args);
+
+    // all functions are continuations
+    cp = cell_cont(cp, cell_ref(env));
+
     return cp;
 }
 
@@ -378,6 +381,7 @@ static cell *cfunN_eq(cell *args) {
         case c_VECTOR: // TODO not (yet) implemented
         case c_SYMBOL: // straight comparison is enough
 	case c_FUNC:
+        case c_CONT:
         default:
             eq = 0;
             cell_unref(args);
@@ -505,10 +509,12 @@ void cfun_init() {
     hash_f       = oblistv("#f",       NIL);
     hash_t       = oblistv("#t",       NIL);
     hash_void    = oblistv("#void",    NIL);
+    hash_undefined = oblistv("#undefined", NIL); // TODO should it be visible?
     // values are themselves
-    oblist_set(hash_f,    cell_ref(hash_f));
-    oblist_set(hash_t,    cell_ref(hash_t));
-    oblist_set(hash_void, cell_ref(hash_void));
+    oblist_set(hash_f,         cell_ref(hash_f));
+    oblist_set(hash_t,         cell_ref(hash_t));
+    oblist_set(hash_void,      cell_ref(hash_void));
+    oblist_set(hash_undefined, cell_ref(hash_undefined));
 
     atexit(cfun_exit);
 }
@@ -518,5 +524,6 @@ static void cfun_exit(void) {
     oblist_set(hash_f, NIL);
     oblist_set(hash_t, NIL);
     oblist_set(hash_void, NIL);
+    oblist_set(hash_undefined, NIL);
 }
 

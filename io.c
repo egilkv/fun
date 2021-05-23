@@ -19,14 +19,14 @@ static void show_list(FILE *out, cell *ct) {
     if (!ct) {
         // end of list
     } else if (cell_is_list(ct)) {
-        cell_print(out, cell_car(ct)); // TODO recursion?
+        cell_write(out, cell_car(ct)); // TODO recursion?
         if (cell_cdr(ct)) {
             if (cell_is_list(cell_cdr(ct))) {
                 fprintf(out, ", ");
                 show_list(out, cell_cdr(ct));
             } else {
                 fprintf(out, " . "); // TODO not supported on read
-                cell_print(out, ct);
+                cell_write(out, ct);
             }
         }
     } else {
@@ -35,32 +35,38 @@ static void show_list(FILE *out, cell *ct) {
 }
 
 // does not consume cell
-void cell_print(FILE *out, cell *ct) {
+static void cell_writei(FILE *out, cell *ct, int indent) {
 
     if (!ct) {
         fprintf(out, "#()");
+        return;
     } else switch (ct->type) {
+
     case c_LIST:
         fprintf(out, "#(");
         show_list(out, ct);
         fprintf(out, ")");
-        break;
+        return;
+
     case c_FUNC:
-        cell_print(out, cell_car(ct));
+        cell_writei(out, cell_car(ct), indent);
         fprintf(out, "(");
         show_list(out, cell_cdr(ct));
         fprintf(out, ")");
-        break;
+        return;
+
     case c_PAIR:
         fprintf(out, "(");
-        cell_print(out, cell_car(ct));
+        cell_writei(out, cell_car(ct), indent);
         fprintf(out, " : ");
-        cell_print(out, cell_cdr(ct));
+        cell_writei(out, cell_cdr(ct), indent);
         fprintf(out, ")");
-        break;
+        return;
+
     case c_INTEGER:
         fprintf(out, "%lld", ct->_.ivalue); // 64bit
-        break;
+        return;
+
     case c_STRING:
         {
             index_t n;
@@ -91,14 +97,27 @@ void cell_print(FILE *out, cell *ct) {
             }
             fprintf(out, "\"");
         }
-        break;
+        return;
+
     case c_SYMBOL:
         fprintf(out, "%s", ct->_.symbol.nam);
-        break;
+        return;
+
+    case c_CONT:
+        fprintf(out, "#cont(\n%*sargs: ", indent+2,""); // TODO debug
+        cell_writei(out, ct->_.cons.car->_.cons.car, indent+4);
+        fprintf(out, "\n%*sbody: ", indent+2,"");
+        cell_writei(out, ct->_.cons.car->_.cons.cdr, indent);
+        fprintf(out, "\n%*scont: ", indent+2,"");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        fprintf(out, "\n%*s) ", indent,"");
+        return;
+
     case c_LAMBDA:
         fprintf(out, "#lambda"); // TODO something better
-        cell_print(out, ct->_.cons.car);
-        break;
+        cell_writei(out, ct->_.cons.car, indent);
+        return;
+
     case c_CFUNQ:
     case c_CFUN0:
     case c_CFUN1:
@@ -106,13 +125,24 @@ void cell_print(FILE *out, cell *ct) {
     case c_CFUN3:
     case c_CFUNN:
         fprintf(out, "#cfun()"); // TODO something better
-        break;
+        return;
+
     case c_ENV:
-        fprintf(out, "#env()"); // TODO something better
-        break;
+        fprintf(out, "#env(\n%*sprev: ", indent+2,""); // TODO debug
+        cell_writei(out, ct->_.cons.car->_.cons.car, indent+4);
+        fprintf(out, "\n%*sprog: ", indent+2,"");
+        cell_writei(out, ct->_.cons.car->_.cons.cdr, indent+4);
+        fprintf(out, "\n%*sassoc: ", indent+2,"");
+        cell_writei(out, ct->_.cons.cdr->_.cons.car, indent+4);
+        fprintf(out, "\n%*scont: ", indent+2,"");
+        cell_writei(out, ct->_.cons.cdr->_.cons.cdr, indent+4);
+        fprintf(out, "\n%*s)", indent,"");
+        return;
+
     case c_SPECIAL:
         fprintf(out, "#special_%s()", ct->_.special.magic);
-        break;
+        return;
+
     case c_VECTOR:
         {
             int more = 0;
@@ -120,14 +150,22 @@ void cell_print(FILE *out, cell *ct) {
             index_t i;
             fprintf(out, "[ ");
             for (i = 0; i < n; ++i) {
+#if 0 // TODO multiline
+                fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
+#else
                 if (more) fprintf(out, ", ");
+#endif
                 more = 1;
-		cell_print(out, ct->_.vector.table[i]);
+                cell_writei(out, ct->_.vector.table[i], indent+4);
             }
+#if 0 // TODO multiline
+            fprintf(out, "\n%*s] ", indent,"");
+#else
             fprintf(out, more ? " ] ":"] ");
-            // TODO sprinkle some newlines here and elsewhere
+#endif
         }
-        break;
+        return;
+
     case c_ASSOC:
         {
 	    struct assoc_s *p;
@@ -138,25 +176,39 @@ void cell_print(FILE *out, cell *ct) {
 	    if ( ct->_.assoc.table) for (i = 0; i < n; ++i) {
 		p = ct->_.assoc.table[i];
 		while (p) {
+#if 0 // TODO multiline
+                    fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
+#else
                     if (more) fprintf(out, ", ");
+#endif
                     more = 1;
-		    cell_print(out, p->key);
+                    cell_writei(out, p->key, indent);
 		    fprintf(out, " : ");
-		    cell_print(out, p->val);
+                    cell_writei(out, p->val, indent);
 		    p = p->next;
 		}
 	    }
+#if 0 // TODO multiline
+            fprintf(out, "\n%*s} ", indent,"");
+#else
             fprintf(out, more ? " } ":"} ");
+#endif
             // TODO sprinkle some newlines here and elsewhere
         }
-        break;
+        return;
     }
+    assert(0);
+}
+
+// does not consume cell
+void cell_write(FILE *out, cell *ct) {
+    cell_writei(out, ct, 0);
 }
 
 static cell *cfio_write(cell *args) {
     cell *a;
     while (list_split2(&args, &a)) {
-	cell_print(stdout, a);
+        cell_write(stdout, a);
 	cell_unref(a);
     }
     assert(args == NIL);
@@ -172,7 +224,7 @@ static cell *cfio_print(cell *args) {
             break;
         case c_INTEGER:
         case c_SYMBOL:
-            cell_print(stdout, a);
+            cell_write(stdout, a);
             break;
         default:
             // TODO error message??

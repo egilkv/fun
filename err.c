@@ -67,7 +67,7 @@ cell *error_rti(const char *msg, integer_t val) {
 cell *error_rt1(const char *msg, cell *arg) {
     fflush(stdout);
     fprintf(stderr,"error; %s: ", msg);
-    cell_print(stderr, arg);
+    cell_write(stderr, arg);
     fprintf(stderr,"\n");
     fflush(stderr);
     cell_unref(arg);
@@ -94,7 +94,7 @@ void error_pat(const char *info, const char *msg, int type) {
 void error_pa1(const char *info, const char *msg, cell *arg) {
     fflush(stdout);
     fprintf(stderr,"error%s; %s: ", info, msg);
-    cell_print(stderr, arg);
+    cell_write(stderr, arg);
     fprintf(stderr,"\n");
     fflush(stderr);
     cell_unref(arg);

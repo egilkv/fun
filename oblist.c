@@ -64,31 +64,6 @@ cell *oblista(char *sym) {
     return (*pp)->symdef = cell_oblist_item(sym);
 }
 
-// find symbol, or create as undef as needed
-// symbol will be malloc()'d
-// TODO if created, state should be "not yet defined"
-// return unreffed symbol
-cell *oblists(const char *sym) {
-
-    // TODO combine with oblista() above
-    struct ob_entry **pp;
-    int hash = hash_string(sym);
-    pp = &(ob_table[hash]);
-    while (*pp) {
-        assert(cell_is_symbol((*pp)->symdef));
-        if (strcmp((*pp)->symdef->_.symbol.nam, sym) == 0) {
-	    // symbol exists already
-	    return (*pp)->symdef;
-	}
-	pp = &(*pp)->next;
-    }
-    // not found, make entry
-    *pp = malloc(sizeof(struct ob_entry));
-    assert(*pp);
-    (*pp)->next = 0;
-    return (*pp)->symdef = cell_oblist_item(strdup(sym));
-}
-
 // define value of variable
 // val is consumed
 void oblist_set(cell *sym, cell *val) {

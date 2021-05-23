@@ -9,23 +9,26 @@
 #include "cmod.h"
 #include "err.h"
 
-static void insert_prog(cell *newprog, cell* newassoc, cell **envp) {
+static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *contenv) {
+#if 0
     if (*envp && env_prog(*envp) == NIL) {
 	// end recursion, reuse environment
-        env_replace(*envp, newassoc, newprog);
-    } else {
+        env_replace(*envp, newassoc, newprog, contenv);
+    } else 
+#endif
+    {
 	// add one level to environment
-        cell *newenv = cell_env(*envp, newassoc, newprog);
+        cell *newenv = cell_env(*envp, newprog, newassoc, contenv);
 	*envp = newenv;
     }
 }
 
-// TODO check is this is right...
-static void apply_lambda(cell *fun, cell* args, cell **envp) {
-    assert(fun->type == c_LAMBDA);
+// assume fun, args and contenv are all reffed
+static void apply_cont(cell *fun, cell* args, cell *contenv, cell **envp) {
     cell *nam;
     cell *val;
-    // TODO split fun instead...
+    // TODO split fun instead?
+    assert(fun->type == c_LAMBDA);
     cell *argnames = cell_ref(fun->_.cons.car);
     cell *newassoc = cell_assoc();
 
@@ -45,8 +48,8 @@ static void apply_lambda(cell *fun, cell* args, cell **envp) {
 	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
 	}
     }
-    assert(args == NIL);
-    insert_prog(cell_ref(fun->_.cons.cdr), newassoc, envp);
+    arg0(args); // too many args?
+    insert_prog(envp, cell_ref(fun->_.cons.cdr), newassoc, contenv);
     cell_unref(fun);
 }
 
@@ -76,7 +79,7 @@ cell *eval(cell *arg, cell *env) {
                     if (assoc_get(env_assoc(e), arg, &result)) {
 			break;
 		    }
-                    e = env_prev(e);
+                    e = env_cont_env(e);
 		}
 	    }
 	    cell_unref(arg);
@@ -158,10 +161,22 @@ cell *eval(cell *arg, cell *env) {
 		    }
 		    break;
 
-		case c_LAMBDA:
-                    apply_lambda(fun, args, &env);
+                case c_CONT:
+                    // a continuation, i.e. a function being referenced
+                    {
+                        cell *lambda = cell_ref(fun->_.cons.car);
+                        cell *contenv = cell_ref(fun->_.cons.cdr);
+                        cell_unref(fun);
+                        assert(lambda && lambda->type == c_LAMBDA);
+
+                        // will use the continuation environment
+                        apply_cont(lambda, args, contenv, &env);
+                    }
 		    result = NIL; // TODO probably #void
 		    break; // continue executing
+
+		case c_LAMBDA:
+                    assert(0); // should not happen
 
 		default: // not a function
 		    // TODO show item before eval
@@ -186,13 +201,13 @@ cell *eval(cell *arg, cell *env) {
 		return result; // reached top level
 	    }
             if (env == end_env && env_prog(env) == end_prog) {
-		// arg fully done
-		return result;
+                // arg fully done // TODO this is a hack, really...
+                return result;
 	    }
             if (env_prog(env) == NIL) {
 		// reached end of current level
 		// drop one level of environment
-                cell *prevenv = cell_ref(env_prev(env)); 
+                cell *prevenv = cell_ref(env_prev(env));
                 cell_unref(env);
 		env = prevenv;
 	    } else {
@@ -203,8 +218,9 @@ cell *eval(cell *arg, cell *env) {
 	cell_unref(result);
         // TODO make more efficient
         if (!list_split2(env_progp(env), &arg)) {
-	    assert(0);
-	}
+            // assert(0);
+            return error_rt1("bad program", env_prog(env));
+        }
     }
     assert(0);
     return NIL;

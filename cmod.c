@@ -14,6 +14,7 @@
 cell *hash_f;
 cell *hash_t;
 cell *hash_void;
+cell *hash_undefined;
 
 // function with 0 arguments
 void arg0(cell *args) {
@@ -195,6 +196,7 @@ cell *ref_index(cell *a, index_t index) {
     default:
     // TODO ref should work for functions ??
     case c_FUNC:
+    case c_CONT:
     case c_SPECIAL:
     case c_SYMBOL:
     case c_INTEGER:

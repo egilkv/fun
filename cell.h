@@ -5,20 +5,21 @@
 #ifndef CELL_H
 
 #include "assoc.h"
- #include "type.h"
+#include "type.h"
 
 enum cell_t {
-   c_LIST,
-   c_FUNC,
-   c_ENV,
-   c_PAIR,
+   c_LIST,      // car is first item, cdr is rest of list
+   c_FUNC,      // from parse: car is function, cdr is args
+   c_ENV,       // car is pair, cdr is pair
+   c_CONT,      // car is the lambda, cdr is the continuation env
+   c_LAMBDA,    // car is the arguments, cdr is the body  TODO remove
+   c_PAIR,      // car is left, car is right part
    c_SYMBOL,
    c_STRING,
    c_INTEGER,
    c_VECTOR,
    c_ASSOC,
    c_SPECIAL,
-   c_LAMBDA,
    c_CFUNQ,
    c_CFUN0,
    c_CFUN1,
@@ -80,7 +81,7 @@ typedef enum cell_t celltype;
 
 typedef struct cell_s cell;
 
-cell * cell_ref(cell *cp);
+cell *cell_ref(cell *cp);
 void cell_unref(cell *cp);
 
 cell *cell_cfunQ(cell *(*fun)(cell *, cell *));
@@ -102,12 +103,16 @@ cell *cell_cdr(cell *cp);
 int list_split2(cell **cp, cell **carp);
 int pair_split(cell *cp, cell **carp, cell **cdrp);
 
-cell *cell_env(cell *next, cell *assoc, cell *prog);
-void env_replace(cell *ep, cell *newassoc, cell *newprog);
+cell *cell_env(cell *prev, cell *prog, cell *assoc, cell *contenv);
+void env_replace(cell *ep, cell *newprog, cell *newassoc, cell *newcontenv);
 cell *env_prev(cell *ep);
+cell *env_cont_env(cell *ep);
 cell *env_assoc(cell *ep);
 cell *env_prog(cell *ep);
 cell **env_progp(cell *ep);
+
+cell *cell_lambda(cell *args, cell *body);
+cell *cell_cont(cell *lambda, cell *env);
 
 cell *cell_vector(index_t length);
 int cell_is_vector(cell *cp);

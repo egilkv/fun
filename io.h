@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 
+#include "cell.h"
+
 cell *module_io();
 
-void cell_print(FILE *out, cell *ct);
+void cell_write(FILE *out, cell *ct);

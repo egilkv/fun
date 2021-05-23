@@ -5,14 +5,22 @@
 #plus(a, b) ==> 3
 #plus(a, b) ==> 3
 #if(c, (a : b)) ==> 1
-#defq(factorial, #lambda(#(n), #if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))) ==> #lambda#(n)
+#defq(factorial, #lambda(#(n), #if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))) ==> #cont(
+  args: #(n)
+  body: #(#if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))
+  cont: #()
+) 
 factorial(10) ==> 3628800
-#defq(ft, #lambda(#(a, b), #defq(c, a), #defq(d, b), #plus(c, d))) ==> #lambda#(a, b)
+#defq(ft, #lambda(#(a, b), #defq(c, a), #defq(d, b), #plus(c, d))) ==> #cont(
+  args: #(a, b)
+  body: #(#defq(c, a), #defq(d, b), #plus(c, d))
+  cont: #()
+) 
 ft(50, 5) ==> 55
 #defq(v, #vector(7, 8, "hello")) ==> [ 7, 8, "hello" ] 
 #ref(v, 0) ==> 7
 #ref(v, 2) ==> "hello"
-#defq(aa, #assoc((one : 1), (two : 2), (three : 3))) ==> { three : 3, one : 1, two : 2 } 
+#defq(aa, #assoc((one : 1), (two : 2), (three : 3))) ==> { two : 2, three : 3, one : 1 } 
 #defq(ix, #quote(two)) ==> two
 #ref(aa, #quote(one)) ==> 1
 #ref(aa, ix) ==> 2
@@ -20,7 +28,7 @@ ft(50, 5) ==> 55
 #refq(aa, one) ==> 1
 #refq(aa, two) ==> 2
 #refq(aa, three) ==> 3
-#amp(aa, #assoc((two : "TWO"))) ==> error; list & not yet implemented: { three : 3, one : 1, two : 2 } 
+#amp(aa, #assoc((two : "TWO"))) ==> error; list & not yet implemented: { two : 2, three : 3, one : 1 } 
 #void
 #vector((3 : 99), (0 : "test")) ==> [ "test", #(), #(), 99 ] 
 #defq(list, #(1, 2, 3)) ==> #(1, 2, 3)
@@ -69,3 +77,24 @@ error at 55:28; misplaced item: operator is "]"
 #minus(#plus(g, f, 12), 30) ==> 0
 error at 66:2; bad character, ignored: "^"
 2 ==> 2
+#quotient(100, 2, 2) ==> 25
+undefined ==> #undefined
+#defq(io, #use("io")) ==> { write : #cfun(), getline : #cfun(), print : #cfun(), println : #cfun(), read : #cfun() } 
+#defq(text1, "ECHO") ==> "ECHO"
+#defq(text2, "DELTA") ==> "DELTA"
+#defq(invoke, #lambda(#(fn), #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #cont(
+  args: #(fn)
+  body: #(#defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)
+  cont: #()
+) 
+invoke(#lambda(#(), #refq(io, println)("case 1 is ", text1, " and ", text2))) ==> case 1 is ECHO and DELTA
+"CAROLINE"
+#defq(func, #lambda(#(), #defq(text1, "ALICE"), invoke(#lambda(#(), #refq(io, println)("case 2 is ", text1, " and ", text2))))) ==> #cont(
+  args: #()
+  body: #(#defq(text1, "ALICE"), invoke(#lambda(#(), #refq(io, println)("case 2 is ", text1, " and ", text2))))
+  cont: #()
+) 
+func() ==> case 2 is ALICE and DELTA
+"CAROLINE"
+#lambda(#(text2), invoke(#lambda(#(), #refq(io, println)("case 3 is ", text1, " and ", text2))))("ZZZ") ==> case 3 is ECHO and ZZZ
+"CAROLINE"
