@@ -241,18 +241,33 @@ static cell *cfunN_quotient(cell *args) {
 }
 
 static cell *cfunN_lt(cell *args) {
-    int argno = 0;
-    integer_t value;
-    integer_t operand;
+    number value;
+    number operand;
     cell *a;
-    // TODO should be cfunQ_lt, do not evaluate more than necessary
+    // TODO could be cfunQ_lt, do not evaluate more than necessary
+
+    if (!list_pop(&args, &a)
+     || !get_number(a, &value, args)) return cell_ref(hash_void); // error
+
     while (list_pop(&args, &a)) {
-        if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
-	if (argno++ == 0 || value < operand) { // condition satisfied?
-	    value = operand;
+	if (!get_number(a, &operand, args)) return cell_ref(hash_void); // error
+	if (value.divisor == 1 && operand.divisor == 1) { // integers
+	    if (value.dividend.ival < operand.dividend.ival) {
+		value.dividend.ival = operand.dividend.ival;
+	    } else {
+		cell_unref(args);
+		return cell_ref(hash_f); // false
+	    }
 	} else {
-	    cell_unref(args);
-	    return cell_ref(hash_f); // false
+	    // TODO should do quotients smarter
+	    make_float(&value);
+	    make_float(&operand);
+	    if (value.dividend.fval < operand.dividend.fval) {
+		value.dividend.fval = operand.dividend.fval;
+	    } else {
+		cell_unref(args);
+		return cell_ref(hash_f); // false
+	    }
 	}
     }
     assert(args == NIL);

@@ -44,15 +44,15 @@ list.0;
 // TODO module.symbol;
 "abc" & "def";
 "abcdef"[2];
-array1 = [ 0..5 : 0];
+// TODO array1 = [ 0..5 : 0];
 array1[0];
 array1[3];     // TODO generates error?
-array1[3..4];
+// TODO array1[3..4];
 
-a = [0..20]{ #t };
-// list[1 ..];
+// TODO a = [0..20]{ #t };
+// TODO list[1 ..];
 j = 15;
-a[..j-1] & []{#f} & a[j+1..];
+// TODO a[..j-1] & []{#f} & a[j+1..];
 
 // TODO what happens to '.' here:
 // ((a) { a<=1 ? a : a*.(a-1) }) (5);
@@ -93,3 +93,11 @@ func = (){
 func();
 
 ((text2){ invoke( (){ io.println("case 3 is ", text1, " and ", text2) } ) })("ZZZ");
+
+12 / - 4;
+12345678.901234 * 100000;
+
+1/2 + 1/3;
+1.0/2 + 1/3;
+1/2 - 0.5;
+

@@ -45,6 +45,10 @@ static integer_t gcd(integer_t a, integer_t b) {
 
 // normalize quotient, i.e. remove gcd component
 void normalize_q(number *np) {
+    if (np->divisor < 0) { // TODO only possible after a division????
+        np->divisor = -np->divisor; // divisor always positive
+        np->dividend.ival = -np->dividend.ival;
+    }
     if (np->divisor > 1) {
         integer_t c = gcd(np->dividend.ival, np->divisor);
         if (c > 1) {
