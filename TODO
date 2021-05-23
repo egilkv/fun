@@ -86,3 +86,5 @@ Speed up env_progp-based loop etc
 Improve GCD algorithm? Method of least absolute remainders https://en.wikipedia.org/wiki/Euclidean_algorithm
 
 Should boolean be a separate type? May still make sense to refer to the same cells
+
+Allow infinite as a number?

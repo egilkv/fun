@@ -12,6 +12,9 @@
 #include "oblist.h"
 #include "number.h"
 #include "err.h"
+#if HAVE_MATH
+#include "m_math.h"
+#endif
 
 static void cfun_exit(void);
 
@@ -496,23 +499,23 @@ static cell *cfun1_use(cell *a) {
     if (!get_cstring(a, &str, NIL)) {
         return cell_ref(hash_void); // error
     }
-    if (strcmp(str, "io") == 0) {
-	extern cell *module_io();
-	cell_unref(a);
-	return module_io();
-    }
-#ifdef HAVE_MATH
-    if (strcmp(str, "math") == 0) {
-        extern cell *module_math();
-	cell_unref(a);
-        return module_math();
-    }
-#endif
 #ifdef HAVE_GTK
     if (strcmp(str, "gtk3") == 0) {
         extern cell *module_gtk();
 	cell_unref(a);
         return module_gtk();
+    }
+#endif
+    if (strcmp(str, "io") == 0) {
+	extern cell *module_io();
+	cell_unref(a);
+	return module_io();
+    }
+#if HAVE_MATH
+    if (strcmp(str, "math") == 0) {
+        extern cell *module_math();
+	cell_unref(a);
+        return module_math();
     }
 #endif
     return error_rt1("module not found", a); // should

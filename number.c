@@ -6,7 +6,22 @@
 #include <string.h>
 
 #include "type.h"
+#include "cmod.h"
 #include "number.h"
+
+cell *cell_integer(integer_t integer) {
+    number n;
+    n.dividend.ival = integer;
+    n.divisor = 1;
+    return cell_number(&n);
+}
+
+cell *cell_real(real_t real) {
+    number n;
+    n.dividend.fval = real;
+    n.divisor = 0;
+    return cell_number(&n);
+}
 
 // make number float
 // TODO inline
@@ -36,6 +51,14 @@ int sync_float(number *n1, number *n2) {
     } else {
         return 0;
     }
+}
+
+// a in always unreffed
+// dump is unreffed only if error
+int get_float(cell *a, number *np, cell *dump) {
+    if (!get_number(a, np, dump)) return 0;
+    make_float(np);
+    return 1;
 }
 
 // used Euclidean algorithm

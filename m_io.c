@@ -9,7 +9,7 @@
 #include <assert.h>
 
 #include "cell.h"
-#include "io.h"
+#include "m_io.h"
 #include "cmod.h"
 #include "number.h"
 #include "parse.h"

@@ -8,7 +8,7 @@
 
 #include "cmod.h"
 #include "err.h"
-#include "io.h"
+#include "m_io.h"
 
 static const char *it_name[] = {
    "'",         // it_QUOTE,   // 0

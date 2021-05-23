@@ -48,7 +48,7 @@ error at 66:2; bad character, ignored: "^"
 2 ==> 2
 #quotient(100, 2, 2) ==> 25
 undefined ==> #undefined
-#defq(io, #use("io")) ==> { read : #cfun(), print : #cfun(), println : #cfun(), write : #cfun(), getline : #cfun() } 
+#defq(io, #use("io")) ==> { write : #cfun(), getline : #cfun(), read : #cfun(), print : #cfun(), println : #cfun() } 
 #defq(text1, "ECHO") ==> "ECHO"
 #defq(text2, "DELTA") ==> "DELTA"
 #defq(invoke, #lambda(#(fn), #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #cont(
@@ -72,3 +72,21 @@ func() ==> case 2 is ALICE and DELTA
 #plus(#quotient(1, 2), #quotient(1, 3)) ==> 5/6
 #plus(#quotient(1.0, 2), #quotient(1, 3)) ==> 0.833333333333333
 #minus(#quotient(1, 2), 0.5) ==> 0.0
+#defq(m, #use("math")) ==> { pi : 3.14159265358979, asin : #cfun(), ceil : #cfun(), floor : #cfun(), log10 : #cfun(), pow : #cfun(), sqrt : #cfun(), e : 2.71828182845905, acos : #cfun(), atan : #cfun(), cos : #cfun(), log : #cfun(), sin : #cfun(), tan : #cfun(), abs : #cfun(), div : #cfun(), mod : #cfun() } 
+#refq(m, sqrt)(2) ==> 1.4142135623731
+#refq(m, sqrt)(-2) ==> error; no real square root
+#void
+#refq(m, e) ==> 2.71828182845905
+#refq(m, sin)(#quotient(#refq(m, pi), 2)) ==> 1.0
+#refq(m, tan)(#quotient(#refq(m, pi), 4)) ==> 1.0
+#refq(m, tan)(#quotient(#refq(m, pi), 2)) ==> 1.63312393531954e+16
+#refq(m, atan)(9999999999999) ==> 1.5707963267948
+#refq(m, pow)(10, 9) ==> 1000000000.0
+#refq(m, pow)(10, 90) ==> 1e+90.0
+#refq(m, pow)(10, 900) ==> error; pow out of range
+#void
+#refq(m, pow)(-10, 9) ==> -1000000000.0
+#refq(m, pow)(10, -9) ==> 1e-09.0
+#refq(m, abs)(#minus(12.34)) ==> 12.34
+#refq(m, abs)(-12) ==> 12
+#refq(m, abs)(#minus(#quotient(12, 34))) ==> 6/17

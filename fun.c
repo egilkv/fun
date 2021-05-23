@@ -11,7 +11,7 @@
 #include "parse.h"
 #include "oblist.h"
 #include "cfun.h"
-#include "io.h"
+#include "m_io.h"
 #include "err.h"
 
 static void chomp(lxfile *f);

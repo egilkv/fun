@@ -135,7 +135,6 @@ cell *cell_special(const char *magic, void *ptr);
 int cell_is_special(cell *cp, const char *magic);
 
 cell *cell_number(number *np);
-cell *cell_integer(integer_t integer);
 int cell_is_number(cell *cp);
 int cell_is_integer(cell *cp);
 

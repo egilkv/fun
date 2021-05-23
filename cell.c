@@ -226,13 +226,6 @@ cell *cell_number(number *np) {
     return node;
 }
 
-cell *cell_integer(integer_t integer) {
-    cell *node = newcell(c_NUMBER);
-    node->_.n.dividend.ival = integer;
-    node->_.n.divisor = 1;
-    return node;
-}
-
 cell *cell_cfunQ(struct cell_s *(*fun)(cell *, cell *)) {
     cell *node = newcell(c_CFUNQ);
     node->_.cfunq.def = fun;
