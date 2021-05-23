@@ -11,6 +11,7 @@
 #include "cell.h"
 #include "io.h"
 #include "cmod.h"
+#include "number.h"
 #include "parse.h"
 
 static cell *io_assoc = NIL;
@@ -63,8 +64,22 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, ")");
         return;
 
-    case c_INTEGER:
-        fprintf(out, "%lld", ct->_.ivalue); // 64bit
+    case c_NUMBER:
+        switch (ct->_.n.divisor) {
+        case 1:
+            fprintf(out, "%lld", ct->_.n.dividend.ival); // 64bit
+            break;
+        case 0:
+            {
+                char buf[FORMAT_REAL_LEN];
+                format_real(ct->_.n.dividend.fval, buf);
+                fprintf(out, "%s", buf);
+            }
+            break;
+        default:
+            fprintf(out, "%lld/%lld", ct->_.n.dividend.ival, ct->_.n.divisor); // 64bit
+            break;
+        }
         return;
 
     case c_STRING:
@@ -222,7 +237,7 @@ static cell *cfio_print(cell *args) {
         case c_STRING:
             fwrite(a->_.string.ptr, sizeof(char_t), a->_.string.len, stdout);
             break;
-        case c_INTEGER:
+        case c_NUMBER:
         case c_SYMBOL:
             cell_write(stdout, a);
             break;

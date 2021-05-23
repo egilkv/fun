@@ -63,13 +63,26 @@ int arg2(cell *args, cell **ap, cell **bp) {
 
 // a in always unreffed
 // dump is unreffed only if error
-int get_integer(cell *a, integer_t *valuep, cell *dump) {
-    if (!cell_is_integer(a)) {
+int get_number(cell *a, number *np, cell *dump) {
+    if (!cell_is_number(a)) {
 	cell_unref(dump);
 	cell_unref(error_rt1("not a number", a));
 	return 0;
     }
-    *valuep = a->_.ivalue;
+    *np = a->_.n;
+    cell_unref(a);
+    return 1;
+}
+
+// a in always unreffed
+// dump is unreffed only if error
+int get_integer(cell *a, integer_t *valuep, cell *dump) {
+    if (!cell_is_integer(a)) {
+	cell_unref(dump);
+        cell_unref(error_rt1("not an integer", a));
+	return 0;
+    }
+    *valuep = a->_.n.dividend.ival;
     cell_unref(a);
     return 1;
 }
@@ -199,7 +212,7 @@ cell *ref_index(cell *a, index_t index) {
     case c_CONT:
     case c_SPECIAL:
     case c_SYMBOL:
-    case c_INTEGER:
+    case c_NUMBER:
     case c_ASSOC:
 	 break;
     }

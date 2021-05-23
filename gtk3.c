@@ -13,6 +13,7 @@
 #include <gtk/gtk.h>
 
 #include "cmod.h"
+#include "number.h"
 #include "err.h"
 
 static const char *magic_gtk_app = "gtk_application";
@@ -163,13 +164,32 @@ static cell *cgtk_main() {
 
 static cell *cgtk_print(cell *args) {
     cell *a;
+    // TODO sync with io
     while (list_pop(&args, &a)) {
         if (a) switch (a->type) { // NIL prints as nothing
         case c_STRING:
             g_print("%s", a->_.string.ptr); // print to NUL
             break;
-        case c_INTEGER:
-            g_print("%lld", a->_.ivalue);
+        case c_NUMBER:
+            switch (a->_.n.divisor) {
+            case 1:
+                g_print("%lld", a->_.n.dividend.ival); // 64bit
+                break;
+            case 0:
+                {
+                    char buf[FORMAT_REAL_LEN];
+                    format_real(a->_.n.dividend.fval, buf);
+                    g_print("%s", buf);
+                }
+                break;
+            default:
+                {
+                    char buf[FORMAT_REAL_LEN];
+                    format_real((1.0 * a->_.n.dividend.ival) / a->_.n.divisor, buf);
+                    g_print("%s", buf);
+                }
+                break;
+            }
             break;
         case c_SYMBOL:
             g_print("%s", a->_.symbol.nam);

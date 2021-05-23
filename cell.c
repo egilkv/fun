@@ -86,8 +86,12 @@ int cell_is_special(cell *cp, const char *magic) {
 }
 
 // TODO inline
+int cell_is_number(cell *cp) {
+    return cp && cp->type == c_NUMBER;
+}
+
 int cell_is_integer(cell *cp) {
-    return cp && cp->type == c_INTEGER;
+    return cp && cp->type == c_NUMBER && cp->_.n.divisor == 1;
 }
 
 // TODO inline
@@ -216,9 +220,16 @@ cell *cell_astring(char_t *string, index_t length) {
     return node;
 }
 
+cell *cell_number(number *np) {
+    cell *node = newcell(c_NUMBER);
+    node->_.n = *np;
+    return node;
+}
+
 cell *cell_integer(integer_t integer) {
-    cell *node = newcell(c_INTEGER);
-    node->_.ivalue = integer;
+    cell *node = newcell(c_NUMBER);
+    node->_.n.dividend.ival = integer;
+    node->_.n.divisor = 1;
     return node;
 }
 
@@ -364,7 +375,7 @@ static void cell_free(cell *node) {
     case c_STRING:
         free(node->_.string.ptr);
         break;
-    case c_INTEGER:
+    case c_NUMBER:
         break;
     case c_CFUNQ:
     case c_CFUN0:

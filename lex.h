@@ -34,7 +34,7 @@ enum it_ {
    it_RBRK,
    it_LBRC,
    it_RBRC,
-   it_INTEGER,
+   it_NUMBER,
    it_STRING,  // 30
    it_SYMBOL
 } ;
@@ -55,7 +55,9 @@ typedef struct file_s lxfile;
 
 struct item_s {
     token type;
-    integer_t ivalue; // TODO union for efficiency?
+    // TODO union for efficiency?
+    number nvalue;
+    real_t decimal;
     index_t slen;
     char_t *svalue;
 };

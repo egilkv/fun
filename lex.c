@@ -16,6 +16,7 @@
 
 #include "lex.h"
 #include "err.h"
+#include "number.h"
 #include "opt.h"
 
 static item *pushback = 0;
@@ -221,14 +222,31 @@ static item *gotdigit(char c, item *it, lxfile *in) {
         if (it->type == it_SYMBOL) {
             return gotsymbol(c, it, in);
         }
-        if (it->type != it_INTEGER) {
+        if (it->type != it_NUMBER) {
             lxungetc(c, in);
             return it;
         }
     } else {
-        it = newitem(it_INTEGER);
+        it = newitem(it_NUMBER);
+        it->nvalue.dividend.ival = 0;
+        it->nvalue.divisor = 1;
     }
-    it->ivalue = it->ivalue*10 + c-'0';
+    if (c == '.') {
+        if (it->nvalue.divisor == 1) { // integer?
+            make_float(&(it->nvalue));
+            it->decimal = 1.0;
+        } else {
+            // float already, ignore
+            error_lex(lxfile_info(in), "extra . in number ignored", c);
+        }
+    } else { // digit
+        if (it->nvalue.divisor == 1) { // integer?
+            it->nvalue.dividend.ival = it->nvalue.dividend.ival*10 + c-'0';
+        } else {
+            it->decimal /= 10.0;
+            it->nvalue.dividend.fval += (c-'0') * it->decimal;
+        }
+    }
     return nextchar(it, in);
 }
 
@@ -389,7 +407,9 @@ static item *gotbar(char c, item *it, lxfile *in) {
 
 static item *gotstop(char c, item *it, lxfile *in) {
     if (it) {
-        if (it->type == it_STOP) {
+        if (it->type == it_NUMBER) {
+            return gotdigit(c, it, in);
+        } else if (it->type == it_STOP) {
             it->type = it_ELIP;
         } else {
             lxungetc(c, in);

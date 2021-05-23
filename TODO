@@ -1,9 +1,11 @@
 
-GTK examples no longer work
+GTK callback no longer works
 
-Number:
-	union { integer_t float_t }
-	integer_t divisor; // 0 if float, 1 if integer, otherwise quotient
+Does not parse: -12 / 4;
+
+Also: 35: instead of 35; is strange
+
+Implement floats for > and so on
 
 Env is a structure with misc state info?
 
@@ -82,3 +84,5 @@ Sort assocs when printing (by default) to stabilize output generated
 Speed up env_progp-based loop etc
 
 Can optimize #CONT with NIL continuation, probably replace by c_LAMBDA
+
+Improve GCD algorithm? Method of least absolute remainders https://en.wikipedia.org/wiki/Euclidean_algorithm

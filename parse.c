@@ -36,8 +36,8 @@ static cell *expr(precedence lv, lxfile *in) {
 
     switch (it->type) {
 
-    case it_INTEGER:
-        pt = cell_integer(it->ivalue);
+    case it_NUMBER:
+        pt = cell_number(&(it->nvalue));
         dropitem(it);
         return binary(pt, lv, in);
 
@@ -66,7 +66,7 @@ static cell *expr(precedence lv, lxfile *in) {
 	if (cell_is_integer(p2)) {
 	    // handle unary minus of number here
 	    // TODO deal with overflow
-            p2->_.ivalue = -(p2->_.ivalue);
+            p2->_.n.dividend.ival = -(p2->_.n.dividend.ival);
 	    return p2;
 	}
         return cell_func(cell_ref(hash_minus), cell_list(p2, NIL));
@@ -414,7 +414,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
     case it_NOT: // unary only
     case it_QUOTE:
     case it_LBRC:
-    case it_INTEGER:
+    case it_NUMBER:
     case it_STRING:
     case it_SYMBOL:
         break;

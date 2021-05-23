@@ -14,6 +14,7 @@ void arg0(cell *args);
 int arg1(cell *args, cell **ap);
 int arg2(cell *args, cell **ap, cell **bp);
 int arg3(cell *args, cell **ap, cell **bp, cell **cp);
+int get_number(cell *a, number *valuep, cell *dump);
 int get_integer(cell *a, integer_t *valuep, cell *dump);
 int get_index(cell *a, index_t *indexp, cell *dump);
 int get_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump);

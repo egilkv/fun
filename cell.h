@@ -16,7 +16,7 @@ enum cell_t {
    c_PAIR,      // car is left, car is right part
    c_SYMBOL,
    c_STRING,
-   c_INTEGER,
+   c_NUMBER,
    c_VECTOR,
    c_ASSOC,
    c_SPECIAL,
@@ -36,7 +36,7 @@ struct cell_s {
             struct cell_s *car;
             struct cell_s *cdr;
         } cons;
-        integer_t ivalue;
+        number n;
         struct {
             struct cell_s **table; // pointer to vector
             index_t len; // length of vector
@@ -134,7 +134,9 @@ int cell_is_assoc(cell *cp);
 cell *cell_special(const char *magic, void *ptr);
 int cell_is_special(cell *cp, const char *magic);
 
+cell *cell_number(number *np);
 cell *cell_integer(integer_t integer);
+int cell_is_number(cell *cp);
 int cell_is_integer(cell *cp);
 
 cell *eval(cell *arg, cell *env); // defined in eval.c

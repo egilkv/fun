@@ -6,9 +6,11 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h> // isinf() isnan()
 
 #include "cfun.h"
 #include "oblist.h"
+#include "number.h"
 #include "err.h"
 
 static void cfun_exit(void);
@@ -131,67 +133,111 @@ static cell *cfunQ_lambda(cell *args, cell *env) {
 }
 
 static cell *cfunN_plus(cell *args) {
-    integer_t result = 0;
-    integer_t operand;
+    number result;
+    number operand;
     cell *a;
+    result.dividend.ival = 0;
+    result.divisor = 1;
     while (list_pop(&args, &a)) {
-        if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
-        result += operand; // TODO overflow etc
+        if (!get_number(a, &operand, args)) return cell_ref(hash_void);
+	if (sync_float(&result, &operand)) {
+            result.dividend.fval += operand.dividend.fval;
+        } else {
+            result.dividend.ival = result.dividend.ival * operand.divisor +
+                                   operand.dividend.ival * result.divisor;
+            result.divisor *= operand.divisor;
+            normalize_q(&result);
+        }
+        // TODO overflow etc
     }
     assert(args == NIL);
-    return cell_integer(result);
+    return cell_number(&result);
 }
 
 static cell *cfunN_minus(cell *args) {
-    integer_t result = 0;
-    integer_t operand;
+    number result;
+    number operand;
     cell *a;
+    result.dividend.ival = 0;
+    result.divisor = 1;
     if (!list_pop(&args, &a)
-     || !get_integer(a, &result, args)) return cell_ref(hash_void); // error
+     || !get_number(a, &result, args)) return cell_ref(hash_void); // error
     if (args == NIL) {
         // special case, one argument
-        result = -result; // TODO overflow
+        if (result.divisor == 0) {
+            result.dividend.fval = -result.dividend.fval;
+        } else {
+            result.dividend.ival = -result.dividend.ival;
+            // TODO overflow
+        }
     }
     while (list_pop(&args, &a)) {
-        if (!get_integer(a, &operand, args)) return cell_ref(hash_void);
-        result -= operand; // TODO overflow etc
+        if (!get_number(a, &operand, args)) return cell_ref(hash_void);
+	if (sync_float(&result, &operand)) {
+            result.dividend.fval -= operand.dividend.fval;
+        } else {
+            result.dividend.ival = result.dividend.ival * operand.divisor -
+                                   operand.dividend.ival * result.divisor;
+            result.divisor *= operand.divisor;
+            normalize_q(&result);
+        }
+        // TODO overflow etc
     }
     assert(args == NIL);
-    return cell_integer(result);
+    return cell_number(&result);
 }
 
 static cell *cfunN_times(cell *args) {
-    integer_t result = 1;
-    integer_t operand;
+    number result;
+    number operand;
     cell *a;
+    result.dividend.ival = 1;
+    result.divisor = 1;
     while (list_pop(&args, &a)) {
-        if (!get_integer(a, &operand, args)) return cell_ref(hash_void);
-        result *= operand; // TODO overflow etc
+        if (!get_number(a, &operand, args)) return cell_ref(hash_void);
+	if (sync_float(&result, &operand)) {
+            result.dividend.fval *= operand.dividend.fval;
+        } else {
+            result.dividend.ival *= operand.dividend.ival;
+            result.divisor *= operand.divisor;
+            normalize_q(&result);
+        }
+        // TODO overflow etc
     }
     assert(args == NIL);
-    return cell_integer(result);
+    return cell_number(&result);
 }
 
 // TODO div mod quotient - in standard lisp quotient is integer division
 static cell *cfunN_quotient(cell *args) {
-    integer_t result;
-    integer_t operand;
+    number result;
+    number operand;
     cell *a;
     if (!list_pop(&args, &a)) {
         return error_rt1("at least one argument required", args);
     }
-    // in standard lisp (/ 5) is shorthand for 1/5
-    if (!get_integer(a, &result, args)) return cell_ref(hash_void); // error
+    // remark: in standard lisp (/ 5) is shorthand for 1/5
+    if (!get_number(a, &result, args)) return cell_ref(hash_void); // error
 
     while (list_pop(&args, &a)) {
-        if (!get_integer(a, &operand, args)) return cell_ref(hash_void); // error
-
-        if (operand == 0) {
-            return error_rt0("attempted division by zero");
-        }
-        result /= operand;
+	if (!get_number(a, &operand, args)) return cell_ref(hash_void); // error
+	if (sync_float(&result, &operand)) {
+	    result.dividend.fval /= operand.dividend.fval;
+	    // TODO how to deal with div-by-zero and overflow
+            if (isinf(result.dividend.fval) || isnan(result.dividend.fval)) {
+                return error_rt0("attempted division by zero"); // TODO
+            }
+	} else {
+	    result.dividend.ival *= operand.divisor;
+	    result.divisor *= operand.dividend.ival;
+	    // TODO overflow and so on
+	    if (result.divisor == 0) {
+		return error_rt0("attempted division by zero");
+	    }
+            normalize_q(&result);
+	}
     }
-    return cell_integer(result);
+    return cell_number(&result);
 }
 
 static cell *cfunN_lt(cell *args) {
@@ -367,9 +413,10 @@ static cell *cfunN_eq(cell *args) {
             }
             break;
 
-        case c_INTEGER:
-            if (!cell_is_integer(first)
-             || first->_.ivalue != a->_.ivalue) {
+        case c_NUMBER:
+            if (!cell_is_number(first)
+             || first->_.n.dividend.ival != a->_.n.dividend.ival // 64bit
+             || first->_.n.divisor != a->_.n.divisor) { // TODO compare float to integer etc
                 eq = 0;
                 cell_unref(args);
                 args = NIL;
@@ -439,6 +486,13 @@ static cell *cfun1_use(cell *a) {
 	cell_unref(a);
 	return module_io();
     }
+#ifdef HAVE_MATH
+    if (strcmp(str, "math") == 0) {
+        extern cell *module_math();
+	cell_unref(a);
+        return module_math();
+    }
+#endif
 #ifdef HAVE_GTK
     if (strcmp(str, "gtk3") == 0) {
         extern cell *module_gtk();
