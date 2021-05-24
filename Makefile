@@ -13,7 +13,7 @@ fun: fun.c lex.c lex.h parse.c parse.h cell.c cell.h oblist.c oblist.h cmod.c cf
 	  gcc -g -Wall -DHAVE_READLINE -DHAVE_MATH fun.c lex.c parse.c cell.c oblist.c cmod.c cfun.c eval.c err.c m_io.c m_math.c assoc.c debug.c number.c -o fun -lreadline -lm
 
 scan:
-	  scan-build gcc -g -Wall fun.c lex.c parse.c cell.c oblist.c cmod.c cfun.c eval.c err.c m_io.c m_math.c assoc.c -o fun
+	 scan-build gcc -g -Wall	    -DHAVE_MATH fun.c lex.c parse.c cell.c oblist.c cmod.c cfun.c eval.c err.c m_io.c m_math.c assoc.c debug.c number.c -o fun -lm
 
 test: fun test.fun
 	valgrind --leak-check=full \
