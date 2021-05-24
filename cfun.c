@@ -244,34 +244,71 @@ static cell *cfunN_quotient(cell *args) {
 }
 
 static cell *cfunN_lt(cell *args) {
-    number value;
-    number operand;
     cell *a;
     // TODO could be cfunQ_lt, do not evaluate more than necessary
 
-    if (!list_pop(&args, &a)
-     || !get_number(a, &value, args)) return cell_ref(hash_void); // error
-
-    while (list_pop(&args, &a)) {
-	if (!get_number(a, &operand, args)) return cell_ref(hash_void); // error
-	if (value.divisor == 1 && operand.divisor == 1) { // integers
-	    if (value.dividend.ival < operand.dividend.ival) {
-		value.dividend.ival = operand.dividend.ival;
-	    } else {
-		cell_unref(args);
-		return cell_ref(hash_f); // false
-	    }
-	} else {
-	    // TODO should do quotients smarter
-	    make_float(&value);
-	    make_float(&operand);
-	    if (value.dividend.fval < operand.dividend.fval) {
-		value.dividend.fval = operand.dividend.fval;
-	    } else {
-		cell_unref(args);
-		return cell_ref(hash_f); // false
-	    }
-	}
+    if (!list_pop(&args, &a)) return cell_ref(hash_void);
+    if (cell_is_string(a)) {
+        // 
+        // compare strings
+        //
+        cell *value = a;
+        char_t *v_ptr;
+        index_t v_len;
+        if (!peek_string(a, &v_ptr, &v_len, NIL)) {
+            assert(0);
+        }
+        while (list_pop(&args, &a)) {
+            char_t *ptr;
+            index_t len;
+            int cmp;
+            if (!peek_string(a, &ptr, &len, args)) {
+                cell_unref(value);
+                return cell_ref(hash_void); // error
+            }
+            // TODO compare using length instead!
+            cmp = strcmp(v_ptr, ptr);
+            if (cmp < 0) {
+                cell_unref(value);
+                value = a;
+                v_ptr = ptr;
+                v_len = len;
+            } else {
+                cell_unref(value);
+                cell_unref(a);
+                cell_unref(args);
+                return cell_ref(hash_f); // false
+            }
+        }
+        cell_unref(value);
+    } else {
+        //
+        // compare numbers
+        //
+        number value;
+        number operand;
+        if (!get_number(a, &value, args)) return cell_ref(hash_void); // error
+        while (list_pop(&args, &a)) {
+            if (!get_number(a, &operand, args)) return cell_ref(hash_void); // error
+            if (value.divisor == 1 && operand.divisor == 1) { // integers
+                if (value.dividend.ival < operand.dividend.ival) {
+                    value.dividend.ival = operand.dividend.ival;
+                } else {
+                    cell_unref(args);
+                    return cell_ref(hash_f); // false
+                }
+            } else {
+                // TODO should do quotients smarter
+                make_float(&value);
+                make_float(&operand);
+                if (value.dividend.fval < operand.dividend.fval) {
+                    value.dividend.fval = operand.dividend.fval;
+                } else {
+                    cell_unref(args);
+                    return cell_ref(hash_f); // false
+                }
+            }
+        }
     }
     assert(args == NIL);
     return cell_ref(hash_t);

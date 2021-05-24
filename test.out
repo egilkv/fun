@@ -139,3 +139,6 @@ func() ==> case 2 is ALICE and DELTA
 #refq(m, int)(#minus(12.6)) ==> -13
 #refq(m, int)(#quotient(10, 3)) ==> 3
 #refq(m, int)(#quotient(11, 3)) ==> 4
+#lt("a", "b", "c") ==> #t
+#lt("aa", "a") ==> #f
+#lt("b", "a", "x") ==> #f

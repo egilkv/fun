@@ -7,6 +7,8 @@ Restore end recursion
 
 Can optimize #CONT with NIL continuation, probably replace by c_LAMBDA
 
+String compare < etc
+
 Does not parse: -12 / 4;
 
 Also: 35: instead of 35; is strange
