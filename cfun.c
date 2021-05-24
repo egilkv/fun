@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h> // isinf() isnan()
+#include <math.h>
 
 #include "cfun.h"
 #include "oblist.h"
@@ -145,28 +145,33 @@ static cell *cfunN_plus(cell *args) {
         if (!get_number(a, &operand, args)) return cell_ref(hash_void);
 	if (sync_float(&result, &operand)) {
             result.dividend.fval += operand.dividend.fval;
-            if (isinf(result.dividend.fval)) {
+            if (!isfinite(result.dividend.fval)) {
 		return err_overflow(args);
             }
         } else {
-#if 0
-	    if (__builtin_saddll_overflow(result.dividend.ival,
-                                          operand.dividend.ival,
-                                          &(result.dividend.ival))) {
-		return err_overflow(args);
-            }
+#ifdef __GNUC__
             if (__builtin_smulll_overflow(result.dividend.ival,
+                                          operand.divisor,
+                                          &(result.dividend.ival))
+             || __builtin_smulll_overflow(operand.dividend.ival,
+                                          result.divisor,
+                                          &(operand.dividend.ival))
+             || __builtin_saddll_overflow(result.dividend.ival,
                                           operand.dividend.ival,
-                                          &(result.dividend.ival))) {
+                                          &(result.dividend.ival))
+             || __builtin_smulll_overflow(result.divisor,
+                                          operand.divisor,
+                                          &(result.divisor))) {
 		return err_overflow(args);
             }
-#endif
+#else
+            // no overflow detection
             result.dividend.ival = result.dividend.ival * operand.divisor +
                                    operand.dividend.ival * result.divisor;
             result.divisor *= operand.divisor;
+#endif
             normalize_q(&result);
         }
-        // TODO overflow etc
     }
     assert(args == NIL);
     return cell_number(&result);
@@ -186,26 +191,47 @@ static cell *cfunN_minus(cell *args) {
             result.dividend.fval = -result.dividend.fval;
 	    // cannot overflow, we believe
         } else {
-	    // result.dividend.ival = -result.dividend.ival;
+#ifdef __GNUC__
 	    if (__builtin_ssubll_overflow(0,
 					  result.dividend.ival,
                                           &(result.dividend.ival))) {
 		return err_overflow(args);
             }
+#else
+            // no overflow detection
+            result.dividend.ival = -result.dividend.ival;
+#endif
         }
     }
     while (list_pop(&args, &a)) {
         if (!get_number(a, &operand, args)) return cell_ref(hash_void);
 	if (sync_float(&result, &operand)) {
             result.dividend.fval -= operand.dividend.fval;
-            if (isinf(result.dividend.fval)) {
+            if (!isfinite(result.dividend.fval)) {
 		return err_overflow(args);
             }
         } else {
-	    // TODO overflow etc
+#ifdef __GNUC__
+            if (__builtin_smulll_overflow(result.dividend.ival,
+                                          operand.divisor,
+                                          &(result.dividend.ival))
+             || __builtin_smulll_overflow(operand.dividend.ival,
+                                          result.divisor,
+                                          &(operand.dividend.ival))
+             || __builtin_ssubll_overflow(result.dividend.ival,
+                                          operand.dividend.ival,
+                                          &(result.dividend.ival))
+             || __builtin_smulll_overflow(result.divisor,
+                                          operand.divisor,
+                                          &(result.divisor))) {
+		return err_overflow(args);
+            }
+#else
+            // no overflow detection
             result.dividend.ival = result.dividend.ival * operand.divisor -
                                    operand.dividend.ival * result.divisor;
             result.divisor *= operand.divisor;
+#endif
             normalize_q(&result);
         }
     }
@@ -223,16 +249,20 @@ static cell *cfunN_times(cell *args) {
         if (!get_number(a, &operand, args)) return cell_ref(hash_void);
 	if (sync_float(&result, &operand)) {
             result.dividend.fval *= operand.dividend.fval;
-            if (isinf(result.dividend.fval)) {
+            if (!isfinite(result.dividend.fval)) {
 		return err_overflow(args);
             }
         } else {
-            // result.divisor *= operand.divisor;
+#ifdef __GNUC__
             if (__builtin_smulll_overflow(result.dividend.ival,
                                           operand.dividend.ival,
                                           &(result.dividend.ival))) {
 		return err_overflow(args);
             }
+#else
+            // no overflow detection
+            result.divisor *= operand.divisor;
+#endif
             normalize_q(&result);
         }
         // TODO overflow etc
@@ -256,23 +286,31 @@ static cell *cfunN_quotient(cell *args) {
 	if (!get_number(a, &operand, args)) return cell_ref(hash_void); // error
 	if (sync_float(&result, &operand)) {
 	    result.dividend.fval /= operand.dividend.fval;
-	    // TODO how to deal with div-by-zero and overflow
-	    // TODO when do we get isnan
-            if (isinf(result.dividend.fval) || isnan(result.dividend.fval)) {
-                return error_rt0("attempted division by zero"); // TODO
+            if (!isfinite(result.dividend.fval)) {
+                if (operand.dividend.fval == 0.0) {
+                    cell_unref(args);
+                    return error_rt0("attempted division by zero");
+                } else {
+                    return err_overflow(args);
+                }
             }
 	} else {
-	    result.dividend.ival *= operand.divisor;
-	    result.divisor *= operand.dividend.ival;
-#if 0
+#ifdef __GNUC__
             if (__builtin_smulll_overflow(result.dividend.ival,
+                                          operand.divisor,
+                                          &(result.dividend.ival))
+             || __builtin_smulll_overflow(result.divisor,
                                           operand.dividend.ival,
-                                          &(result.dividend.ival))) {
+                                          &(result.divisor))) {
 		return err_overflow(args);
             }
+#else
+            // no overflow detection
+            result.dividend.ival *= operand.divisor;
+            result.divisor *= operand.dividend.ival;
 #endif
-	    // TODO overflow and so on, check also normalize_q
 	    if (result.divisor == 0) {
+                cell_unref(args);
 		return error_rt0("attempted division by zero");
 	    }
             normalize_q(&result);

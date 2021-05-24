@@ -88,7 +88,7 @@ static cell *cmath_sqrt(cell *a) {
     number na;
     if (!get_float(a, &na, NIL)) return cell_ref(hash_void); // error
     na.dividend.fval = sqrt(na.dividend.fval);
-    if (isnan(na.dividend.fval)) return error_rt0("no real square root");
+    if (!isfinite(na.dividend.fval)) return error_rt0("no real square root");
     return cell_number(&na);
 }
 
@@ -101,7 +101,7 @@ static cell *cmath_pow(cell *a, cell *b) {
     }
     // TODO handle special cases of integer power?
     na.dividend.fval = pow(na.dividend.fval, nb.dividend.fval);
-    if (isinf(na.dividend.fval)) return error_rt0("pow out of range");
+    if (!isfinite(na.dividend.fval)) return error_rt0("pow out of range");
     return cell_number(&na);
 }
 
@@ -109,7 +109,7 @@ static cell *cmath_log(cell *a) {
     number na;
     if (!get_float(a, &na, NIL)) return cell_ref(hash_void); // error
     na.dividend.fval = log(na.dividend.fval);
-    if (isnan(na.dividend.fval)) return error_rt0("log undefined for negative argument");
+    if (!isfinite(na.dividend.fval)) return error_rt0("log undefined for negative argument");
     return cell_number(&na);
 }
 
@@ -117,7 +117,7 @@ static cell *cmath_log10(cell *a) {
     number na;
     if (!get_float(a, &na, NIL)) return cell_ref(hash_void); // error
     na.dividend.fval = log10(na.dividend.fval);
-    if (isnan(na.dividend.fval)) return error_rt0("log undefined for negative argument");
+    if (!isfinite(na.dividend.fval)) return error_rt0("log undefined for negative argument");
     return cell_number(&na);
 }
 
@@ -139,7 +139,7 @@ static cell *cmath_tan(cell *a) {
     number na;
     if (!get_float(a, &na, NIL)) return cell_ref(hash_void); // error
     na.dividend.fval = tan(na.dividend.fval);
-    if (isnan(na.dividend.fval)) return error_rt0("tan out of range"); // TODO investige'
+    if (!isfinite(na.dividend.fval)) return error_rt0("tan out of range"); // TODO investige'
     return cell_number(&na);
 }
 
@@ -148,7 +148,7 @@ static cell *cmath_acos(cell *a) {
     if (!get_float(a, &na, NIL)) return cell_ref(hash_void); // error
     make_float(&na);
     na.dividend.fval = acos(na.dividend.fval);
-    if (isnan(na.dividend.fval)) {
+    if (!isfinite(na.dividend.fval)) {
         return error_rt0("acos out of range");
     }
     return cell_number(&na);
@@ -158,7 +158,7 @@ static cell *cmath_asin(cell *a) {
     number na;
     if (!get_float(a, &na, NIL)) return cell_ref(hash_void); // error
     na.dividend.fval = asin(na.dividend.fval);
-    if (isnan(na.dividend.fval)) return error_rt0("asin out of range");
+    if (!isfinite(na.dividend.fval)) return error_rt0("asin out of range");
     return cell_number(&na);
 }
 

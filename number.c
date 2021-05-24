@@ -72,6 +72,7 @@ void normalize_q(number *np) {
     if (np->divisor < 0) { // TODO only possible after a division????
         np->divisor = -np->divisor; // divisor always positive
         np->dividend.ival = -np->dividend.ival;
+        // TODO overflow
     }
     if (np->divisor > 1) {
         integer_t c = gcd(np->dividend.ival, np->divisor);

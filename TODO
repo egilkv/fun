@@ -1,6 +1,4 @@
 
-Use !isfinite() to check for float errs
-
 GTK callback no longer works
 
 100000000000000000000000000000000000000000000000000.0 does not work for input
@@ -12,8 +10,6 @@ Optimize return cell_ref(hash_void); // error
 Restore end recursion
 
 Can optimize #CONT with NIL continuation, probably replace by c_LAMBDA
-
-String compare < etc
 
 Does not parse: -12 / 4;
 
@@ -29,12 +25,12 @@ Functions within assocs must be able to refer to their own assoc
 
 |-operator is for replacements, so somewhat related to &.
 
-How to deal with io not being pure functions?
+How to deal with io etc. not being pure functions?
 
-Lists and assocs can also be used for functions. Skip [] operator.
+Lists and assocs can also be used for functions. Skip [] operator?
 
 [] is NIL, maybe also {} ??
-Delay creation of assoc list
+Delay creation of assoc list?
 
 Lists and vectors are the same, so drop lists (make it up to runtime to switch)
 
