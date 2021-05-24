@@ -24,11 +24,10 @@ static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *conten
 }
 
 // assume fun, args and contenv are all reffed
-static void apply_cont(cell *fun, cell* args, cell *contenv, cell **envp) {
+static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     cell *nam;
     cell *val;
-    // TODO split fun instead?
-    assert(fun->type == c_LAMBDA);
+    assert(fun->type == c_CLOSURE0);
     cell *argnames = cell_ref(fun->_.cons.car);
     cell *newassoc = cell_assoc();
 
@@ -161,22 +160,23 @@ cell *eval(cell *arg, cell *env) {
 		    }
 		    break;
 
-                case c_CONT:
+                case c_CLOSURE:
                     // a continuation, i.e. a function being referenced
                     {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        assert(lambda && lambda->type == c_LAMBDA);
+                        assert(lambda && lambda->type == c_CLOSURE0);
 
-                        // will use the continuation environment
-                        apply_cont(lambda, args, contenv, &env);
+                        apply_closure(lambda, args, contenv, &env);
                     }
 		    result = NIL; // TODO probably #void
 		    break; // continue executing
 
-		case c_LAMBDA:
-                    assert(0); // should not happen
+                case c_CLOSURE0:
+                    apply_closure(fun, args, NIL, &env);
+		    result = NIL; // TODO probably #void
+		    break; // continue executing
 
 		default: // not a function
 		    // TODO show item before eval

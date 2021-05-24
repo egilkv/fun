@@ -1,11 +1,13 @@
 
+Parsing of multiple ifs is not good, fix it
+
 GTK callback no longer works
 
 Optimize return cell_ref(hash_void); // error
 
 Restore end recursion
 
-Can optimize #CONT with NIL continuation, probably replace by c_LAMBDA
+Get rid of pair, instead : is c_LABEL (only in some instances)
 
 Does not parse: -12 / 4;
 
@@ -100,3 +102,28 @@ Compare strings with NUL (so use memcmp instead of strcmp)
 
 TODO what to do about integer overflow? Convert to float?
 
+#include("filename");
+
+Vector/list and function subscript is the same? So fib(0..10) returns a vector
+
+Erlang example of how to deal with lists:
+
+
+qsort([]) -> []; % If the list [] is empty, return an empty list (nothing to sort)
+qsort([Pivot|Rest]) ->
+    % Compose recursively a list with 'Front' for all elements that should be before 'Pivot'
+    % then 'Pivot' then 'Back' for all elements that should be after 'Pivot'
+    qsort([Front || Front <- Rest, Front < Pivot]) ++
+    [Pivot] ++
+    qsort([Back || Back <- Rest, Back >= Pivot]).
+
+we could do:
+
+    pivot = math.div(#len(lst), 2); // how?
+    qsort(lst[0 .. pivot.1]) & lst[pivot] & qsort(lst[pivot .. ])
+
+Symbols can be called atoms
+
+A continuation is also called a closure.
+
+Maybe #length should be something else?

@@ -127,11 +127,11 @@ static cell *cfunQ_lambda(cell *args, cell *env) {
     if (!list_pop(&args, &arglist)) {
         return error_rt1("Missing function argument list", args);
     }
-    cp = cell_lambda(arglist, args);
-
     // all functions are continuations
-    cp = cell_cont(cp, cell_ref(env));
-
+    cp = cell_lambda(arglist, args);
+    if (env != NIL) {
+        cp = cell_closure(cp, cell_ref(env));
+    }
     return cp;
 }
 
@@ -559,7 +559,8 @@ static cell *cfunN_eq(cell *args) {
         case c_VECTOR: // TODO not (yet) implemented
         case c_SYMBOL: // straight comparison is enough
 	case c_FUNC:
-        case c_CONT:
+        case c_CLOSURE:
+        case c_CLOSURE0:
         default:
             eq = 0;
             cell_unref(args);

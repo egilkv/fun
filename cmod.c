@@ -208,7 +208,8 @@ cell *ref_index(cell *a, index_t index) {
     default:
     // TODO ref should work for functions ??
     case c_FUNC:
-    case c_CONT:
+    case c_CLOSURE:
+    case c_CLOSURE0:
     case c_SPECIAL:
     case c_SYMBOL:
     case c_NUMBER:

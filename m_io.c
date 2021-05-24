@@ -119,8 +119,8 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "%s", ct->_.symbol.nam);
         return;
 
-    case c_CONT:
-        fprintf(out, "#cont(\n%*sargs: ", indent+2,""); // TODO debug
+    case c_CLOSURE:
+        fprintf(out, "#closure(\n%*sargs: ", indent+2,""); // TODO debug
         cell_writei(out, ct->_.cons.car->_.cons.car, indent+4);
         fprintf(out, "\n%*sbody: ", indent+2,"");
         cell_writei(out, ct->_.cons.car->_.cons.cdr, indent);
@@ -129,9 +129,12 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "\n%*s) ", indent,"");
         return;
 
-    case c_LAMBDA:
-        fprintf(out, "#lambda"); // TODO something better
-        cell_writei(out, ct->_.cons.car, indent);
+    case c_CLOSURE0:
+        fprintf(out, "#closure0(\n%*sargs: ", indent+2,""); // TODO debug
+        cell_writei(out, ct->_.cons.car, indent+4);
+        fprintf(out, "\n%*sbody: ", indent+2,"");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        fprintf(out, "\n%*s) ", indent,"");
         return;
 
     case c_CFUNQ:

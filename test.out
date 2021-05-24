@@ -5,16 +5,14 @@
 #plus(a, b) ==> 3
 #plus(a, b) ==> 3
 #if(c, (a : b)) ==> 1
-#defq(factorial, #lambda(#(n), #if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))) ==> #cont(
+#defq(factorial, #lambda(#(n), #if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))) ==> #closure0(
   args: #(n)
   body: #(#if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))
-  cont: #()
 ) 
 factorial(10) ==> 3628800
-#defq(ft, #lambda(#(a, b), #defq(c, a), #defq(d, b), #plus(c, d))) ==> #cont(
+#defq(ft, #lambda(#(a, b), #defq(c, a), #defq(d, b), #plus(c, d))) ==> #closure0(
   args: #(a, b)
   body: #(#defq(c, a), #defq(d, b), #plus(c, d))
-  cont: #()
 ) 
 ft(50, 5) ==> 55
 #defq(v, #vector(7, 8, "hello")) ==> [ 
@@ -74,17 +72,15 @@ undefined ==> #undefined
 } 
 #defq(text1, "ECHO") ==> "ECHO"
 #defq(text2, "DELTA") ==> "DELTA"
-#defq(invoke, #lambda(#(fn), #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #cont(
+#defq(invoke, #lambda(#(fn), #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #closure0(
   args: #(fn)
   body: #(#defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)
-  cont: #()
 ) 
 invoke(#lambda(#(), #refq(io, println)("case 1 is ", text1, " and ", text2))) ==> case 1 is ECHO and DELTA
 "CAROLINE"
-#defq(func, #lambda(#(), #defq(text1, "ALICE"), invoke(#lambda(#(), #refq(io, println)("case 2 is ", text1, " and ", text2))))) ==> #cont(
+#defq(func, #lambda(#(), #defq(text1, "ALICE"), invoke(#lambda(#(), #refq(io, println)("case 2 is ", text1, " and ", text2))))) ==> #closure0(
   args: #()
   body: #(#defq(text1, "ALICE"), invoke(#lambda(#(), #refq(io, println)("case 2 is ", text1, " and ", text2))))
-  cont: #()
 ) 
 func() ==> case 2 is ALICE and DELTA
 "CAROLINE"

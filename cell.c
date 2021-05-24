@@ -106,16 +106,16 @@ cell *cell_cdr(cell *cp) {
 }
 
 cell *cell_lambda(cell *args, cell *body) {
-    cell *node = newcell(c_LAMBDA);
+    cell *node = newcell(c_CLOSURE0);
     node->_.cons.car = args;
     node->_.cons.cdr = body;
     return node;
 }
 
-cell *cell_cont(cell *lambda, cell *env) {
-    cell *node = newcell(c_CONT);
+cell *cell_closure(cell *lambda, cell *contenv) {
+    cell *node = newcell(c_CLOSURE);
     node->_.cons.car = lambda;
-    node->_.cons.cdr = env;
+    node->_.cons.cdr = contenv;
     return node;
 }
 
@@ -198,8 +198,8 @@ int pair_split(cell *cp, cell **carp, cell **cdrp) {
         cell_unref(cp);
         return 1;
      } else {
-        *carp = NIL;
-        *cdrp = NIL;
+        if (carp) *carp = NIL;
+        if (cdrp) *cdrp = NIL;
         return 0;
      }
 }
@@ -353,8 +353,8 @@ static void cell_free(cell *node) {
     case c_LIST:
     case c_FUNC:
     case c_PAIR:
-    case c_CONT:
-    case c_LAMBDA:
+    case c_CLOSURE:
+    case c_CLOSURE0:
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
         break;

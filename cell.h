@@ -11,8 +11,8 @@ enum cell_t {
    c_LIST,      // car is first item, cdr is rest of list
    c_FUNC,      // from parse: car is function, cdr is args
    c_ENV,       // car is pair, cdr is pair
-   c_CONT,      // car is the lambda, cdr is the continuation env
-   c_LAMBDA,    // car is the arguments, cdr is the body  TODO remove
+   c_CLOSURE,   // car is lambda, cdr is continuation env
+   c_CLOSURE0,  // car is argnames, cdr is the body, nil cont env, aka lambda
    c_PAIR,      // car is left, car is right part
    c_SYMBOL,
    c_STRING,
@@ -112,7 +112,7 @@ cell *env_prog(cell *ep);
 cell **env_progp(cell *ep);
 
 cell *cell_lambda(cell *args, cell *body);
-cell *cell_cont(cell *lambda, cell *env);
+cell *cell_closure(cell *lambda, cell *contenv);
 
 cell *cell_vector(index_t length);
 int cell_is_vector(cell *cp);
