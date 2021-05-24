@@ -99,20 +99,19 @@ int get_index(cell *a, index_t *indexp, cell *dump) {
     return 1;
 }
 
-// a in always unreffed
-// dump is unreffed only if error
-int get_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump) {
+// a in not unreffed unless there is an error (we need the string to live)
+// dump is also unreffed only if error
+int peek_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump) {
     if (a) switch (a->type) {
     case c_STRING:
 	*valuep = a->_.string.ptr;
         *lengthp = a->_.string.len;
-	cell_unref(a);
 	return 1;
     default:
 	break;
     }
     cell_unref(dump);
-    cell_unref(error_rt1("not a string", a));
+    (error_rt1("not a string", a));
     return 0;
 }
 
@@ -132,10 +131,10 @@ int get_symbol(cell *a, char_t **valuep, cell *dump) {
     return 0;
 }
 
-// as get_string, but nul-terminated C string is returned
-int get_cstring(cell *a, char **valuep, cell *dump) {
+// as peek_string, but nul-terminated C string is returned
+int peek_cstring(cell *a, char **valuep, cell *dump) {
     index_t dummy;
-    return get_string(a, valuep, &dummy, dump);
+    return peek_string(a, valuep, &dummy, dump);
 }
 
 // a in always unreffed

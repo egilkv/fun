@@ -1,6 +1,8 @@
 
 GTK callback no longer works
 
+Optimize return cell_ref(hash_void); // error
+
 Restore end recursion
 
 Can optimize #CONT with NIL continuation, probably replace by c_LAMBDA

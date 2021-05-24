@@ -89,10 +89,11 @@ static cell *cgtk_button_new(cell *args) {
     cell *label = NIL;
     if (list_pop(&args, &label)) {
         char *label_s;
-        if (!get_cstring(label, &label_s, NIL)) {
+        if (!peek_cstring(label, &label_s, NIL)) {
             return cell_ref(hash_void); // error
         }
         button = gtk_button_new_with_label(label_s);
+        cell_unref(label);
     } else {
         button = gtk_button_new();
     }
@@ -255,9 +256,10 @@ static cell *cgtk_widget_destroy(cell *widget) {
 static cell *cgtk_window_set_title(cell *widget, cell *title) {
     GtkWidget *wp;
     char *title_s;
-    if (peek_wid_s(widget, &wp, title)
-     && get_cstring(title, &title_s, NIL)) {
+    if (!peek_wid_s(widget, &wp, title)) return widget;
+    if (peek_cstring(title, &title_s, NIL)) {
         gtk_window_set_title(GTK_WINDOW(wp), title_s);
+        cell_unref(title);
     }
     return widget;
 }

@@ -495,8 +495,7 @@ static cell *cfunQ_refq(cell *args, cell *env) {
 
 static cell *cfun1_use(cell *a) {
     char *str;
-    cell_ref(a); // for error message
-    if (!get_cstring(a, &str, NIL)) {
+    if (!peek_cstring(a, &str, NIL)) {
         return cell_ref(hash_void); // error
     }
 #ifdef HAVE_GTK
@@ -518,6 +517,11 @@ static cell *cfun1_use(cell *a) {
         return module_math();
     }
 #endif
+    if (strcmp(str, "string") == 0) {
+        extern cell *module_string();
+	cell_unref(a);
+        return module_string();
+    }
     return error_rt1("module not found", a); // should
 }
 
