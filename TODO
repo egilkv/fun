@@ -1,5 +1,11 @@
 
+Use !isfinite() to check for float errs
+
 GTK callback no longer works
+
+100000000000000000000000000000000000000000000000000.0 does not work for input
+
+TODO what to do about integer overflow? Convert to float?
 
 Optimize return cell_ref(hash_void); // error
 
@@ -98,3 +104,4 @@ Should boolean be a separate type? May still make sense to refer to the same cel
 
 Allow infinite as a number?
 
+Compare strings with NUL (so use memcmp instead of strcmp)

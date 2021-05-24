@@ -15,3 +15,5 @@ void normalize_q(number *np);
 
 #define FORMAT_REAL_LEN 24
 void format_real(real_t r, char *buf);
+
+cell *err_overflow(cell *dump);

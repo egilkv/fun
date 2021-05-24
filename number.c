@@ -8,6 +8,7 @@
 #include "type.h"
 #include "cmod.h"
 #include "number.h"
+#include "err.h"
 
 cell *cell_integer(integer_t integer) {
     number n;
@@ -95,4 +96,11 @@ void format_real(real_t r, char *buf) {
             buf[n+2] = '\0';
         }
     }
+}
+
+// report numerical overflow
+cell *err_overflow(cell *dump) {
+    cell *e = error_rt0("numerical overflow");
+    cell_unref(dump);
+    return e;
 }

@@ -145,7 +145,22 @@ static cell *cfunN_plus(cell *args) {
         if (!get_number(a, &operand, args)) return cell_ref(hash_void);
 	if (sync_float(&result, &operand)) {
             result.dividend.fval += operand.dividend.fval;
+            if (isinf(result.dividend.fval)) {
+		return err_overflow(args);
+            }
         } else {
+#if 0
+	    if (__builtin_saddll_overflow(result.dividend.ival,
+                                          operand.dividend.ival,
+                                          &(result.dividend.ival))) {
+		return err_overflow(args);
+            }
+            if (__builtin_smulll_overflow(result.dividend.ival,
+                                          operand.dividend.ival,
+                                          &(result.dividend.ival))) {
+		return err_overflow(args);
+            }
+#endif
             result.dividend.ival = result.dividend.ival * operand.divisor +
                                    operand.dividend.ival * result.divisor;
             result.divisor *= operand.divisor;
@@ -169,22 +184,30 @@ static cell *cfunN_minus(cell *args) {
         // special case, one argument
         if (result.divisor == 0) {
             result.dividend.fval = -result.dividend.fval;
+	    // cannot overflow, we believe
         } else {
-            result.dividend.ival = -result.dividend.ival;
-            // TODO overflow
+	    // result.dividend.ival = -result.dividend.ival;
+	    if (__builtin_ssubll_overflow(0,
+					  result.dividend.ival,
+                                          &(result.dividend.ival))) {
+		return err_overflow(args);
+            }
         }
     }
     while (list_pop(&args, &a)) {
         if (!get_number(a, &operand, args)) return cell_ref(hash_void);
 	if (sync_float(&result, &operand)) {
             result.dividend.fval -= operand.dividend.fval;
+            if (isinf(result.dividend.fval)) {
+		return err_overflow(args);
+            }
         } else {
+	    // TODO overflow etc
             result.dividend.ival = result.dividend.ival * operand.divisor -
                                    operand.dividend.ival * result.divisor;
             result.divisor *= operand.divisor;
             normalize_q(&result);
         }
-        // TODO overflow etc
     }
     assert(args == NIL);
     return cell_number(&result);
@@ -200,9 +223,16 @@ static cell *cfunN_times(cell *args) {
         if (!get_number(a, &operand, args)) return cell_ref(hash_void);
 	if (sync_float(&result, &operand)) {
             result.dividend.fval *= operand.dividend.fval;
+            if (isinf(result.dividend.fval)) {
+		return err_overflow(args);
+            }
         } else {
-            result.dividend.ival *= operand.dividend.ival;
-            result.divisor *= operand.divisor;
+            // result.divisor *= operand.divisor;
+            if (__builtin_smulll_overflow(result.dividend.ival,
+                                          operand.dividend.ival,
+                                          &(result.dividend.ival))) {
+		return err_overflow(args);
+            }
             normalize_q(&result);
         }
         // TODO overflow etc
@@ -227,13 +257,21 @@ static cell *cfunN_quotient(cell *args) {
 	if (sync_float(&result, &operand)) {
 	    result.dividend.fval /= operand.dividend.fval;
 	    // TODO how to deal with div-by-zero and overflow
+	    // TODO when do we get isnan
             if (isinf(result.dividend.fval) || isnan(result.dividend.fval)) {
                 return error_rt0("attempted division by zero"); // TODO
             }
 	} else {
 	    result.dividend.ival *= operand.divisor;
 	    result.divisor *= operand.dividend.ival;
-	    // TODO overflow and so on
+#if 0
+            if (__builtin_smulll_overflow(result.dividend.ival,
+                                          operand.dividend.ival,
+                                          &(result.dividend.ival))) {
+		return err_overflow(args);
+            }
+#endif
+	    // TODO overflow and so on, check also normalize_q
 	    if (result.divisor == 0) {
 		return error_rt0("attempted division by zero");
 	    }
