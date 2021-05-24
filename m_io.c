@@ -13,6 +13,7 @@
 #include "cmod.h"
 #include "number.h"
 #include "parse.h"
+#include "opt.h"
 
 static cell *io_assoc = NIL;
 
@@ -192,13 +193,25 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         return;
 
     case c_ASSOC:
-        {
+        if (opt_assocsorted) {
+            struct assoc_s **v = assoc2vector(ct);
+            index_t n = 0;
+            fprintf(out, "{ ");
+            for (n = 0; v[n]; ++n) {
+                fprintf(out,(n > 0 ? ",\n%*s":"\n%*s"), indent+2,"");
+                cell_writei(out, v[n]->key, indent);
+                fprintf(out, " : ");
+                cell_writei(out, v[n]->val, indent);
+	    }
+            fprintf(out, "\n%*s} ", indent,"");
+			free(v);
+		} else {
 	    struct assoc_s *p;
             int more = 0;
             index_t n = ct->_.assoc.size;
             index_t i;
-            fprintf(out, "{ ");
-	    if ( ct->_.assoc.table) for (i = 0; i < n; ++i) {
+			fprintf(out, "{ ");
+			if (ct->_.assoc.table) for (i = 0; i < n; ++i) {
 		p = ct->_.assoc.table[i];
 		while (p) {
 #if 1 // TODO multiline
@@ -218,7 +231,6 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 #else
             fprintf(out, more ? " } ":"} ");
 #endif
-            // TODO sprinkle some newlines here and elsewhere
         }
         return;
     }

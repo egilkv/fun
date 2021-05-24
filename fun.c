@@ -25,7 +25,7 @@ int main(int argc, char * const argv[]) {
     cfun_init();
 
     opterr = 0;
-    while ((opt = getopt(argc, argv, "+:OPR")) >= 0) switch (opt) {
+    while ((opt = getopt(argc, argv, "+:OPRS")) >= 0) switch (opt) {
         case 'O':
             opt_showoblist = 1;
             break;
@@ -34,6 +34,9 @@ int main(int argc, char * const argv[]) {
             break;
         case 'R':
             opt_noreadline = 1;
+            break;
+        case 'S':
+            opt_assocsorted = 1;
             break;
         case '?':
             error_cmdopt("invalid option", optopt);

@@ -73,6 +73,44 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
     return 0;
 }
 
+static int compar_sym(const void *a, const void *b) {
+    struct assoc_s *aa = *((struct assoc_s **)a);
+    struct assoc_s *bb = *((struct assoc_s **)b);
+    // TODO what about non-symbolic keys
+    assert(cell_is_symbol(aa->key));
+    assert(cell_is_symbol(bb->key));
+    return strcmp(aa->key->_.symbol.nam, bb->key->_.symbol.nam);
+}
+
+// return all assoc key pairs as an allocated NULL-terminated vector
+// TODO slow
+//
+struct assoc_s **assoc2vector(cell *anode) {
+    assert(cell_is_assoc(anode));
+    int length = 0;
+    struct assoc_s **vector = malloc(sizeof(struct assoc_s *));
+    assert(vector);
+
+    if (anode->_.assoc.table != NULL) {
+        struct assoc_s *p;
+        int h;
+        for (h = 0; h < ASSOC_HASH_SIZE; ++h) {
+            p = anode->_.assoc.table[h];
+            while (p) {
+                vector = realloc(vector, (++length+1) * sizeof(struct assoc_s *));
+                assert(vector);
+                vector[length-1] = p;
+                p = p->next;
+            }
+	}
+    }
+    vector[length] = NULL;
+    if (length > 1) {
+        qsort(vector, length, sizeof(struct assoc_s *), compar_sym);
+    }
+    return vector;
+}
+
 // clean up on exit
 void assoc_drop(cell *anode) {
     assert(cell_is_assoc(anode));

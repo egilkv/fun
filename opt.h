@@ -8,5 +8,6 @@ struct {
 
 int opt_showoblist;
 int opt_showparse;
+int opt_assocsorted;
 int opt_noreadline;
 

@@ -10,7 +10,7 @@
 #include "err.h"
 
 static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *contenv) {
-#if 0
+#if 0 // TODO enable end recursion detection BUG: does not work
     if (*envp && env_prog(*envp) == NIL) {
 	// end recursion, reuse environment
         env_replace(*envp, newprog, newassoc, contenv);
