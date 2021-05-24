@@ -110,8 +110,12 @@ static void oblist_exit() {
 	ob_table[h] = 0;
 	while (p) {
 	    struct ob_entry *q = p->next;
+            cell *v;
             assert(cell_is_symbol(p->symdef));
 	    if (opt_showoblist) printf("%s ", p->symdef->_.symbol.nam);
+            v = p->symdef->_.symbol.val;
+            p->symdef->_.symbol.val = NIL; // get rid of any circular defs
+            cell_unref(v);
             cell_unref(p->symdef);
 	    free(p);
 	    p = q;
