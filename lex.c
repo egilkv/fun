@@ -230,10 +230,13 @@ static item *gotdigit(char c, item *it, lxfile *in) {
         it = newitem(it_NUMBER);
         it->nvalue.dividend.ival = 0;
         it->nvalue.divisor = 1;
+        it->fvalue = it->decimal = 0.0;
     }
     if (c == '.') {
         if (it->nvalue.divisor == 1) { // integer?
-            make_float(&(it->nvalue));
+            // make float
+            it->nvalue.dividend.fval = it->fvalue;
+            it->nvalue.divisor = 0;
             it->decimal = 1.0;
         } else {
             // float already, ignore
@@ -241,7 +244,29 @@ static item *gotdigit(char c, item *it, lxfile *in) {
         }
     } else { // digit
         if (it->nvalue.divisor == 1) { // integer?
-            it->nvalue.dividend.ival = it->nvalue.dividend.ival*10 + c-'0';
+            if (it->nvalue.dividend.ival == 0 && it->fvalue > 0.0) {
+                // special case: integer has overflowed
+                it->fvalue = it->fvalue*10 + c-'0';
+                // postpone testing of floating point overflow
+            } else {
+#ifdef __GNUC__
+                if (__builtin_smulll_overflow(it->nvalue.dividend.ival, 
+                                              10,
+                                              &(it->nvalue.dividend.ival))
+                 || __builtin_saddll_overflow(it->nvalue.dividend.ival, 
+                                              c-'0', 
+                                              &(it->nvalue.dividend.ival))) {
+                    // integer overflow
+                    it->nvalue.dividend.ival = 0;
+                    it->fvalue = it->fvalue*10 + c-'0';
+                } else {
+                    // integer still within range
+                    it->fvalue = it->nvalue.dividend.ival;
+                }
+#else
+                it->nvalue.dividend.ival = it->nvalue.dividend.ival*10 + c-'0';
+#endif
+            }
         } else {
             it->decimal /= 10.0;
             it->nvalue.dividend.fval += (c-'0') * it->decimal;

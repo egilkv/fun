@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 #include "parse.h"
 #include "cfun.h"
@@ -37,7 +38,16 @@ static cell *expr(precedence lv, lxfile *in) {
     switch (it->type) {
 
     case it_NUMBER:
-        pt = cell_number(&(it->nvalue));
+        if (it->nvalue.dividend.ival == 0 && it->fvalue > 0.0) {
+            // special case: integer has overflowed
+            pt = error_rt0("integer number is too large");
+        } else if (!isfinite(it->fvalue)) {
+            // floating point overflow
+            pt = error_rt0("real number is too large");
+        } else {
+            // regular integer or float
+            pt = cell_number(&(it->nvalue));
+        }
         dropitem(it);
         return binary(pt, lv, in);
 

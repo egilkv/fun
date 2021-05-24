@@ -57,6 +57,7 @@ struct item_s {
     token type;
     // TODO union for efficiency?
     number nvalue;
+    real_t fvalue;
     real_t decimal;
     index_t slen;
     char_t *svalue;
