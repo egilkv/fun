@@ -475,12 +475,12 @@ static cell *cfun2_ref(cell *a, cell *b) {
 	    cell_unref(a);
 	    return error_rt1("assoc key does not exist", b);
 	}
+        cell_unref(b);
     } else {
 	index_t index;
 	if (!get_index(b, &index, a)) return cell_ref(hash_void); // error
 	value = ref_index(a, index);
     }
-    cell_unref(b);
     cell_unref(a);
     return value;
 }
