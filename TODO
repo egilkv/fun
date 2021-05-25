@@ -1,7 +1,7 @@
 
 Parsing of multiple ifs is not good, fix it
 
-GTK callback no longer works
+GTK example-2 button 1 quits. Why?
 
 Optimize return cell_ref(hash_void); // error
 

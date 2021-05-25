@@ -205,8 +205,9 @@ static cell *cgtk_print(cell *args) {
     return cell_ref(hash_void);
 }
 
+// TODO this is most probably a separate thread
 static void do_callback(GtkApplication* gp, gpointer data) {
-    assert(cell_is_list((cell *)data));
+    assert(cell_is_func((cell *)data));
     assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app)
         || cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_wid));
  // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
@@ -233,9 +234,9 @@ static cell *cgtk_signal_connect(cell *app, cell *hook, cell *callback) {
             return app;
         } else {
 
-            // TODO should be continuation instead
+            // connect where data is the function with one argument, the app
             g_signal_connect(gp, signal, G_CALLBACK(do_callback),
-                             cell_list(callback, cell_list(app, NIL)));
+                             cell_func(callback, cell_list(app, NIL)));
             // cell_unref(callback); // TODO when to unref callback ???
         }
     }
