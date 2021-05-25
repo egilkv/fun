@@ -295,7 +295,7 @@ static cell *cfio_getline() {
     ssize_t len = 0;
     char *line = lex_getline(stdin, &len);
     if (!line || len < 0) {
-        return cell_ref(hash_void);
+        return cell_void();
     }
     return cell_astring(line, len);
 }

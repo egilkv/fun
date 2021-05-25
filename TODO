@@ -3,8 +3,6 @@ Parsing of multiple ifs is not good, fix it
 
 GTK example-2 button 1 quits. Why?
 
-Optimize return cell_ref(hash_void); // error
-
 Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
 Ellipsis is 3 dots?

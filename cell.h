@@ -138,6 +138,8 @@ cell *cell_number(number *np);
 int cell_is_number(cell *cp);
 int cell_is_integer(cell *cp);
 
+cell *cell_void();
+
 cell *eval(cell *arg, cell *env); // defined in eval.c
 
 #endif

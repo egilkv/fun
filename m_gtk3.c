@@ -90,7 +90,7 @@ static cell *cgtk_button_new(cell *args) {
     if (list_pop(&args, &label)) {
         char *label_s;
         if (!peek_cstring(label, &label_s, NIL)) {
-            return cell_ref(hash_void); // error
+            return cell_void(); // error
         }
         button = gtk_button_new_with_label(label_s);
         cell_unref(label);
@@ -155,12 +155,12 @@ static cell *cgtk_init(cell *arglist) {
     // see also cgtk_application_run
     gtk_init(0, NULL);
     cell_unref(arglist);
-    return cell_ref(hash_void);
+    return cell_void();
 }
 
 static cell *cgtk_main() {
     gtk_main();
-    return cell_ref(hash_void);
+    return cell_void();
 }
 
 static cell *cgtk_print(cell *args) {
@@ -202,7 +202,7 @@ static cell *cgtk_print(cell *args) {
         cell_unref(a);
     }
     assert(args == NIL);
-    return cell_ref(hash_void);
+    return cell_void();
 }
 
 // TODO this is most probably a separate thread
@@ -290,7 +290,7 @@ static cell *cgtk_application_window_new(cell *app) {
     GtkApplication *gp;
     if (!peek_app_s(app, &gp, NIL)) {
         cell_unref(app);
-        return cell_ref(hash_void);
+        return cell_void();
     }
     window = gtk_application_window_new(gp);
     // TODO error check

@@ -37,7 +37,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
         if (!list_pop(&args, &val)) {
 	    // TODO if more than one, have one message
 	    cell_unref(error_rt1("missing value for", cell_ref(nam)));
-	    val = cell_ref(hash_void);
+            val = cell_void();
 	} else {
 	    // TODO C recursion, should be avoided
 	    val = eval(val, *envp);

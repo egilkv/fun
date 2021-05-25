@@ -345,6 +345,11 @@ cell *cell_special(const char *magic, void *ptr) {
     return node;
 }
 
+// TODO inline
+cell *cell_void() {
+    return cell_void();
+}
+
 // TODO this will soon enough collapse
 static void cell_free(cell *node) {
     assert(node && node->ref == 0);

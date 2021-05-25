@@ -49,7 +49,7 @@ static cell *cfunQ_and(cell *args, cell *env) {
     while (list_pop(&args, &a)) {
 	a = eval(a, env);
 	if (!get_boolean(a, &bool, args)) {
-	    return cell_ref(hash_void); // error
+            return cell_void(); // error
 	}
 	if (!bool) {
 	    cell_unref(args);
@@ -66,7 +66,7 @@ static cell *cfunQ_or(cell *args, cell *env) {
     while (list_pop(&args, &a)) {
 	a = eval(a, env);
 	if (!get_boolean(a, &bool, args)) {
-	    return cell_ref(hash_void); // error
+            return cell_void(); // error
 	}
 	if (bool) {
 	    cell_unref(args);
@@ -79,7 +79,7 @@ static cell *cfunQ_or(cell *args, cell *env) {
 static cell *cfun1_not(cell *a) {
     int bool;
     if (!get_boolean(a, &bool, NIL)) {
-	return cell_ref(hash_void); // error
+        return cell_void(); // error
     }
     return bool ? cell_ref(hash_f) : cell_ref(hash_t);
 }
@@ -92,7 +92,7 @@ static cell *cfunQ_if(cell *args, cell *env) {
     }
     a = eval(a, env);
     if (!get_boolean(a, &bool, b)) {
-        return cell_ref(hash_void); // error
+        return cell_void(); // error
     }
     if (bool) {
 	if (!pair_split(b, &a, (cell **)0)) {
@@ -103,7 +103,7 @@ static cell *cfunQ_if(cell *args, cell *env) {
 	if (!pair_split(b, (cell **)0, &a)) {
             // no else-part
             cell_unref(b);
-            return cell_ref(hash_void);
+            return cell_void();
         }
     }
     if (env) {
@@ -142,7 +142,7 @@ static cell *cfunN_plus(cell *args) {
     result.dividend.ival = 0;
     result.divisor = 1;
     while (list_pop(&args, &a)) {
-        if (!get_number(a, &operand, args)) return cell_ref(hash_void);
+        if (!get_number(a, &operand, args)) return cell_void();
 	if (sync_float(&result, &operand)) {
             result.dividend.fval += operand.dividend.fval;
             if (!isfinite(result.dividend.fval)) {
@@ -184,7 +184,7 @@ static cell *cfunN_minus(cell *args) {
     result.dividend.ival = 0;
     result.divisor = 1;
     if (!list_pop(&args, &a)
-     || !get_number(a, &result, args)) return cell_ref(hash_void); // error
+     || !get_number(a, &result, args)) return cell_void(); // error
     if (args == NIL) {
         // special case, one argument
         if (result.divisor == 0) {
@@ -204,7 +204,7 @@ static cell *cfunN_minus(cell *args) {
         }
     }
     while (list_pop(&args, &a)) {
-        if (!get_number(a, &operand, args)) return cell_ref(hash_void);
+        if (!get_number(a, &operand, args)) return cell_void();
 	if (sync_float(&result, &operand)) {
             result.dividend.fval -= operand.dividend.fval;
             if (!isfinite(result.dividend.fval)) {
@@ -246,7 +246,7 @@ static cell *cfunN_times(cell *args) {
     result.dividend.ival = 1;
     result.divisor = 1;
     while (list_pop(&args, &a)) {
-        if (!get_number(a, &operand, args)) return cell_ref(hash_void);
+        if (!get_number(a, &operand, args)) return cell_void();
 	if (sync_float(&result, &operand)) {
             result.dividend.fval *= operand.dividend.fval;
             if (!isfinite(result.dividend.fval)) {
@@ -280,10 +280,10 @@ static cell *cfunN_quotient(cell *args) {
         return error_rt1("at least one argument required", args);
     }
     // remark: in standard lisp (/ 5) is shorthand for 1/5
-    if (!get_number(a, &result, args)) return cell_ref(hash_void); // error
+    if (!get_number(a, &result, args)) return cell_void(); // error
 
     while (list_pop(&args, &a)) {
-	if (!get_number(a, &operand, args)) return cell_ref(hash_void); // error
+        if (!get_number(a, &operand, args)) return cell_void(); // error
 	if (sync_float(&result, &operand)) {
 	    result.dividend.fval /= operand.dividend.fval;
             if (!isfinite(result.dividend.fval)) {
@@ -328,7 +328,7 @@ static cell *cfunN_quotient(cell *args) {
 static cell *funname(cell *args) {                                  \
     cell *a;                                                        \
     /* TODO could be cfunQ, do not evaluate more than necessary */  \
-    if (!list_pop(&args, &a)) return cell_ref(hash_void);           \
+    if (!list_pop(&args, &a)) return cell_void();                   \
     if (cell_is_string(a)) {                                        \
         /* compare strings */                                       \
         cell *value = a;                                            \
@@ -343,7 +343,7 @@ static cell *funname(cell *args) {                                  \
             int cmp;                                                \
             if (!peek_string(a, &ptr, &len, args)) {                \
                 cell_unref(value);                                  \
-                return cell_ref(hash_void); /* error */             \
+                return cell_void(); /* error */                     \
             }                                                       \
             /* TODO compare using length instead */                 \
             cmp = strcmp(v_ptr, ptr);                               \
@@ -365,11 +365,11 @@ static cell *funname(cell *args) {                                  \
         number value;                                               \
         number operand;                                             \
         if (!get_number(a, &value, args)) {                         \
-            return cell_ref(hash_void); /* error */                 \
+            return cell_void(); /* error */                         \
         }                                                           \
         while (list_pop(&args, &a)) {                               \
             if (!get_number(a, &operand, args)) {                   \
-                return cell_ref(hash_void); /* error */             \
+                return cell_void(); /* error */                     \
             }                                                       \
             if (value.divisor == 1 && operand.divisor == 1) {       \
                 if (value.dividend.ival OP operand.dividend.ival) { \
@@ -544,7 +544,7 @@ static cell *cfunN_eq(cell *args) {
     cell *a = NIL;
     int eq = 1;
     if (!list_pop(&args, &first)) {
-        return cell_ref(hash_void); // error
+        return cell_void(); // error
     }
     while (list_pop(&args, &a)) {
         if (a != first) switch (a ? a->type : c_LIST) {
@@ -622,7 +622,7 @@ static cell *cfun2_ref(cell *a, cell *b) {
         cell_unref(b);
     } else {
 	index_t index;
-	if (!get_index(b, &index, a)) return cell_ref(hash_void); // error
+        if (!get_index(b, &index, a)) return cell_void(); // error
 	value = ref_index(a, index);
     }
     cell_unref(a);
@@ -640,7 +640,7 @@ static cell *cfunQ_refq(cell *args, cell *env) {
 static cell *cfun1_use(cell *a) {
     char *str;
     if (!peek_cstring(a, &str, NIL)) {
-        return cell_ref(hash_void); // error
+        return cell_void(); // error
     }
 #ifdef HAVE_GTK
     if (strcmp(str, "gtk3") == 0) {
