@@ -251,3 +251,8 @@ cell *ref_index(cell *a, index_t index) {
     return error_rt1("cannot referrence", cell_ref(a));
 }
 
+// TODO inline
+cell *cell_void() {
+    return cell_ref(hash_void);
+}
+
