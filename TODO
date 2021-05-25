@@ -5,9 +5,12 @@ GTK callback no longer works
 
 Optimize return cell_ref(hash_void); // error
 
-Restore end recursion
+Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
+
+Ellipsis is 3 dots?
 
 Get rid of pair, instead : is c_LABEL (only in some instances)
+Haskell uses : as cons operator, though
 
 Does not parse: -12 / 4;
 
@@ -69,13 +72,16 @@ TODO allow for byte order mark and other Unicode stuff in reader
 
 Assoc keys can be symbols, integers. Or strings?
 
-Have === operator in addition to ==, to require more equality of sorts
+Have === operator in addition to ==. === corresponds to eq? in Scheme,
+while == corresponds to eqv? (egual value). (There is no equal?)
 
 In Scheme, 'display' will print strings without the " etc while 'write' will
 write S-expressions that 'read' can read. We should be able to read JSON 
 directly.
 
-ELM uses ++ instead of & to concatenate.
+List functions: map
+
+ELM and Haskell uses ++ instead of & to concatenate.
 
 Do we really need lists and vectors to be different things???
 
@@ -126,4 +132,23 @@ Symbols can be called atoms
 
 A continuation is also called a closure.
 
-Maybe #length should be something else?
+Funtional programming vz imperative.
+Assocs are called Maps in Erlang.
+
+Maybe #length should be some sort of operator? Hash?
+
+Allow ref to as-of-yet undefined functions
+
+Div and mod as operators?
+
+Write to stream instead of number2string-conversion, anv vv read from stream
+
+Mechanisms to deal with non-pure stuff:
+      * https://en.wikipedia.org/wiki/Purely_functional_programming
+      * Monads (Haskell +) https://en.wikipedia.org/wiki/Monad_(functional_programming)
+      * I/O Monad https://en.wikipedia.org/wiki/Monad_(functional_programming)#IO_monad
+      * https://en.wikipedia.org/wiki/Uniqueness_type (Clean)
+      * https://en.wikipedia.org/wiki/Effect_system
+      * Clojure ???
+      * Declare as mutable (F#)
+      * Erlang

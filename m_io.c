@@ -305,6 +305,7 @@ cell *module_io() {
         io_assoc = cell_assoc();
 
         // TODO these functions are impure
+        // TODO file open/write/delete and slurp to read an entire file?
         assoc_set(io_assoc, cell_symbol("print"),   cell_cfunN(cfio_print)); // scheme 'display'
         assoc_set(io_assoc, cell_symbol("println"), cell_cfunN(cfio_println));
         assoc_set(io_assoc, cell_symbol("write"),   cell_cfunN(cfio_write));

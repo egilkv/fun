@@ -494,14 +494,24 @@ static item *gotmult(char c, item *it, lxfile *in) {
     return it;
 }
 
+static item *gotlt(char c, item *it, lxfile *in) {
+    if (it) lxungetc(c, in);
+    else it = nextchar(newitem(it_LT), in); // reqd for peek into next
+    return it;
+}
+
+static item *gotgt(char c, item *it, lxfile *in) { 
+    if (it) lxungetc(c, in);
+    else it = nextchar(newitem(it_GT), in); // reqd for peek into next
+    return it;
+}
+
 static item *gotplain(char c, token type, item *it, lxfile *in) {
     if (it) lxungetc(c, in);
     else it = newitem(type);
     return it;
 }
 
-static item *gotlt(char c, item *it, lxfile *in)    { return gotplain(c, it_LT, it, in); }
-static item *gotgt(char c, item *it, lxfile *in)    { return gotplain(c, it_GT, it, in); }
 static item *gotquote(char c, item *it, lxfile *in) { return gotplain(c, it_QUOTE, it, in); }
 static item *gotplus(char c, item *it, lxfile *in)  { return gotplain(c, it_PLUS, it, in); }
 static item *gotminus(char c, item *it, lxfile *in) { return gotplain(c, it_MINUS, it, in); }

@@ -281,13 +281,13 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);
 
     case it_GT:
-        return binary_l2rN(left, l_REL,  cell_symbol("#gt"), op, lv, in);
+        return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);
 
     case it_LTEQ:
-        return binary_l2rN(left, l_REL,  cell_symbol("#lteq"), op, lv, in);
+        return binary_l2rN(left, l_REL,  cell_ref(hash_le), op, lv, in);
 
     case it_GTEQ:
-        return binary_l2rN(left, l_REL,  cell_symbol("#gteq"), op, lv, in);
+        return binary_l2rN(left, l_REL,  cell_ref(hash_ge), op, lv, in);
 
     case it_NTEQ:
         return binary_l2rN(left, l_EQEQ, cell_ref(hash_noteq), op, lv, in);

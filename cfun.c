@@ -319,76 +319,91 @@ static cell *cfunN_quotient(cell *args) {
     return cell_number(&result);
 }
 
-static cell *cfunN_lt(cell *args) {
-    cell *a;
-    // TODO could be cfunQ_lt, do not evaluate more than necessary
-
-    if (!list_pop(&args, &a)) return cell_ref(hash_void);
-    if (cell_is_string(a)) {
-        // 
-        // compare strings
-        //
-        cell *value = a;
-        char_t *v_ptr;
-        index_t v_len;
-        if (!peek_string(a, &v_ptr, &v_len, NIL)) {
-            assert(0);
-        }
-        while (list_pop(&args, &a)) {
-            char_t *ptr;
-            index_t len;
-            int cmp;
-            if (!peek_string(a, &ptr, &len, args)) {
-                cell_unref(value);
-                return cell_ref(hash_void); // error
-            }
-            // TODO compare using length instead!
-            cmp = strcmp(v_ptr, ptr);
-            if (cmp < 0) {
-                cell_unref(value);
-                value = a;
-                v_ptr = ptr;
-                v_len = len;
-            } else {
-                cell_unref(value);
-                cell_unref(a);
-                cell_unref(args);
-                return cell_ref(hash_f); // false
-            }
-        }
-        cell_unref(value);
-    } else {
-        //
-        // compare numbers
-        //
-        number value;
-        number operand;
-        if (!get_number(a, &value, args)) return cell_ref(hash_void); // error
-        while (list_pop(&args, &a)) {
-            if (!get_number(a, &operand, args)) return cell_ref(hash_void); // error
-            if (value.divisor == 1 && operand.divisor == 1) { // integers
-                if (value.dividend.ival < operand.dividend.ival) {
-                    value.dividend.ival = operand.dividend.ival;
-                } else {
-                    cell_unref(args);
-                    return cell_ref(hash_f); // false
-                }
-            } else {
-                // TODO should do quotients smarter
-                make_float(&value);
-                make_float(&operand);
-                if (value.dividend.fval < operand.dividend.fval) {
-                    value.dividend.fval = operand.dividend.fval;
-                } else {
-                    cell_unref(args);
-                    return cell_ref(hash_f); // false
-                }
-            }
-        }
-    }
-    assert(args == NIL);
-    return cell_ref(hash_t);
+//
+//  compare function as macro, which will be expanded four times
+//  TODO consider common function with icompare and fcompare
+//       function passed as parameter instead
+//
+#define CFUNN_COMPARE(funname, OP)                                  \
+static cell *funname(cell *args) {                                  \
+    cell *a;                                                        \
+    /* TODO could be cfunQ, do not evaluate more than necessary */  \
+    if (!list_pop(&args, &a)) return cell_ref(hash_void);           \
+    if (cell_is_string(a)) {                                        \
+        /* compare strings */                                       \
+        cell *value = a;                                            \
+        char_t *v_ptr;                                              \
+        index_t v_len;                                              \
+        if (!peek_string(a, &v_ptr, &v_len, NIL)) {                 \
+            assert(0);                                              \
+        }                                                           \
+        while (list_pop(&args, &a)) {                               \
+            char_t *ptr;                                            \
+            index_t len;                                            \
+            int cmp;                                                \
+            if (!peek_string(a, &ptr, &len, args)) {                \
+                cell_unref(value);                                  \
+                return cell_ref(hash_void); /* error */             \
+            }                                                       \
+            /* TODO compare using length instead */                 \
+            cmp = strcmp(v_ptr, ptr);                               \
+            if (cmp OP 0) {                                         \
+                cell_unref(value);                                  \
+                value = a;                                          \
+                v_ptr = ptr;                                        \
+                v_len = len;                                        \
+            } else {                                                \
+                cell_unref(value);                                  \
+                cell_unref(a);                                      \
+                cell_unref(args);                                   \
+                return cell_ref(hash_f); /* false */                \
+            }                                                       \
+        }                                                           \
+        cell_unref(value);                                          \
+    } else {                                                        \
+        /* compare numbers */                                       \
+        number value;                                               \
+        number operand;                                             \
+        if (!get_number(a, &value, args)) {                         \
+            return cell_ref(hash_void); /* error */                 \
+        }                                                           \
+        while (list_pop(&args, &a)) {                               \
+            if (!get_number(a, &operand, args)) {                   \
+                return cell_ref(hash_void); /* error */             \
+            }                                                       \
+            if (value.divisor == 1 && operand.divisor == 1) {       \
+                if (value.dividend.ival OP operand.dividend.ival) { \
+                    value.dividend.ival = operand.dividend.ival;    \
+                } else {                                            \
+                    cell_unref(args);                               \
+                    return cell_ref(hash_f); /* false */            \
+                }                                                   \
+            } else {                                                \
+                /* TODO should do quotients smarter */              \
+                make_float(&value);                                 \
+                make_float(&operand);                               \
+                if (value.dividend.fval OP operand.dividend.fval) { \
+                    value.dividend.fval = operand.dividend.fval;    \
+                } else {                                            \
+                    cell_unref(args);                               \
+                    return cell_ref(hash_f); /* false */            \
+                }                                                   \
+            }                                                       \
+        }                                                           \
+    }                                                               \
+    assert(args == NIL);                                            \
+    return cell_ref(hash_t);                                        \
 }
+
+#define C_GE >=
+#define C_GT >
+#define C_LE <=
+#define C_LT <
+
+CFUNN_COMPARE(cfunN_ge, C_GE)
+CFUNN_COMPARE(cfunN_gt, C_GT)
+CFUNN_COMPARE(cfunN_le, C_LE)
+CFUNN_COMPARE(cfunN_lt, C_LT)
 
 static cell *cfunN_list(cell *args) {
     return args;
@@ -582,6 +597,21 @@ static cell *cfunN_noteq(cell *args) {
     return result;
 }
 
+static cell *cfun1_length(cell *a) {
+#if 0
+    if (cell_is_assoc(a)) {
+        // TODO length of assoc may be a thing
+        return error_rt1("no length for assoc", a);
+    }
+#endif
+    integer_t length = ref_length(a);
+    if (length < 0) {
+        return error_rt1("no length of", cell_ref(a));
+    }
+    cell_unref(a);
+    return cell_integer(length);
+}
+
 static cell *cfun2_ref(cell *a, cell *b) {
     cell *value;
     if (cell_is_assoc(a)) {
@@ -679,10 +709,14 @@ void cfun_init() {
     hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
 		    oblistv("#exit",     cell_cfunN(cfun1_exit));
+    hash_ge       = oblistv("#ge",       cell_cfunN(cfunN_ge));
+    hash_gt       = oblistv("#gt",       cell_cfunN(cfunN_gt));
     hash_if       = oblistv("#if",       cell_cfunQ(cfunQ_if));
     hash_lambda   = oblistv("#lambda",   cell_cfunQ(cfunQ_lambda));
+                    oblistv("#length",   cell_cfun1(cfun1_length));
+    hash_le       = oblistv("#le",       cell_cfunN(cfunN_le));
     hash_lt       = oblistv("#lt",       cell_cfunN(cfunN_lt));
-    hash_list     = oblistv("#",         cell_cfunN(cfunN_list)); // TODO
+    hash_list     = oblistv("#",         cell_cfunN(cfunN_list)); // TODO remove?
     hash_minus    = oblistv("#minus",    cell_cfunN(cfunN_minus));
     hash_not      = oblistv("#not",      cell_cfun1(cfun1_not));
     hash_noteq    = oblistv("#noteq",    cell_cfunN(cfunN_noteq));

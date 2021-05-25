@@ -154,7 +154,39 @@ int get_boolean(cell *a, int *boolp, cell *dump) {
     return 0;
 }
 
-// does not consume a
+// does not consume
+integer_t ref_length(cell *a) {
+    if (a == NIL) {
+        return 0; // length of empty list is 0
+    } else switch (a->type) {
+
+    case c_VECTOR:
+        return a->_.vector.len;
+
+    case c_STRING:
+        return a->_.string.len;
+
+    case c_LIST:
+	{
+            index_t length = 0;
+	    do {
+                assert(cell_is_list(a));
+                ++length;
+		a = cell_cdr(a);
+            } while (a);
+            return length;
+	}
+
+    case c_PAIR:
+        return 2;
+
+    default:
+	 break;
+    }
+    return -1; // cannot find length
+}
+
+// does not consume
 cell *ref_index(cell *a, index_t index) {
     cell *value;
     if (a) switch (a->type) {
