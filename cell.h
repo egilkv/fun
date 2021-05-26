@@ -108,6 +108,7 @@ cell *cell_car(cell *cp);
 cell *cell_cdr(cell *cp);
 int list_pop(cell **cp, cell **carp);
 int pair_split(cell *cp, cell **carp, cell **cdrp);
+void range_split(cell *cp, cell **carp, cell **cdrp);
 void label_split(cell *cp, cell **carp, cell **cdrp);
 
 cell *cell_env(cell *prev, cell *prog, cell *assoc, cell *contenv);

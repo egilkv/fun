@@ -624,7 +624,7 @@ static cell *cfun2_ref(cell *a, cell *b) {
     } else if (cell_is_range(b)) {
         index_t index1 = 0;
         cell *b1, *b2;
-        pair_split(b, &b1, &b2);
+        range_split(b, &b1, &b2);
         if (b1) {
             if (!get_index(b1, &index1, a)) {
                 cell_unref(b2);

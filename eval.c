@@ -190,7 +190,7 @@ cell *eval(cell *arg, cell *env) {
         case c_RANGE: // evaluate lower and upper bound
             {
                 cell *b1, *b2;
-                pair_split(arg, &b1, &b2);
+                range_split(arg, &b1, &b2);
                 if (b1) b1 = eval(b1, env);
                 if (b2) b2 = eval(b2, env);
                 result = cell_range(b1, b2);
@@ -200,7 +200,7 @@ cell *eval(cell *arg, cell *env) {
         case c_LABEL: // evaluate right part only
             {
                 cell *b1, *b2;
-                pair_split(arg, &b1, &b2);
+                label_split(arg, &b1, &b2);
                 if (b2) b2 = eval(b2, env);
                 result = cell_label(b1, b2);
             }

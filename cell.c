@@ -221,9 +221,9 @@ int list_pop(cell **cpp, cell **carp) {
      }
 }
 
-// works for c_PAIR and c_RANGE and c_LABEL
+// works for c_PAIR and c_LABEL  TODO fix!!!
 int pair_split(cell *cp, cell **carp, cell **cdrp) {
-    if (cell_is_pair(cp) || cell_is_range(cp) || cell_is_label(cp)) {
+    if (cell_is_pair(cp) || cell_is_label(cp)) {
         if (carp) *carp = cell_ref(cp->_.cons.car);
         if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
         cell_unref(cp);
@@ -233,6 +233,13 @@ int pair_split(cell *cp, cell **carp, cell **cdrp) {
         if (cdrp) *cdrp = NIL;
         return 0;
      }
+}
+
+void range_split(cell *cp, cell **carp, cell **cdrp) {
+    assert(cell_is_range(cp));
+    *carp = cell_ref(cp->_.cons.car);
+    *cdrp = cell_ref(cp->_.cons.cdr);
+    cell_unref(cp);
 }
 
 void label_split(cell *cp, cell **carp, cell **cdrp) {
