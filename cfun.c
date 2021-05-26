@@ -480,11 +480,12 @@ static cell *cfunN_amp(cell *args) {
 
         case c_STRING:
             if (result == NIL) {
-                result = a; // TODO somewhat cheeky
+                result = a; // somewhat cheeky, initial condition
+                // TODO consider raising alarm
             } else if (!cell_is_string(result)) {
                 cell_unref(result);
                 cell_unref(args);
-		return error_rt1("& applied to non-string and string", a);
+                return error_rt1("& applied to non-string and string", a);
             } else {
                 // TODO optimize for case of more than two arguments
 		index_t rlen = result->_.string.len;
@@ -508,32 +509,77 @@ static cell *cfunN_amp(cell *args) {
             break;
 
         case c_VECTOR:
-            cell_unref(result);
-            cell_unref(args);
-	    return error_rt1("vector & not yet implemented", a);
+            if (result == NIL) {
+                result = a; // simple enough
+            } else if (!cell_is_vector(result)) {
+                // TODO vector & list should be supported
+                cell_unref(result);
+                cell_unref(args);
+                return error_rt1("& applied to non-vector and vector", a);
+            } else {
+                // TODO optimize for case of more than two arguments
+                index_t rlen = result->_.vector.len;
+                index_t alen = a->_.vector.len;
+		if (alen == 0) {
+		    cell_unref(a);
+		} else if (rlen == 0) {
+		    cell_unref(result);
+		    result = a;
+		} else {
+                    cell *newvector = cell_vector(rlen + alen);
+                    integer_t i;
+                    for (i = 0; i < rlen; ++i) {
+                        newvector->_.vector.table[i] = cell_ref(result->_.vector.table[i]);
+                    }
+                    for (i = 0; i < alen; ++i) {
+                        newvector->_.vector.table[rlen+i] = cell_ref(a->_.vector.table[i]);
+                    }
+		    cell_unref(result);
+		    cell_unref(a);
+                    result = newvector;
+		}
+            }
+            break;
+
+        case c_LIST: // a can be NIL
+            // TODO definitely optmize for more than two
+            if (a == NIL) {
+                // add nothing
+                // TODO but not if result is string
+            } else if (result && !cell_is_list(result)) {
+                // TODO vector & list should be supported
+                cell_unref(result);
+                cell_unref(args);
+                return error_rt1("& applied to non-list and list", a);
+            } else {
+                cell *newlist = NIL;
+                cell **pp = &newlist;
+                // copy first list
+                while (result) {
+                    assert(cell_is_list(result));
+                    *pp = cell_list(cell_ref(cell_car(result)), NIL);
+                    pp = &((*pp)->_.cons.cdr);
+                    result = cell_cdr(result);
+                }
+                *pp = a;
+                cell_unref(result);
+                result = newlist;
+            }
+            break;
 
         case c_ASSOC:
             if (result == NIL) {
-                result = a; // TODO somewhat cheeky
+                result = a; // somewhat cheeky, initial condition
 	    } else if (!cell_is_assoc(result)) {
                 cell_unref(result);
                 cell_unref(args);
-		return error_rt1("& applied to non-assoc and assoc", a);
+                return error_rt1("& applied to non-assoc and assoc", a);
             } else {
 		// TODO make copy of all elements in result
 		// TODO overlay with all elements in a
 		cell_unref(result);
 		cell_unref(args);
 		return error_rt1("assoc & not yet implemented", a);
-            }
-
-        case c_LIST:
-            if (result == NIL) {
-                result = a;
-            } else {
-                cell_unref(result);
-                cell_unref(args);
-		return error_rt1("list & not yet implemented", a);
             }
             break;
 

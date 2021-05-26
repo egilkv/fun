@@ -138,11 +138,15 @@ static cell *expr(precedence lv, lxfile *in) {
     case it_LBRC: // assoc definition or a compound statement
         pt = getlist(it, it_COMMA, it_RBRC, l_PERHAPS, in);
         // TODO implement optional final semicolon
-        return cell_func(cell_ref(hash_assoc), pt);
+        pt = cell_func(cell_ref(hash_assoc), pt);
+        return binary(pt, lv, in);
 
     case it_LBRK: // list or array definition
         pt = getlist(it, it_COMMA, it_RBRK, l_LABEL, in);
-        return cell_func(cell_ref(hash_vector), pt);
+        pt = cell_func(cell_ref(hash_vector), pt);
+        return binary(pt, lv, in);
+
+
 #if 0 // TODO
         it = lexical(in);
         if (!it || it->type != it_LBRC) {

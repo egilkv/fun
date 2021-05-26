@@ -304,6 +304,7 @@ cell *cell_vector(index_t length) {
         // TODO have some sanity check on vector length
         node->_.vector.table = malloc(length * sizeof(cell *));
         assert(node->_.vector.table);
+        // NIL as default value
         memset(node->_.vector.table, 0, length * sizeof(cell *));
     }
     return node;

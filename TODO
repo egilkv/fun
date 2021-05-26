@@ -6,8 +6,6 @@ GTK example-2 button 1 quits. Why?
 
 Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
-Ellipsis is 3 dots?
-
 Should array indexing be by () instead
 
 Get rid of pair, instead : is c_LABEL (only in some instances)
@@ -113,6 +111,8 @@ Assocs are called Maps in Erlang.
 Symbols can be called atoms
 
 Maybe #length() should be some sort of operator? Hash?
+
+Ellipsis (range) is 3 dots?
 
 Div and mod as operators?
 
