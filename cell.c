@@ -7,6 +7,7 @@
 #include <assert.h>                               // TODO superflous
 
 #include "oblist.h"
+#include "cmod.h" // hash_undefined
 
 static  cell *newcell(celltype t) {
     cell *node = malloc(sizeof(cell));
@@ -221,20 +222,6 @@ int list_pop(cell **cpp, cell **carp) {
      }
 }
 
-// works for c_PAIR and c_LABEL  TODO fix!!!
-int pair_split(cell *cp, cell **carp, cell **cdrp) {
-    if (cell_is_pair(cp) || cell_is_label(cp)) {
-        if (carp) *carp = cell_ref(cp->_.cons.car);
-        if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
-        cell_unref(cp);
-        return 1;
-     } else {
-        if (carp) *carp = NIL;
-        if (cdrp) *cdrp = NIL;
-        return 0;
-     }
-}
-
 void range_split(cell *cp, cell **carp, cell **cdrp) {
     assert(cell_is_range(cp));
     *carp = cell_ref(cp->_.cons.car);
@@ -339,9 +326,11 @@ void vector_resize(cell* node, index_t newlen) {
 	// realloc works also with NULL
         node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
 	assert(node->_.vector.table);
-	if (newlen > oldlen) {
-	    memset(&(node->_.vector.table[oldlen]), 0, (newlen-oldlen) * sizeof(cell *));
-	}
+        while (oldlen < newlen) {
+            node->_.vector.table[oldlen] = cell_ref(hash_undefined);
+            ++oldlen;
+        }
+        //  memset(&(node->_.vector.table[oldlen]), 0, (newlen-oldlen) * sizeof(cell *));
 
     } else if (oldlen > 0) {
 	free(node->_.vector.table);

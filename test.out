@@ -4,10 +4,10 @@
 #plus(a, b) ==> 3
 #plus(a, b) ==> 3
 #plus(a, b) ==> 3
-#if(c, (a : b)) ==> 1
-#defq(factorial, #lambda(#(n), #if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))) ==> #closure0(
+#if(c, a, b) ==> 1
+#defq(factorial, #lambda(#(n), #if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))))) ==> #closure0(
   args: #(n)
-  body: #(#if(#lt(n, 2), (1 : #times(n, factorial(#minus(n, 1))))))
+  body: #(#if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))))
 ) 
 factorial(10) ==> 3628800
 #defq(ft, #lambda(#(a, b), #defq(c, a), #defq(d, b), #plus(c, d))) ==> #closure0(
@@ -22,7 +22,7 @@ ft(50, 5) ==> 55
 ] 
 #ref(v, 0) ==> 7
 #ref(v, 2) ==> "hello"
-#defq(aa, #assoc((one : 1), (two : 2), (three : 3))) ==> { 
+#defq(aa, #assoc(one: 1, two: 2, three: 3)) ==> { 
   one : 1,
   three : 3,
   two : 2
@@ -34,13 +34,13 @@ ft(50, 5) ==> 55
 #refq(aa, one) ==> 1
 #refq(aa, two) ==> 2
 #refq(aa, three) ==> 3
-#amp(aa, #assoc((two : "TWO"))) ==> error; list & not yet implemented: { 
+#amp(aa, #assoc(two: "TWO")) ==> error; list & not yet implemented: { 
   one : 1,
   three : 3,
   two : 2
 } 
 #void
-#vector((3 : 99), (0 : "test")) ==> [ 
+#vector(3: 99, 0: "test") ==> [ 
   "test",
   #(),
   #(),

@@ -1,9 +1,6 @@
 
-Vector only half initiated should default to undefined
-
-Review pair_split()
-
-Parsing of multiple ifs is not good, fix it
+Enable in-line for #if
+#if 0 // TODO enable...
 
 GTK example-2 button 1 quits. Why?
 

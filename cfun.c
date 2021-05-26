@@ -86,31 +86,41 @@ static cell *cfun1_not(cell *a) {
 
 static cell *cfunQ_if(cell *args, cell *env) {
     int bool;
-    cell *a, *b;
-    if (!arg2(args, &a, &b)) {
-	return a; // error
+    cell *a, *b, *c;
+
+    if (!list_pop(&args, &a)) {
+	cell_unref(args);
+	return error_rt0("missing condition for if");
+    }
+    if (!list_pop(&args, &b)) {
+	cell_unref(a);
+	cell_unref(args);
+	return error_rt0("missing value if true for if");
+    }
+    if (list_pop(&args, &c)) { // if-then-else
+	arg0(args);
+    } else {
+	c = cell_void(); // TODO can optimize
     }
     a = eval(a, env);
-    if (!get_boolean(a, &bool, b)) {
+    if (!get_boolean(a, &bool, args)) {
         return cell_void(); // error
     }
     if (bool) {
-	if (!pair_split(b, &a, (cell **)0)) {
-            // no else-part
-	    a = b;
-        }
+	cell_unref(c);
+	a = b;
     } else {
-	if (!pair_split(b, (cell **)0, &a)) {
-            // no else-part
-            cell_unref(b);
-            return cell_void();
-        }
+	cell_unref(b);
+	a = c;
     }
+#if 1 // TODO enable...
     if (env) {
-        // evalutae in-line
+	// evaluate in-line
 	*env_progp(env) = cell_list(a, env_prog(env));
         return NIL;
-    } else {
+    } else 
+#endif
+    {
         return eval(a, env);
     }
 }

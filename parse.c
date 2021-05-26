@@ -16,7 +16,8 @@
 #include "oblist.h"
 
 static cell *expr(precedence lv, lxfile *in);
-static cell *getlist(item *op, token sep_token, token end_token, lxfile *in);
+static cell *getlist(item *op, token sep_token, token end_token, 
+                     precedence blv, lxfile *in);
 static cell *binary(cell *left, precedence lv, lxfile *in);
 
 static cell *badeof() {
@@ -107,7 +108,7 @@ static cell *expr(precedence lv, lxfile *in) {
 
     case it_LPAR:
         // read as list
-        pt = getlist(it, it_COMMA, it_RPAR, in);
+        pt = getlist(it, it_COMMA, it_RPAR, l_BASE, in); // no colon allowed
         it = lexical(in);
         if (cell_is_list(pt)) {
             // single item on list, not sure what it is
@@ -128,18 +129,19 @@ static cell *expr(precedence lv, lxfile *in) {
                 return cell_func(cell_ref(hash_lambda), cell_list(pt, NIL));
             }
         }
+        // get function body
         {
-            cell *body = getlist(it, it_SEMI, it_RBRC, in);
+            cell *body = getlist(it, it_SEMI, it_RBRC, l_BASE, in);
             return cell_func(cell_ref(hash_lambda), cell_list(pt, body));
         }
 
-    case it_LBRC: // assoc definition
-        pt = getlist(it, it_COMMA, it_RBRC, in);
+    case it_LBRC: // assoc definition or a compound statement
+        pt = getlist(it, it_COMMA, it_RBRC, l_PERHAPS, in);
         // TODO implement optional final semicolon
         return cell_func(cell_ref(hash_assoc), pt);
 
-    case it_LBRK: // array definition
-        pt = getlist(it, it_COMMA, it_RBRK, in);
+    case it_LBRK: // list or array definition
+        pt = getlist(it, it_COMMA, it_RBRK, l_LABEL, in);
         return cell_func(cell_ref(hash_vector), pt);
 #if 0 // TODO
         it = lexical(in);
@@ -150,7 +152,7 @@ static cell *expr(precedence lv, lxfile *in) {
             return cell_func(cell_ref(hash_vector), cell_list(pt, NIL));
         }
         {
-            cell *init = getlist(it, it_COMMA, it_RBRC, in);
+            cell *init = getlist(it, it_COMMA, it_RBRC, l_LABEL, in);
 
 	    // peek to see if it is a colon-style initializer
 	    if ((cell_is_list(init) && cell_is_pair(cell_car(init)))
@@ -335,10 +337,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 
     case it_EQ:
         return binary_r2l(left, l_DEF,   cell_ref(hash_defq), op, lv, in); // 2 args
-#if 1
-    case it_QUEST:
-        return binary_r2l(left, l_COND,  cell_ref(hash_if), op, lv, in); // 2 args
-#else
+
     case it_QUEST: // ternary
 	if (lv > l_COND) { // right-to-left
             // look no further
@@ -354,7 +353,6 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         op = lexical(in);
         if (!op || op->type != it_COLON) {
             // "if" without an "else"
-            // TODO should that be allowed?
             if (op) pushitem(op);
             return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
         }
@@ -368,17 +366,16 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
             }
             return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, cell_list(third, NIL)))), lv, in);
         }
-#endif
 
-    case it_LPAR: // function
+    case it_LPAR: // function invocation
 	if (lv >= l_POST) { // left-to-right
             // look no further
             pushitem(op);
             return left;
         }
-        return binary(cell_func(left, getlist(op, it_COMMA, it_RPAR, in)), lv, in);
+        return binary(cell_func(left, getlist(op, it_COMMA, it_RPAR, l_LABEL, in)), lv, in);
 
-    case it_LBRK: // array
+    case it_LBRK: // array/assoc index
 	if (lv >= l_POST) { // left-to-right
             // look no further
             pushitem(op);
@@ -386,7 +383,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         }
         dropitem(op);
         // TODO argument list, not expression
-        right = expr(l_BOT, in);
+        right = expr(l_BASE, in);
         if (!right) {
             badeof(); // end of file
             return left;
@@ -401,13 +398,13 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary(cell_func(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
 
     case it_COLON:
-        if (lv >= l_COLON) { // left-to-right
+        if (lv > l_LABEL) { // right-to-left
             // look no further
             pushitem(op);
             return left;
         }
         dropitem(op);
-        right = expr(l_COLON, in);
+        right = expr(l_LABEL, in);
         if (!right) {
             badeof(); // end of file
             return left;
@@ -488,7 +485,8 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 //
 // parse list of function arguments or parameters
 //
-static cell *getlist(item *op, token sep_token, token end_token, lxfile *in) {
+static cell *getlist(item *op, token sep_token, token end_token, 
+                     precedence blv, lxfile *in) {
     cell *arglist = 0;
     cell **nextp = &arglist;
     cell *arg;
@@ -507,10 +505,15 @@ static cell *getlist(item *op, token sep_token, token end_token, lxfile *in) {
     }
     pushitem(op);
     for (;;) {
-        arg = expr(l_BOT, in);        // TODO what about comma?
+        arg = expr(blv, in);          // TODO what about comma?
         if (!arg) {
             badeof(); // end of file
             return arglist;
+        }
+        if (blv == l_PERHAPS) { // ugly curly brace case
+            // use first item to decide what this is
+            if (cell_is_label(arg)) blv = l_LABEL;
+            else blv = l_BASE;
         }
         *nextp = cell_list(arg, NIL);
         nextp = &((*nextp)->_.cons.cdr);
