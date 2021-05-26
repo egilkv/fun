@@ -181,17 +181,20 @@ integer_t ref_length(cell *a) {
 }
 
 // does not consume
-static cell *list_spin(cell *a, index_t times) {
+// on error, return zero and set *ap to reffed void
+static int list_spin(cell **ap, index_t times) {
+    cell *a = *ap;
     index_t i;
     for (i = 0; i < times; ++i) {
         if (!a) {
-            cell_unref(error_rti("list index out of bounds", times));
-            return NIL;
+            *ap = error_rti("list index out of bounds", times);
+            return 0;
         }
         assert(cell_is_list(a));
         a = cell_cdr(a);
     }
-    return a;
+    *ap = a;
+    return 1;
 }
 
 // does not consume
@@ -217,9 +220,9 @@ cell *ref_index(cell *a, index_t index) {
 	}
 
     case c_LIST:
-        a = list_spin(a, index);
+        if (!list_spin(&a, index)) return a;
         if (!a) {
-            return cell_void();
+            return error_rti("list index out of bounds", index);
         }
         return cell_ref(cell_car(a));
 
@@ -241,8 +244,9 @@ cell *ref_range1(cell *a, index_t index) {
         return ref_range2(a, index, a->_.string.len - index);
 
     case c_LIST:
-        a = list_spin(a, index);
-        return cell_ref(a); // trivial case
+        if (!list_spin(&a, index)) return a;
+        // NIL list is tolerated here
+        return cell_ref(a); 
 
     default:
         return ref_range2(a, index, 0);
@@ -291,7 +295,7 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
             integer_t i;
             cell *value = NIL;
             cell **pp = &value;
-            a = list_spin(a, index);
+            if (!list_spin(&a, index)) return a;
             // make copy of len items of remaining list
             // TODO can optimize if all of remaining list
             for (i=0; i < len; ++i) {

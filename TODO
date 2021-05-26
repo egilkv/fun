@@ -12,8 +12,6 @@ Should array indexing be by () instead
 Get rid of pair, instead : is c_LABEL (only in some instances)
 Haskell uses : as cons operator, though
 
-Does not parse: -12 / 4;
-
 Also: 35: instead of 35; is strange
 
 Env is a structure with misc state info?

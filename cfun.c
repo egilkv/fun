@@ -633,7 +633,11 @@ static cell *cfun2_ref(cell *a, cell *b) {
         if (b2) {
             index_t index2 = 0;
             if (!get_index(b2, &index2, a)) return cell_void(); // error
-            value = ref_range2(a, index1, 1 + index2-index1);
+            if (index2 < index1) {
+                cell_unref(a);
+                return error_rti("index range cannot be reverse", index2);
+            }
+            value = ref_range2(a, index1, 1+index2 - index1);
         } else {
             value = ref_range1(a, index1);
         }

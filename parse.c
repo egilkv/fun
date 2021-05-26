@@ -72,13 +72,13 @@ static cell *expr(precedence lv, lxfile *in) {
 
     case it_NOT: // unary only
         dropitem(it);
-        p2 = expr(l_UNARY, in);
+	p2 = expr(lv, in);
         if (!p2) return badeof();
         return cell_func(cell_ref(hash_not), cell_list(p2, NIL));
 
     case it_MINUS:
         dropitem(it);
-        p2 = expr(l_UNARY, in);
+	p2 = expr(lv, in);
         if (!p2) return badeof();
         if (cell_is_number(p2)) {
             // handle unary minus of number here TODO sure?
@@ -101,7 +101,7 @@ static cell *expr(precedence lv, lxfile *in) {
 
     case it_QUOTE:
         dropitem(it);
-        p2 = expr(l_UNARY, in);
+	p2 = expr(lv, in);
         if (!p2) return badeof();
         return cell_func(cell_ref(hash_quote), cell_list(p2, NIL));
 

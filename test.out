@@ -164,9 +164,26 @@ func() ==> case 2 is ALICE and DELTA
 #ref(al, 3 .. #()) ==> #()
 #ref(av, 3 .. #()) ==> [ 
 ] 
-#ref(as, 4 .. #()) ==> error; string index range out of bounds: 4
+#ref(as, 4 .. #()) ==> error; string range out of bounds: 4
 #void
-#ref(al, 4 .. #()) ==> error; list range out of bounds: 4
+#ref(al, 4 .. #()) ==> error; list index out of bounds: 4
 #void
-#ref(av, 4 .. #()) ==> error; vector index range out of bounds: 4
+#ref(av, 4 .. #()) ==> error; vector range out of bounds: 4
+#void
+#ref(as, 2 .. 2) ==> "c"
+#ref(al, 2 .. 2) ==> #(3)
+#ref(av, 2 .. 2) ==> [ 
+  3
+] 
+#ref(as, 2 .. 3) ==> error; string range out of bounds: 3
+#void
+#ref(al, 2 .. 3) ==> error; list range out of bounds: 3
+#void
+#ref(av, 2 .. 3) ==> error; vector range out of bounds: 3
+#void
+#ref(as, 3 .. 3) ==> error; string range out of bounds: 3
+#void
+#ref(al, 3 .. 3) ==> error; list range out of bounds: 3
+#void
+#ref(av, 3 .. 3) ==> error; vector range out of bounds: 3
 #void
