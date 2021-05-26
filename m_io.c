@@ -17,6 +17,8 @@
 
 static cell *io_assoc = NIL;
 
+#define DO_MULTILINE 0 // multiline tables and assocs
+
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
         // end of list
@@ -40,7 +42,7 @@ static void show_list(FILE *out, cell *ct) {
 static void cell_writei(FILE *out, cell *ct, int indent) {
 
     if (!ct) {
-        fprintf(out, "#()");
+        fprintf(out, "[]"); // NIL
         return;
     } else switch (ct->type) {
 
@@ -66,9 +68,9 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         return;
 
     case c_RANGE:
-        cell_writei(out, cell_car(ct), indent);
+        if (cell_car(ct)) cell_writei(out, cell_car(ct), indent);
         fprintf(out, " .. ");
-        cell_writei(out, cell_cdr(ct), indent);
+        if (cell_cdr(ct)) cell_writei(out, cell_cdr(ct), indent);
         return;
 
     case c_LABEL:
@@ -191,7 +193,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             index_t i;
             fprintf(out, "[ ");
             for (i = 0; i < n; ++i) {
-#if 1 // TODO multiline
+#if DO_MULTILINE
                 fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
 #else
                 if (more) fprintf(out, ", ");
@@ -199,7 +201,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
                 more = 1;
                 cell_writei(out, ct->_.vector.table[i], indent+4);
             }
-#if 1 // TODO multiline
+#if DO_MULTILINE
             fprintf(out, "\n%*s] ", indent,"");
 #else
             fprintf(out, more ? " ] ":"] ");
@@ -229,7 +231,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 			if (ct->_.assoc.table) for (i = 0; i < n; ++i) {
 		p = ct->_.assoc.table[i];
 		while (p) {
-#if 1 // TODO multiline
+#if DO_MULTILINE
                     fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
 #else
                     if (more) fprintf(out, ", ");
@@ -241,7 +243,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 		    p = p->next;
 		}
 	    }
-#if 1 // TODO multiline
+#if DO_MULTILINE
             fprintf(out, "\n%*s} ", indent,"");
 #else
             fprintf(out, more ? " } ":"} ");

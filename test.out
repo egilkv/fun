@@ -15,11 +15,7 @@ factorial(10) ==> 3628800
   body: #(#defq(c, a), #defq(d, b), #plus(c, d))
 ) 
 ft(50, 5) ==> 55
-#defq(v, #vector(7, 8, "hello")) ==> [ 
-  7,
-  8,
-  "hello"
-] 
+#defq(v, #vector(7, 8, "hello")) ==> [ 7, 8, "hello" ] 
 #ref(v, 0) ==> 7
 #ref(v, 2) ==> "hello"
 #defq(aa, #assoc(one: 1, two: 2, three: 3)) ==> { 
@@ -34,37 +30,24 @@ ft(50, 5) ==> 55
 #refq(aa, one) ==> 1
 #refq(aa, two) ==> 2
 #refq(aa, three) ==> 3
-#amp(aa, #assoc(two: "TWO")) ==> error; list & not yet implemented: { 
-  one : 1,
-  three : 3,
-  two : 2
+#amp(aa, #assoc(four: "FOUR")) ==> error; assoc & not yet implemented: { 
+  four : "FOUR"
 } 
 #void
-#vector(3: 99, 0: "test") ==> [ 
-  "test",
-  #(),
-  #(),
-  99
-] 
+#amp(aa, #assoc(two: "TWO")) ==> error; assoc & not yet implemented: { 
+  two : "TWO"
+} 
+#void
+#vector(3: 99, 0: "test") ==> [ "test", [], [], 99 ] 
 #defq(list, #(1, 2, 3)) ==> #(1, 2, 3)
 #ref(list, 0) ==> 1
 #refq(list, 0) ==> 1
 #amp("abc", "def") ==> "abcdef"
 #ref("abcdef", 2) ==> "c"
-#defq(array1, #vector(1, 2, 3, 4, 5, 6)) ==> [ 
-  1,
-  2,
-  3,
-  4,
-  5,
-  6
-] 
+#defq(array1, #vector(1, 2, 3, 4, 5, 6)) ==> [ 1, 2, 3, 4, 5, 6 ] 
 #ref(array1, 0) ==> 1
 #ref(array1, 3) ==> 4
-#ref(array1, 3 .. 4) ==> [ 
-  4,
-  5
-] 
+#ref(array1, 3 .. 4) ==> [ 4, 5 ] 
 #defq(j, 15) ==> 15
 #defq(f, #defq(g, 9)) ==> 9
 #plus(g, f, 12) ==> 30
@@ -86,15 +69,15 @@ undefined ==> #undefined
   args: #(fn)
   body: #(#defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)
 ) 
-invoke(#lambda(#(), #refq(io, println)("case 1 is ", text1, " and ", text2))) ==> case 1 is ECHO and DELTA
+invoke(#lambda([], #refq(io, println)("case 1 is ", text1, " and ", text2))) ==> case 1 is ECHO and DELTA
 "CAROLINE"
-#defq(func, #lambda(#(), #defq(text1, "ALICE"), invoke(#lambda(#(), #refq(io, println)("case 2 is ", text1, " and ", text2))))) ==> #closure0(
-  args: #()
-  body: #(#defq(text1, "ALICE"), invoke(#lambda(#(), #refq(io, println)("case 2 is ", text1, " and ", text2))))
+#defq(func, #lambda([], #defq(text1, "ALICE"), invoke(#lambda([], #refq(io, println)("case 2 is ", text1, " and ", text2))))) ==> #closure0(
+  args: []
+  body: #(#defq(text1, "ALICE"), invoke(#lambda([], #refq(io, println)("case 2 is ", text1, " and ", text2))))
 ) 
 func() ==> case 2 is ALICE and DELTA
 "CAROLINE"
-#lambda(#(text2), invoke(#lambda(#(), #refq(io, println)("case 3 is ", text1, " and ", text2))))("ZZZ") ==> case 3 is ECHO and ZZZ
+#lambda(#(text2), invoke(#lambda([], #refq(io, println)("case 3 is ", text1, " and ", text2))))("ZZZ") ==> case 3 is ECHO and ZZZ
 "CAROLINE"
 #quotient(12, -4) ==> -3
 #times(12345678.901234, 100000) ==> 1234567890123.4
@@ -150,31 +133,22 @@ func() ==> case 2 is ALICE and DELTA
 #lt("b", "a", "x") ==> #f
 #defq(as, "abc") ==> "abc"
 #defq(al, #(1, 2, 3)) ==> #(1, 2, 3)
-#defq(av, #vector(1, 2, 3)) ==> [ 
-  1,
-  2,
-  3
-] 
-#ref(as, 2 .. #()) ==> "c"
-#ref(al, 2 .. #()) ==> #(3)
-#ref(av, 2 .. #()) ==> [ 
-  3
-] 
-#ref(as, 3 .. #()) ==> ""
-#ref(al, 3 .. #()) ==> #()
-#ref(av, 3 .. #()) ==> [ 
-] 
-#ref(as, 4 .. #()) ==> error; string range out of bounds: 4
+#defq(av, #vector(1, 2, 3)) ==> [ 1, 2, 3 ] 
+#ref(as, 2 .. ) ==> "c"
+#ref(al, 2 .. ) ==> #(3)
+#ref(av, 2 .. ) ==> [ 3 ] 
+#ref(as, 3 .. ) ==> ""
+#ref(al, 3 .. ) ==> []
+#ref(av, 3 .. ) ==> []
+#ref(as, 4 .. ) ==> error; string range out of bounds: 4
 #void
-#ref(al, 4 .. #()) ==> error; list index out of bounds: 4
+#ref(al, 4 .. ) ==> error; list index out of bounds: 4
 #void
-#ref(av, 4 .. #()) ==> error; vector range out of bounds: 4
+#ref(av, 4 .. ) ==> error; vector range out of bounds: 4
 #void
 #ref(as, 2 .. 2) ==> "c"
 #ref(al, 2 .. 2) ==> #(3)
-#ref(av, 2 .. 2) ==> [ 
-  3
-] 
+#ref(av, 2 .. 2) ==> [ 3 ] 
 #ref(as, 2 .. 3) ==> error; string range out of bounds: 3
 #void
 #ref(al, 2 .. 3) ==> error; list range out of bounds: 3
@@ -187,3 +161,5 @@ func() ==> case 2 is ALICE and DELTA
 #void
 #ref(av, 3 .. 3) ==> error; vector range out of bounds: 3
 #void
+#amp(#vector(1, 2, 3), #vector(4, 5)) ==> [ 1, 2, 3, 4, 5 ] 
+#amp(#(1, 2, 3), #(4, 5)) ==> #(1, 2, 3, 4, 5)
