@@ -412,7 +412,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
             badeof(); // end of file
             return left;
         }
-        return binary(cell_pair(left, right), lv, in);
+        return binary(cell_label(left, right), lv, in);
 
     case it_RANGE:
         // TODO range: should only recognize within brackets?

@@ -418,11 +418,11 @@ static cell *cfunQ_vector(cell *args, cell *env) {
     vector = cell_vector(0);
     // TODO rather inefficient
     while (list_pop(&args, &a)) {
-        if (cell_is_pair(a)) {  // index : value
+        if (cell_is_label(a)) { // index : value
 	    index_t index;
             cell *b;
-	    pair_split(a, &a, &b);
-	    if (get_index(eval(a, env), &index, b)) {
+            label_split(a, &a, &b);
+            if (get_index(a, &index, b)) { // TODO a not evaluated?
                 if (index >= len) {
                     len = index+1;
                     vector_resize(vector, len);
@@ -448,10 +448,11 @@ static cell *cfunQ_assoc(cell *args, cell *env) {
     cell *b;
     cell *assoc = cell_assoc();
     while (list_pop(&args, &a)) {
-        if (!pair_split(a, &a, &b)) {
-	    cell_unref(error_rt1("initialization item not in form of key colon value", a));
+        if (!cell_is_label(a)) {
+	    cell_unref(error_rt1("initialization item not in form of key: value", a));
         } else {
-            b = eval(b, env);
+	    label_split(a, &a, &b);
+	    b = eval(b, env);
 	    if (!assoc_set(assoc, a, b)) {
 		cell_unref(b);
 		cell_unref(error_rt1("duplicate key ignored", a));
@@ -621,8 +622,8 @@ static cell *cfun2_ref(cell *a, cell *b) {
 	}
         cell_unref(b);
     } else if (cell_is_range(b)) {
-        cell *b1, *b2;
         index_t index1 = 0;
+        cell *b1, *b2;
         pair_split(b, &b1, &b2);
         if (b1) {
             if (!get_index(b1, &index1, a)) {

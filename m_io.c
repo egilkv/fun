@@ -60,7 +60,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_PAIR:
         fprintf(out, "(");
         cell_writei(out, cell_car(ct), indent);
-        fprintf(out, " : ");
+        fprintf(out, " :: "); // TODO remove
         cell_writei(out, cell_cdr(ct), indent);
         fprintf(out, ")");
         return;
@@ -68,6 +68,12 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_RANGE:
         cell_writei(out, cell_car(ct), indent);
         fprintf(out, " .. ");
+        cell_writei(out, cell_cdr(ct), indent);
+        return;
+
+    case c_LABEL:
+        cell_writei(out, cell_car(ct), indent);
+        fprintf(out, ": ");
         cell_writei(out, cell_cdr(ct), indent);
         return;
 
