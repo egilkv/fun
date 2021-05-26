@@ -409,7 +409,7 @@ static cell *cfunN_list(cell *args) {
     return args;
 }
 
-static cell *cfunQ_vector(cell *args, cell *env) {
+static cell *cfunN_vector(cell *args) {
     cell *vector;
     index_t len;
     cell *a;
@@ -428,13 +428,13 @@ static cell *cfunQ_vector(cell *args, cell *env) {
                     vector_resize(vector, len);
                 }
                 // TODO check if redefining, which is not allowed
-		if (!vector_set(vector, index, eval(b, env))) {
+                if (!vector_set(vector, index, b)) {
                     assert(0); // out of bounds should not happen
                 }
             }
         } else {
             vector_resize(vector, ++len);
-            if (!vector_set(vector, len-1, eval(a, env))) {
+            if (!vector_set(vector, len-1, a)) {
                 assert(0); // out of bounds should not happen
             }
         }
@@ -443,7 +443,7 @@ static cell *cfunQ_vector(cell *args, cell *env) {
     return vector;
 }
 
-static cell *cfunQ_assoc(cell *args, cell *env) {
+static cell *cfunN_assoc(cell *args) {
     cell *a;
     cell *b;
     cell *assoc = cell_assoc();
@@ -452,7 +452,6 @@ static cell *cfunQ_assoc(cell *args, cell *env) {
 	    cell_unref(error_rt1("initialization item not in form of key: value", a));
         } else {
 	    label_split(a, &a, &b);
-	    b = eval(b, env);
 	    if (!assoc_set(assoc, a, b)) {
 		cell_unref(b);
 		cell_unref(error_rt1("duplicate key ignored", a));
@@ -726,7 +725,7 @@ void cfun_init() {
     //      to keep symbols in play
     hash_amp      = oblistv("#amp",      cell_cfunN(cfunN_amp));
     hash_and      = oblistv("#and",      cell_cfunQ(cfunQ_and));
-    hash_assoc    = oblistv("#assoc",    cell_cfunQ(cfunQ_assoc));
+    hash_assoc    = oblistv("#assoc",    cell_cfunN(cfunN_assoc));
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
     hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
@@ -749,7 +748,7 @@ void cfun_init() {
     hash_refq     = oblistv("#refq",     cell_cfunQ(cfunQ_refq));
     hash_times    = oblistv("#times",    cell_cfunN(cfunN_times));
 		    oblistv("#use",      cell_cfun1(cfun1_use));
-    hash_vector   = oblistv("#vector",   cell_cfunQ(cfunQ_vector));
+    hash_vector   = oblistv("#vector",   cell_cfunN(cfunN_vector));
 
     // values
     hash_f       = oblistv("#f",       NIL);

@@ -1,4 +1,6 @@
 
+Vector only half initiated should default to undefined
+
 Review pair_split()
 
 Parsing of multiple ifs is not good, fix it
