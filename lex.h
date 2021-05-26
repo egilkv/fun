@@ -21,7 +21,7 @@ enum it_ {
    it_AMP,
    it_AND,
    it_STOP,    // 15
-   it_ELIP,
+   it_RANGE,
    it_COMMA,
    it_COLON,
    it_SEMI,
@@ -55,8 +55,8 @@ typedef struct file_s lxfile;
 
 struct item_s {
     token type;
-    // TODO union for efficiency?
-    number nvalue;
+    integer_t ivalue;
+    integer_t divisor;
     real_t fvalue;
     real_t decimal;
     index_t slen;

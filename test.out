@@ -51,10 +51,20 @@ ft(50, 5) ==> 55
 #refq(list, 0) ==> 1
 #amp("abc", "def") ==> "abcdef"
 #ref("abcdef", 2) ==> "c"
-#ref(array1, 0) ==> error; cannot referrence: #undefined
-#void
-#ref(array1, 3) ==> error; cannot referrence: #undefined
-#void
+#defq(array1, #vector(1, 2, 3, 4, 5, 6)) ==> [ 
+  1,
+  2,
+  3,
+  4,
+  5,
+  6
+] 
+#ref(array1, 0) ==> 1
+#ref(array1, 3) ==> 4
+#ref(array1, 3 .. 4) ==> [ 
+  4,
+  5
+] 
 #defq(j, 15) ==> 15
 #defq(f, #defq(g, 9)) ==> 9
 #plus(g, f, 12) ==> 30
@@ -126,15 +136,37 @@ func() ==> case 2 is ALICE and DELTA
 #void
 #refq(m, pow)(-10, 9) ==> -1000000000.0
 #refq(m, pow)(10, -9) ==> 1e-09.0
-#refq(m, abs)(#minus(12.34)) ==> 12.34
+#refq(m, abs)(-12.34) ==> 12.34
 #refq(m, abs)(-12) ==> 12
 #refq(m, abs)(#minus(#quotient(12, 34))) ==> 6/17
 #refq(m, int)(12.1) ==> 12
 #refq(m, int)(12.6) ==> 13
-#refq(m, int)(#minus(12.1)) ==> -12
-#refq(m, int)(#minus(12.6)) ==> -13
+#refq(m, int)(-12.1) ==> -12
+#refq(m, int)(-12.6) ==> -13
 #refq(m, int)(#quotient(10, 3)) ==> 3
 #refq(m, int)(#quotient(11, 3)) ==> 4
 #lt("a", "b", "c") ==> #t
 #lt("aa", "a") ==> #f
 #lt("b", "a", "x") ==> #f
+#defq(as, "abc") ==> "abc"
+#defq(al, #(1, 2, 3)) ==> #(1, 2, 3)
+#defq(av, #vector(1, 2, 3)) ==> [ 
+  1,
+  2,
+  3
+] 
+#ref(as, 2 .. #()) ==> "c"
+#ref(al, 2 .. #()) ==> #(3)
+#ref(av, 2 .. #()) ==> [ 
+  3
+] 
+#ref(as, 3 .. #()) ==> ""
+#ref(al, 3 .. #()) ==> #()
+#ref(av, 3 .. #()) ==> [ 
+] 
+#ref(as, 4 .. #()) ==> error; string index range out of bounds: 4
+#void
+#ref(al, 4 .. #()) ==> error; list range out of bounds: 4
+#void
+#ref(av, 4 .. #()) ==> error; vector index range out of bounds: 4
+#void

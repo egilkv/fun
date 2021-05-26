@@ -65,6 +65,12 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, ")");
         return;
 
+    case c_RANGE:
+        cell_writei(out, cell_car(ct), indent);
+        fprintf(out, " .. ");
+        cell_writei(out, cell_cdr(ct), indent);
+        return;
+
     case c_NUMBER:
         switch (ct->_.n.divisor) {
         case 1:

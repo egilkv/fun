@@ -44,10 +44,10 @@ list.0;
 // TODO module.symbol;
 "abc" & "def";
 "abcdef"[2];
-// TODO array1 = [ 0..5 : 0];
+array1 = [ 1,2,3,4,5,6 ];       // TODO array1 = [ 0..5 : 0];
 array1[0];
-array1[3];     // TODO generates error?
-// TODO array1[3..4];
+array1[3];
+array1[3..4];
 
 // TODO a = [0..20]{ #t };
 // TODO list[1 ..];
@@ -129,3 +129,24 @@ m.int(11/3);
 "aa" < "a";
 "b" < "a" < "x";
 
+as = "abc";
+al = #( 1, 2, 3 );
+av = [ 1, 2, 3 ];
+as[2..];
+al[2..];
+av[2..];
+as[3..];
+al[3..];
+av[3..];
+as[4..];
+al[4..];
+av[4..];
+as[2..2];
+al[2..2];
+av[2..2];
+as[2..3];
+al[2..3];
+av[2..3];
+as[3..3];
+al[3..3];
+av[3..3];

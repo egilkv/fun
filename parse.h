@@ -13,6 +13,7 @@
 enum prec_ {
     l_BOT,
     l_SEMI,     // ;            TODO new, same as ',' in C
+    l_RANGE,    // ..           TODO new
     l_DEF,      // =            right-to-left
     l_COND,     // ?            TODO right-to-left, in C ? : are same
     l_COLON,    // :            TODO

@@ -38,6 +38,13 @@ cell *cell_pair(cell *car, cell *cdr) {
     return node;
 }
 
+cell *cell_range(cell *car, cell *cdr) {
+    cell *node = newcell(c_RANGE);
+    node->_.cons.car = car;
+    node->_.cons.cdr = cdr;
+    return node;
+}
+
 // TODO inline
 cell *cell_ref(cell *cp) {
     if (cp) ++(cp->ref);
@@ -59,6 +66,10 @@ int cell_is_env(cell *cp) {
 
 int cell_is_pair(cell *cp) {
     return cp && cp->type == c_PAIR;
+}
+
+int cell_is_range(cell *cp) {
+    return cp && cp->type == c_RANGE;
 }
 
 // TODO inline
@@ -96,12 +107,18 @@ int cell_is_integer(cell *cp) {
 
 // TODO inline
 cell *cell_car(cell *cp) {
-    assert(cp && (cp->type == c_LIST || cp->type == c_FUNC || cp->type == c_PAIR));
+    assert(cp && (cp->type == c_LIST 
+               || cp->type == c_FUNC
+               || cp->type == c_RANGE
+               || cp->type == c_PAIR));
     return cp->_.cons.car;
 }
 
 cell *cell_cdr(cell *cp) {
-    assert(cp && (cp->type == c_LIST || cp->type == c_FUNC || cp->type == c_PAIR));
+    assert(cp && (cp->type == c_LIST 
+               || cp->type == c_FUNC
+               || cp->type == c_RANGE
+               || cp->type == c_PAIR));
     return cp->_.cons.cdr;
 }
 
@@ -191,8 +208,9 @@ int list_pop(cell **cpp, cell **carp) {
      }
 }
 
+// works for c_PAIR and c_RANGE
 int pair_split(cell *cp, cell **carp, cell **cdrp) {
-    if (cell_is_pair(cp)) {
+    if (cell_is_pair(cp) || cell_is_range(cp)) {
         if (carp) *carp = cell_ref(cp->_.cons.car);
         if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
         cell_unref(cp);
@@ -353,6 +371,7 @@ static void cell_free(cell *node) {
     case c_LIST:
     case c_FUNC:
     case c_PAIR:
+    case c_RANGE:
     case c_CLOSURE:
     case c_CLOSURE0:
         cell_unref(node->_.cons.car);

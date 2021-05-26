@@ -620,6 +620,23 @@ static cell *cfun2_ref(cell *a, cell *b) {
 	    return error_rt1("assoc key does not exist", b);
 	}
         cell_unref(b);
+    } else if (cell_is_range(b)) {
+        cell *b1, *b2;
+        index_t index1 = 0;
+        pair_split(b, &b1, &b2);
+        if (b1) {
+            if (!get_index(b1, &index1, a)) {
+                cell_unref(b2);
+                return cell_void(); // error
+            }
+        }
+        if (b2) {
+            index_t index2 = 0;
+            if (!get_index(b2, &index2, a)) return cell_void(); // error
+            value = ref_range2(a, index1, 1 + index2-index1);
+        } else {
+            value = ref_range1(a, index1);
+        }
     } else {
 	index_t index;
         if (!get_index(b, &index, a)) return cell_void(); // error

@@ -228,48 +228,51 @@ static item *gotdigit(char c, item *it, lxfile *in) {
         }
     } else {
         it = newitem(it_NUMBER);
-        it->nvalue.dividend.ival = 0;
-        it->nvalue.divisor = 1;
+        it->ivalue = 0;
+        it->divisor = 1;
         it->fvalue = it->decimal = 0.0;
     }
     if (c == '.') {
-        if (it->nvalue.divisor == 1) { // integer?
-            // make float
-            it->nvalue.dividend.fval = it->fvalue;
-            it->nvalue.divisor = 0;
+        if (it->divisor == 1) { // integer?
+            // assume float
+            it->divisor = 0;
             it->decimal = 1.0;
         } else {
-            // float already, ignore
-            error_lex(lxfile_info(in), "extra . in number ignored", c);
+            if (it->decimal == 1.0) {
+                // ellipsis instead of float decimal point
+                // back to integer
+                it->divisor = 1;
+                it->decimal = 0.0;
+                lxungetc(c, in);
+            }
+            lxungetc(c, in);
+            return it;
         }
     } else { // digit
-        if (it->nvalue.divisor == 1) { // integer?
-            if (it->nvalue.dividend.ival == 0 && it->fvalue > 0.0) {
+        if (it->divisor == 1) { // integer?
+            if (it->ivalue == 0 && it->fvalue > 0.0) {
                 // special case: integer has overflowed
                 it->fvalue = it->fvalue*10 + c-'0';
                 // postpone testing of floating point overflow
             } else {
 #ifdef __GNUC__
-                if (__builtin_smulll_overflow(it->nvalue.dividend.ival, 
+                if (__builtin_smulll_overflow(it->ivalue,
                                               10,
-                                              &(it->nvalue.dividend.ival))
-                 || __builtin_saddll_overflow(it->nvalue.dividend.ival, 
+                                              &(it->ivalue))
+                 || __builtin_saddll_overflow(it->ivalue,
                                               c-'0', 
-                                              &(it->nvalue.dividend.ival))) {
+                                              &(it->ivalue))) {
                     // integer overflow
-                    it->nvalue.dividend.ival = 0;
-                    it->fvalue = it->fvalue*10 + c-'0';
-                } else {
-                    // integer still within range
-                    it->fvalue = it->nvalue.dividend.ival;
+                    it->ivalue = 0;
                 }
 #else
-                it->nvalue.dividend.ival = it->nvalue.dividend.ival*10 + c-'0';
+                it->ivalue = it->ivalue*10 + c-'0';
 #endif
             }
+            it->fvalue = it->fvalue*10.0 + c-'0';
         } else {
             it->decimal /= 10.0;
-            it->nvalue.dividend.fval += (c-'0') * it->decimal;
+            it->fvalue += (c-'0') * it->decimal;
         }
     }
     return nextchar(it, in);
@@ -435,7 +438,7 @@ static item *gotstop(char c, item *it, lxfile *in) {
         if (it->type == it_NUMBER) {
             return gotdigit(c, it, in);
         } else if (it->type == it_STOP) {
-            it->type = it_ELIP;
+            it->type = it_RANGE;
         } else {
             lxungetc(c, in);
         }

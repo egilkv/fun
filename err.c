@@ -27,7 +27,7 @@ static const char *it_name[] = {
    "&",         // it_AMP,
    "&&",        // it_AND,
    ".",         // it_STOP,    // 15
-   "..",        // it_ELIP,
+   "..",        // it_RANGE,
    ",",         // it_COMMA,
    ".",         // it_COLON,
    ";",         // it_SEMI,

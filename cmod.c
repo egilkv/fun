@@ -156,9 +156,7 @@ int get_boolean(cell *a, int *boolp, cell *dump) {
 
 // does not consume
 integer_t ref_length(cell *a) {
-    if (a == NIL) {
-        return 0; // length of empty list is 0
-    } else switch (a->type) {
+    switch (a ? a->type : c_LIST) {
 
     case c_VECTOR:
         return a->_.vector.len;
@@ -169,26 +167,36 @@ integer_t ref_length(cell *a) {
     case c_LIST:
 	{
             index_t length = 0;
-	    do {
-                assert(cell_is_list(a));
+            while (a) {
                 ++length;
+                assert(cell_is_list(a));
 		a = cell_cdr(a);
-            } while (a);
+            }
             return length;
 	}
 
-    case c_PAIR:
-        return 2;
-
     default:
-	 break;
+        return -1; // cannot find length
     }
-    return -1; // cannot find length
+}
+
+// does not consume
+static cell *list_spin(cell *a, index_t times) {
+    index_t i;
+    for (i = 0; i < times; ++i) {
+        if (!a) {
+            cell_unref(error_rti("list index out of bounds", times));
+            return NIL;
+        }
+        assert(cell_is_list(a));
+        a = cell_cdr(a);
+    }
+    return a;
 }
 
 // does not consume
 cell *ref_index(cell *a, index_t index) {
-    cell *value;
+    cell *value = NIL;
     if (a) switch (a->type) {
 
     case c_VECTOR:
@@ -203,56 +211,110 @@ cell *ref_index(cell *a, index_t index) {
 	    assert(s);
 	    s[0] = a->_.string.ptr[index];
 	    s[1] = '\0';
-	    value = cell_astring(s, 1);
+            return cell_astring(s, 1);
         } else {
             return error_rti("string index out of bounds", index);
 	}
-	return value;
 
     case c_LIST:
-	value = NIL;
-	{
-	    index_t i = 0;
-	    do {
-		if (!cell_is_list(a)) {
-		    return error_rti("list index out of bounds", index);
-		}
-		value = cell_car(a);
-		a = cell_cdr(a);
-	    } while (i++ < index);
-	}
-	return cell_ref(value);
-
-    case c_PAIR:
-	switch (index) {
-	case 0:
-	    value = cell_ref(cell_car(a));
-	    break;
-	case 1:
-	    value = cell_ref(cell_cdr(a));
-	    break;
-	default:
-	    value = error_rti("pair index out of bounds", index);
-	    break;
-	}
-        return value;
+        a = list_spin(a, index);
+        if (!a) {
+            return cell_void();
+        }
+        return cell_ref(cell_car(a));
 
     default:
-    // TODO ref should work for functions ??
-    case c_FUNC:
-    case c_CLOSURE:
-    case c_CLOSURE0:
-    case c_SPECIAL:
-    case c_SYMBOL:
-    case c_NUMBER:
-    case c_ASSOC:
-	 break;
+        return error_rt1("cannot referrence", cell_ref(a));
+    } else {
+        return error_rt1("cannot referrence", NIL);
     }
-    return error_rt1("cannot referrence", cell_ref(a));
+}
+
+// does not consume
+cell *ref_range1(cell *a, index_t index) {
+    switch (a ? a->type : c_LIST) {
+
+    case c_VECTOR:
+        return ref_range2(a, index, a->_.vector.len - index);
+
+    case c_STRING:
+        return ref_range2(a, index, a->_.string.len - index);
+
+    case c_LIST:
+        a = list_spin(a, index);
+        return cell_ref(a); // trivial case
+
+    default:
+        return ref_range2(a, index, 0);
+    }
+}
+
+// does not consume
+cell *ref_range2(cell *a, index_t index, integer_t len) {
+    switch (a ? a->type : c_LIST) {
+
+    case c_VECTOR:
+        {
+            cell *value = NIL;
+            integer_t i;
+            if (index > a->_.vector.len) {
+                return error_rti("vector range out of bounds", index);
+            }
+            if (index+len > a->_.vector.len) {
+                return error_rti("vector range out of bounds", index+len-1);
+            }
+            value = cell_vector(len);
+            for (i = 0; i < len; ++i) {
+                value->_.vector.table[i] = cell_ref(a->_.vector.table[index+i]);
+            }
+            return value;
+	}
+
+    case c_STRING:
+        {
+            char_t *s;
+            if (index > a->_.string.len) {
+                return error_rti("string range out of bounds", index);
+            }
+            if (index+len > a->_.string.len) {
+                return error_rti("string range out of bounds", index+len-1);
+            }
+            // TODO special case if whole string
+            s = malloc((len+1) * sizeof(char_t));
+	    assert(s);
+            memcpy(s, &(a->_.string.ptr[index]), (len+1) * sizeof(char_t)); // including '\0'
+            return cell_astring(s, len);
+	}
+
+    case c_LIST:
+        {
+            integer_t i;
+            cell *value = NIL;
+            cell **pp = &value;
+            a = list_spin(a, index);
+            // make copy of len items of remaining list
+            // TODO can optimize if all of remaining list
+            for (i=0; i < len; ++i) {
+                if (!a) {
+                    return error_rti("list range out of bounds", index+len-1);
+                }
+                assert(cell_is_list(a));
+                *pp = cell_list(cell_ref(cell_car(a)), NIL);
+                pp = &((*pp)->_.cons.cdr);
+                a = cell_cdr(a);
+            }
+            return value;
+	}
+
+    default:
+        return error_rt1("cannot referrence", cell_ref(a));
+    } 
 }
 
 // TODO inline
 cell *cell_void() {
     return cell_ref(hash_void);
 }
+
+
 

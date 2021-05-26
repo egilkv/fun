@@ -7,6 +7,8 @@ Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
 Ellipsis is 3 dots?
 
+Should array indexing be by () instead
+
 Get rid of pair, instead : is c_LABEL (only in some instances)
 Haskell uses : as cons operator, though
 
@@ -23,8 +25,6 @@ Quote should be on both sides? Practical?
 Functions within assocs must be able to refer to their own assoc
 
 |-operator is for replacements, so somewhat related to &.
-
-How to deal with io etc. not being pure functions?
 
 Lists and assocs can also be used for functions. Skip [] operator?
 
@@ -92,8 +92,6 @@ should prettyprint instead, so instead of #(#defq, a, b) say a = b
 
 Readline tab completion could perhaps understand "io." and more of syntax
 
-Sort assocs when printing (by default) to stabilize output generated
-
 Speed up env_progp-based loop etc
 
 Improve GCD algorithm? Method of least absolute remainders https://en.wikipedia.org/wiki/Euclidean_algorithm
@@ -110,37 +108,18 @@ TODO what to do about integer overflow? Convert to float?
 
 Vector/list and function subscript is the same? So fib(0..10) returns a vector
 
-Erlang example of how to deal with lists:
-
-
-qsort([]) -> []; % If the list [] is empty, return an empty list (nothing to sort)
-qsort([Pivot|Rest]) ->
-    % Compose recursively a list with 'Front' for all elements that should be before 'Pivot'
-    % then 'Pivot' then 'Back' for all elements that should be after 'Pivot'
-    qsort([Front || Front <- Rest, Front < Pivot]) ++
-    [Pivot] ++
-    qsort([Back || Back <- Rest, Back >= Pivot]).
-
-we could do:
-
-    pivot = math.div(#len(lst), 2); // how?
-    qsort(lst[0 .. pivot.1]) & lst[pivot] & qsort(lst[pivot .. ])
-
-Symbols can be called atoms
-
 A continuation is also called a closure.
-
 Funtional programming vz imperative.
 Assocs are called Maps in Erlang.
+Symbols can be called atoms
 
-Maybe #length should be some sort of operator? Hash?
-
-Allow ref to as-of-yet undefined functions
+Maybe #length() should be some sort of operator? Hash?
 
 Div and mod as operators?
 
 Write to stream instead of number2string-conversion, anv vv read from stream
 
+How to deal with io etc. not being pure functions?
 Mechanisms to deal with non-pure stuff:
       * https://en.wikipedia.org/wiki/Purely_functional_programming
       * Monads (Haskell +) https://en.wikipedia.org/wiki/Monad_(functional_programming)

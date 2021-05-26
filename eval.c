@@ -187,6 +187,10 @@ cell *eval(cell *arg, cell *env) {
 	    }
 	    break;
 
+        case c_RANGE: // TODO eval left and right part
+            result = arg;
+	    break;
+
         case c_LIST:
 	    result = error_rt1("list cannot be evaluated", arg);
 	    break;

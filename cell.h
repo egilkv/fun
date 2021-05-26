@@ -13,6 +13,7 @@ enum cell_t {
    c_ENV,       // car is pair, cdr is pair
    c_CLOSURE,   // car is lambda, cdr is continuation env
    c_CLOSURE0,  // car is argnames, cdr is the body, nil cont env, aka lambda
+   c_RANGE,     // car is left, car is right part
    c_PAIR,      // car is left, car is right part
    c_SYMBOL,
    c_STRING,
@@ -94,10 +95,12 @@ cell *cell_cfun3(cell *(*fun)(cell *, cell *, cell *));
 cell *cell_list(cell *car, cell *cdr);
 cell *cell_func(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
+cell *cell_range(cell *car, cell *cdr);
 int cell_is_list(cell *cp);
 int cell_is_func(cell *cp);
 int cell_is_env(cell *cp);
 int cell_is_pair(cell *cp);
+int cell_is_range(cell *cp);
 cell *cell_car(cell *cp);
 cell *cell_cdr(cell *cp);
 int list_pop(cell **cp, cell **carp);

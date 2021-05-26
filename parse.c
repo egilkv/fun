@@ -10,6 +10,7 @@
 
 #include "parse.h"
 #include "cfun.h"
+#include "number.h"
 #include "err.h"
 
 #include "oblist.h"
@@ -38,7 +39,7 @@ static cell *expr(precedence lv, lxfile *in) {
     switch (it->type) {
 
     case it_NUMBER:
-        if (it->nvalue.dividend.ival == 0 && it->fvalue > 0.0) {
+        if (it->divisor != 0 && it->ivalue == 0 && it->fvalue > 0.0) {
             // special case: integer has overflowed
             pt = error_rt0("integer number is too large");
         } else if (!isfinite(it->fvalue)) {
@@ -46,7 +47,13 @@ static cell *expr(precedence lv, lxfile *in) {
             pt = error_rt0("real number is too large");
         } else {
             // regular integer or float
-            pt = cell_number(&(it->nvalue));
+            number nvalue;
+            if ((nvalue.divisor = it->divisor) != 0) {
+                nvalue.dividend.ival = it->ivalue;
+            } else {
+                nvalue.dividend.fval = it->fvalue;
+            }
+            pt = cell_number(&nvalue);
         }
         dropitem(it);
         return binary(pt, lv, in);
@@ -73,10 +80,21 @@ static cell *expr(precedence lv, lxfile *in) {
         dropitem(it);
         p2 = expr(l_UNARY, in);
         if (!p2) return badeof();
-	if (cell_is_integer(p2)) {
-	    // handle unary minus of number here
-	    // TODO deal with overflow
-            p2->_.n.dividend.ival = -(p2->_.n.dividend.ival);
+        if (cell_is_number(p2)) {
+            // handle unary minus of number here TODO sure?
+            if (p2->_.n.divisor == 0) {
+                p2->_.n.dividend.fval = -p2->_.n.dividend.fval;
+            } else {
+#ifdef __GNUC__
+                if (__builtin_ssubll_overflow(0, p2->_.n.dividend.ival,
+                                              &(p2->_.n.dividend.ival))) {
+                    return err_overflow(p2);
+                }
+#else
+                // no overflow detection
+                p2->_.n.dividend.ival = -p2->_.n.dividend.ival;
+#endif
+            }
 	    return p2;
 	}
         return cell_func(cell_ref(hash_minus), cell_list(p2, NIL));
@@ -154,6 +172,10 @@ static cell *expr(precedence lv, lxfile *in) {
         }
 #endif
 
+    case it_RANGE: // start of range is empty, treat as binary
+        pushitem(it);
+        return binary(NIL, lv, in);
+
     case it_SEMI:
         if (lv < l_SEMI) {
             // TODO sure???
@@ -161,6 +183,11 @@ static cell *expr(precedence lv, lxfile *in) {
         }
         dropitem(it);
         return expr(lv, in);
+
+    case it_RPAR: // cannot be used
+    case it_RBRK:
+    case it_RBRC:
+        // TODO lv > l_SEMI do something, insert void dummy instead
 
     case it_PLUS: // unary?
     case it_MULT: // binary only
@@ -179,12 +206,8 @@ static cell *expr(precedence lv, lxfile *in) {
     case it_STOP:
     case it_COMMA:
     case it_QUEST: // ternary
-    case it_ELIP: // binary sometimes..
-    case it_RPAR: // cannot be used
-    case it_RBRK:
-    case it_RBRC:
     case it_COLON:
-	error_pat(lxfile_info(in), "misplaced item", it->type);
+        error_pat(lxfile_info(in), "misplaced item, ignored", it->type);
         dropitem(it);
         return expr(lv, in);
 
@@ -391,6 +414,32 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         }
         return binary(cell_pair(left, right), lv, in);
 
+    case it_RANGE:
+        // TODO range: should only recognize within brackets?
+        if (lv >= l_RANGE) { // left-to-right
+            pushitem(op); // look no further
+            return left;
+        }
+        dropitem(op);
+        // TODO range: ugly hack for it_RBRK
+        op = lexical(in);
+        if (!op) {
+            badeof(); // end of file
+            return cell_range(left, NIL);
+        }
+        if (op->type == it_RBRK) {
+            pushitem(op);
+            return binary(cell_range(left, NIL), lv, in);
+        } else {
+            cell *right;
+            pushitem(op);
+            if (!(right = expr(l_RANGE, in))) {
+                badeof(); // end of file
+                return cell_range(left, NIL);
+            }
+            return binary(cell_range(left, right), lv, in);
+        }
+
     case it_SEMI:
 #if 0 // TODO review for later
         if (lv >= l_SEMI) { // TODO left-to-right?
@@ -411,12 +460,10 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         // this is a lambda with empty argument list
         return cell_func(cell_ref(hash_lambda), cell_list(NIL, cell_list(left, cell_list(right, NIL))));
 #endif
-
     case it_RPAR:
     case it_RBRK:
     case it_RBRC:
     case it_COMMA:
-    case it_ELIP:
         // parse no more
         pushitem(op);
         return left;
@@ -483,6 +530,3 @@ static cell *getlist(item *op, token sep_token, token end_token, lxfile *in) {
     dropitem(op);
     return arglist;
 }
-
-
-
