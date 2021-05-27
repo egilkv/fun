@@ -30,6 +30,7 @@ void chomp_lx(lxfile *lxf) {
     cell *ct;
 
     for (;;) {
+        lxf->show_prompt = 1;
         ct = expression(lxf);
 	if (!ct) break; // eof
         if (lxf->f == stdin) {
@@ -40,9 +41,11 @@ void chomp_lx(lxfile *lxf) {
 	}
         ct = eval(ct, NULL);
         if (lxf->f == stdin) {
-            cell_write(stdout, ct);
-            if (!(lxf->is_terminal)) {
-                printf("\n");
+            if (ct != hash_void) { // write result if not void
+                cell_write(stdout, ct);
+                if (!(lxf->is_terminal)) {
+                    printf("\n");
+                }
             }
 	}
         cell_unref(ct);

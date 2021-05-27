@@ -41,15 +41,12 @@ static char **readline_completion(const char *text, int start, int end) {
 #endif // HAVE_READLINE
 
 void lxfile_init(lxfile *in, FILE *f) {
+    memset(in, 0, sizeof(lxfile));
     in->f = f;
     if (f == stdin) {
         in->is_terminal = isatty(fileno(stdin));
-    } else {
-        in->is_terminal = 0;
     }
-    in->is_eof = 0;
     in->lineno = 1;
-    in->index = 0;
     in->linebuf = NULL;
     in->linelen = 0;
 
@@ -126,7 +123,7 @@ static int lxgetc(lxfile *in) {
 #ifdef HAVE_READLINE
             if (!opt_noreadline) {
                 in->linelen = 0;
-                in->linebuf = readline("\n--> ");
+                in->linebuf = readline(in->show_prompt ? "\n--> " : "    ");
                 if (!(in->linebuf)) {
                     in->is_eof = 1;
                     return -1; // end of file
@@ -139,7 +136,7 @@ static int lxgetc(lxfile *in) {
 #endif
             {
                 // prompt
-                fprintf(stdout, "\n--> ");
+                fprintf(stdout, in->show_prompt ? "\n--> " : "    ");
                 fflush(stdout);
                 in->linebuf = lex_getline(in->f, &(in->linelen));
                 if (!(in->linebuf)) {
@@ -147,6 +144,7 @@ static int lxgetc(lxfile *in) {
                     return -1; // end of file
                 }
             }
+            in->show_prompt = 0;
             ++(in->lineno);
         }
         if (!in->linebuf) {

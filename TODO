@@ -1,5 +1,7 @@
 
-Modify prompt --> is parse not finished
+When pasting readline interprets TAB characters at start of line
+Single ; should maybe be void?
+Ranges as function arguments does not work. Maybe they should.
 
 Enable in-line for #if
 #if 0 // TODO enable...

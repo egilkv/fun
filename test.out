@@ -33,11 +33,9 @@ ft(50, 5) ==> 55
 #amp(aa, #assoc(four: "FOUR")) ==> error; assoc & not yet implemented: { 
   four : "FOUR"
 } 
-#void
 #amp(aa, #assoc(two: "TWO")) ==> error; assoc & not yet implemented: { 
   two : "TWO"
 } 
-#void
 #vector(3: 99, 0: "test") ==> [ "test", [], [], 99 ] 
 #defq(list, #(1, 2, 3)) ==> #(1, 2, 3)
 #ref(list, 0) ==> 1
@@ -107,7 +105,6 @@ func() ==> case 2 is ALICE and DELTA
 } 
 #refq(m, sqrt)(2) ==> 1.4142135623731
 #refq(m, sqrt)(-2) ==> error; no real square root
-#void
 #refq(m, e) ==> 2.71828182845905
 #refq(m, sin)(#quotient(#refq(m, pi), 2)) ==> 1.0
 #refq(m, tan)(#quotient(#refq(m, pi), 4)) ==> 1.0
@@ -116,7 +113,6 @@ func() ==> case 2 is ALICE and DELTA
 #refq(m, pow)(10, 9) ==> 1000000000.0
 #refq(m, pow)(10, 90) ==> 1e+90.0
 #refq(m, pow)(10, 900) ==> error; pow out of range
-#void
 #refq(m, pow)(-10, 9) ==> -1000000000.0
 #refq(m, pow)(10, -9) ==> 1e-09.0
 #refq(m, abs)(-12.34) ==> 12.34
@@ -141,26 +137,17 @@ func() ==> case 2 is ALICE and DELTA
 #ref(al, 3 .. ) ==> []
 #ref(av, 3 .. ) ==> []
 #ref(as, 4 .. ) ==> error; string range out of bounds: 4
-#void
 #ref(al, 4 .. ) ==> error; list index out of bounds: 4
-#void
 #ref(av, 4 .. ) ==> error; vector range out of bounds: 4
-#void
 #ref(as, 2 .. 2) ==> "c"
 #ref(al, 2 .. 2) ==> #(3)
 #ref(av, 2 .. 2) ==> [ 3 ] 
 #ref(as, 2 .. 3) ==> error; string range out of bounds: 3
-#void
 #ref(al, 2 .. 3) ==> error; list range out of bounds: 3
-#void
 #ref(av, 2 .. 3) ==> error; vector range out of bounds: 3
-#void
 #ref(as, 3 .. 3) ==> error; string range out of bounds: 3
-#void
 #ref(al, 3 .. 3) ==> error; list range out of bounds: 3
-#void
 #ref(av, 3 .. 3) ==> error; vector range out of bounds: 3
-#void
 #amp(#vector(1, 2, 3), #vector(4, 5)) ==> [ 1, 2, 3, 4, 5 ] 
 #amp(#(1, 2, 3), #(4, 5)) ==> #(1, 2, 3, 4, 5)
 #include("qsort.fun") ==> "qsort.fun"
