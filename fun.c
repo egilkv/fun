@@ -59,12 +59,15 @@ int main(int argc, char * const argv[]) {
             fprintf(stdout, "Have fun");
         }
         cfun_args(0, NULL);
+
         chomp_lx(&infile);
     } else {
         cfun_args(argc-optind, &argv[optind]); // argv[0] is program name
         // TODO consider setting linux program name too
 
-        chomp_file(argv[optind]); // filename on command line
+        if (!chomp_file(argv[optind])) { // filename on command line
+            error_cmdstr("cannot find file", argv[optind]);
+        }
     }
 
     // always status 0 on normal exit

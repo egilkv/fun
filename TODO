@@ -1,5 +1,9 @@
 
--4-1 is wrong!
+1/2 + 1/3;
+
+errors from normalize_q ??
+
+#void should have something that suppresses further error messages
 
 When pasting readline interprets TAB characters at start of line
 Single ; should maybe be void?
@@ -12,10 +16,9 @@ GTK example-2 button 1 quits. Why?
 
 Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
-Should array indexing be by () instead
+Should array indexing be by () instead?
 
-Get rid of pair, instead : is c_LABEL (only in some instances)
-Haskell uses : as cons operator, though
+Haskell uses : as cons operator, TBD
 
 Also: 35: instead of 35; is strange
 
@@ -27,7 +30,7 @@ Quote should be on both sides? Practical?
 
 Functions within assocs must be able to refer to their own assoc
 
-|-operator is for replacements, so somewhat related to &.
+Suggest |-operator for replacements, so somewhat related to &.
 
 Lists and assocs can also be used for functions. Skip [] operator?
 

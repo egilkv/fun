@@ -26,7 +26,7 @@ enum prec_ {
     l_REL,      // < <= > >=
     l_ADD,      // + -
     l_MULT,     // * /
-    l_UNARY,    // - !          TODO right-to-left
+    l_UNARY,    // - ! '        TODO right-to-left
     l_POST,     // () []        as postfix operators
     l_STOP      // .            left-to-right, like C
 };

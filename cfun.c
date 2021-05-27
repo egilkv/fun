@@ -735,14 +735,18 @@ static cell *cfun1_use(cell *a) {
     return error_rt1("module not found", a); // should
 }
 
-static cell *cfun1_exit(cell *a) {
-    integer_t val;
-    if (!get_integer(a, &val, NIL)) { // TODO optional...
-        val = 0;
+static cell *cfunN_exit(cell *args) {
+    integer_t sts = 0;
+    cell *arg;
+    if (list_pop(&args, &arg)) { // one optional argument
+        if (!get_integer(arg, &sts, NIL)) { // special for exit, skip errors
+            sts = 0; // TODO is this a good exit status on error?
+        }
     }
+    arg0(args);
 
     // TODO check range
-    exit(val);
+    exit(sts);
 
     assert(0); // should never reach here
     return NIL;
@@ -753,7 +757,7 @@ static cell *cfun1_include(cell *a) {
     index_t len;
     if (!peek_string(a, &name, &len, a)) return cell_void(); // error
     if (!chomp_file(name)) {
-        return error_rt1("cannot read include-file", a);
+        return error_rt1("cannot find include-file", a);
     }
     return a;
 }
@@ -829,7 +833,7 @@ void cfun_init() {
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
     hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
-		    oblistv("#exit",     cell_cfunN(cfun1_exit));
+                    oblistv("#exit",     cell_cfunN(cfunN_exit));
     hash_ge       = oblistv("#ge",       cell_cfunN(cfunN_ge));
     hash_gt       = oblistv("#gt",       cell_cfunN(cfunN_gt));
     hash_if       = oblistv("#if",       cell_cfunQ(cfunQ_if));

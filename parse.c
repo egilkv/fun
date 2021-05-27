@@ -59,7 +59,6 @@ int chomp_file(const char *name) {
     FILE *f = fopen(name, "r");
     lxfile cfile;
     if (!f) {
-        error_cmdstr("cannot find file", name);
         return 0;
     }
     lxfile_init(&cfile, f);
@@ -75,7 +74,6 @@ cell *expression(lxfile *in) {
 
 static cell *expr(precedence lv, lxfile *in) {
     cell *pt = 0;
-    cell *p2 = 0;
     item *it;
     it = lexical(in);
     if (!it) return 0; // end of file
@@ -91,13 +89,13 @@ static cell *expr(precedence lv, lxfile *in) {
             pt = error_rt0("real number is too large");
         } else {
             // regular integer or float
-            number nvalue;
-            if ((nvalue.divisor = it->divisor) != 0) {
-                nvalue.dividend.ival = it->ivalue;
+	    number nval;
+	    if ((nval.divisor = it->divisor) != 0) {
+		nval.dividend.ival = it->ivalue;
             } else {
-                nvalue.dividend.fval = it->fvalue;
+		nval.dividend.fval = it->fvalue;
             }
-            pt = cell_number(&nvalue);
+	    pt = cell_number(&nval);
         }
         dropitem(it);
         return binary(pt, lv, in);
@@ -116,28 +114,31 @@ static cell *expr(precedence lv, lxfile *in) {
 
     case it_NOT: // unary only
         dropitem(it);
-	p2 = expr(lv, in);
-        if (!p2) return badeof();
-        return cell_func(cell_ref(hash_not), cell_list(p2, NIL));
+        pt = expr(l_UNARY, in);
+        if (!pt) return badeof();
+        pt = cell_func(cell_ref(hash_not), cell_list(pt, NIL));
+        return binary(pt, lv, in);
 
-    case it_MINUS:
+    case it_MINUS: // unary and binary
         dropitem(it);
-	p2 = expr(lv, in);
-        if (!p2) return badeof();
-        if (cell_is_number(p2)) {
-            // handle unary minus of number here TODO sure?
-            if (!make_negative(&(p2->_.n))) {
-                return err_overflow(p2);
+        pt = expr(l_UNARY, in);
+        if (!pt) return badeof();
+        if (cell_is_number(pt)) {
+            // handle unary minus of number here
+            if (!make_negative(&(pt->_.n))) {
+                return err_overflow(pt);
             }
-	    return p2;
-	}
-        return cell_func(cell_ref(hash_minus), cell_list(p2, NIL));
+        } else {
+            pt = cell_func(cell_ref(hash_minus), cell_list(pt, NIL));
+        }
+        return binary(pt, lv, in);
 
     case it_QUOTE:
         dropitem(it);
-	p2 = expr(lv, in);
-        if (!p2) return badeof();
-        return cell_func(cell_ref(hash_quote), cell_list(p2, NIL));
+        pt = expr(l_UNARY, in);
+        if (!pt) return badeof();
+        pt = cell_func(cell_ref(hash_quote), cell_list(pt, NIL));
+        return binary(pt, lv, in);
 
     case it_LPAR:
         // read as list
@@ -322,7 +323,6 @@ static cell *binary_r2l(cell *left, precedence l2, cell *func, item *op, precede
 }
 
 static cell *binary(cell *left, precedence lv, lxfile *in) {
-    cell *right = 0;
     item *op = lexical(in);
     if (!op) return left; // end of file
 
@@ -337,7 +337,26 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_MULT, cell_ref(hash_times), op, lv, in);
 
     case it_DIV:
-        return binary_l2rN(left, l_MULT, cell_ref(hash_quotient), op, lv, in);
+	left = binary_l2rN(left, l_MULT, cell_ref(hash_quotient), op, lv, in);
+	if (cell_is_func(left) && cell_car(left) == hash_quotient
+	 && cell_cdr(left) && cell_is_integer(cell_car(cell_cdr(left)))
+	 && cell_cdr(cell_cdr(left)) && cell_is_integer(cell_car(cell_cdr(cell_cdr(left))))) {
+	    // convert into quotient constant
+	    number nval;
+	    cell *c;
+            nval.dividend.ival = cell_car(cell_cdr(left))->_.n.dividend.ival;
+            nval.divisor = cell_car(cell_cdr(cell_cdr(left)))->_.n.dividend.ival;
+            normalize_q(&nval);
+            if ((c = cell_cdr(cell_cdr(cell_cdr(left))))) { // more than 2 args?
+                c = cell_func(cell_ref(hash_quotient),
+                              cell_list(cell_number(&nval), cell_ref(c)));
+            } else {
+                c = cell_number(&nval);
+            }
+            cell_unref(left);
+            left = c;
+	}
+	return left;
 
     case it_LT:
         return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);
@@ -376,33 +395,35 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_r2l(left, l_DEF,   cell_ref(hash_defq), op, lv, in); // 2 args
 
     case it_QUEST: // ternary
-	if (lv > l_COND) { // right-to-left
+        if (lv > l_COND) { // right-to-left
             // look no further
             pushitem(op);
             return left;
         }
         dropitem(op);
-        right = expr(l_COND, in);
-        if (!right) {
-            badeof(); // end of file
-            return left;
-        }
-        op = lexical(in);
-        if (!op || op->type != it_COLON) {
-            // "if" without an "else"
-            if (op) pushitem(op);
-            return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
-        }
-        dropitem(op);
-        {
-            cell *third;
-            third = expr(l_COND, in);
-            if (!third) {
-                badeof(); // end of file
-                return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
-            }
-            return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, cell_list(third, NIL)))), lv, in);
-        }
+	{
+            cell *right = expr(l_COND, in);
+	    if (!right) {
+		badeof(); // end of file
+		return left;
+	    }
+	    op = lexical(in);
+	    if (!op || op->type != it_COLON) {
+		// "if" without an "else"
+		if (op) pushitem(op);
+		return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
+	    }
+	    dropitem(op);
+	    {
+		cell *third;
+		third = expr(l_COND, in);
+		if (!third) {
+		    badeof(); // end of file
+		    return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, NIL))), lv, in);
+		}
+		return binary(cell_func(cell_ref(hash_if), cell_list(left, cell_list(right, cell_list(third, NIL)))), lv, in);
+	    }
+	}
 
     case it_LPAR: // function invocation
 	if (lv >= l_POST) { // left-to-right
@@ -420,19 +441,21 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         }
         dropitem(op);
         // TODO argument list, not expression
-        right = expr(l_BASE, in);
-        if (!right) {
-            badeof(); // end of file
-            return left;
+        {
+            cell *right = expr(l_BASE, in);
+            if (!right) {
+                badeof(); // end of file
+                return left;
+            }
+            op = lexical(in);
+            if (op->type == it_RBRK) {
+                dropitem(op);
+            } else {
+                error_par(lxfile_info(in), "expected matching right bracket for array");
+                if (op) pushitem(op);
+            }
+            return binary(cell_func(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
         }
-        op = lexical(in);
-        if (op->type == it_RBRK) {
-            dropitem(op);
-        } else {
-	    error_par(lxfile_info(in), "expected matching right bracket for array");
-            if (op) pushitem(op);
-        }
-        return binary(cell_func(cell_ref(hash_ref), cell_list(left, cell_list(right, NIL))), lv, in);
 
     case it_COLON:
         if (lv > l_LABEL) { // right-to-left
@@ -441,12 +464,14 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
             return left;
         }
         dropitem(op);
-        right = expr(l_LABEL, in);
-        if (!right) {
-            badeof(); // end of file
-            return left;
+        {
+            cell *right = expr(l_LABEL, in);
+            if (!right) {
+                badeof(); // end of file
+                return left;
+            }
+            return binary(cell_label(left, right), lv, in);
         }
-        return binary(cell_label(left, right), lv, in);
 
     case it_RANGE:
         // TODO range: should only recognize within brackets?
