@@ -9,6 +9,7 @@
 
 typedef unsigned long long int index_t; // TODO 64 bit
 typedef long long int integer_t; // TODO 64 bit
+// TODO 64 bit limits are LLONG_MAX and LLONG_MIN
 typedef double real_t; // 64 bit
 typedef char char_t; // TODO unsigned
 
