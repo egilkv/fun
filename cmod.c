@@ -61,17 +61,24 @@ int arg2(cell *args, cell **ap, cell **bp) {
     return arg3(args, ap, bp, NULL);
 }
 
-// a in always unreffed
+// a is never unreffed
 // dump is unreffed only if error
-int get_number(cell *a, number *np, cell *dump) {
+int peek_number(cell *a, number *np, cell *dump) {
     if (!cell_is_number(a)) {
 	cell_unref(dump);
-	cell_unref(error_rt1("not a number", a));
+        cell_unref(error_rt1("not a number", cell_ref(a)));
 	return 0;
     }
     *np = a->_.n;
-    cell_unref(a);
     return 1;
+}
+
+// a in always unreffed
+// dump is unreffed only if error
+int get_number(cell *a, number *np, cell *dump) {
+    int ok = peek_number(a, np, dump);
+    cell_unref(a);
+    return ok;
 }
 
 // a in always unreffed

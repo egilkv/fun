@@ -37,7 +37,7 @@ qsort = (list) {
 qsort = (list) {
     q = (list, first, pivot, last){
 	list == [] ? (qsort(first) & [pivot] & qsort(last))
-		: (list[0] < pivot ? q(list[1 ..], list[0 .. 0] & first, pivot, last)
+		: (list[0] < pivot ? q(list[1 ..], list[0.. 0] & first, pivot, last)
 				   : q(list[1 ..], first, pivot, list[0 .. 0] & last))
     };
     #length(list) < 2 ? list
@@ -49,9 +49,20 @@ qsort = (list) {
     pivot = list != [] ? list[0];
     q = (list, first, last) {
 	list == [] ? qsort(first) & [pivot] & qsort(last)
-		   : list[0] < pivot ? q(list[1 ..], list[0 .. 0] & first, last)
-				     : q(list[1 ..], first, list[0 .. 0] & last)
+		   : list[0] < pivot ? q(list[1..], list[0..0] & first, last)
+				     : q(list[1..], first, list[0..0] & last)
     };
     #length(list) <= 1 ? list
-		       : q(list[1 ..], [], [])
+		       : q(list[1..], [], [])
+};
+
+qsort = (list) {
+    pivot = list != [] ? list[0];
+    q = (list, first, last) {
+	list == [] ? qsort(first) ++ [pivot] ++ qsort(last)
+		   : list[0] < pivot ? q(list[1..], list[0..0] ++ first, last)
+				     : q(list[1..], first, list[0..0] ++ last)
+    };
+    #length(list) <= 1 ? list
+		       : q(list[1..], [], [])
 };

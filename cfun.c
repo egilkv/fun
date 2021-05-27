@@ -198,22 +198,9 @@ static cell *cfunN_minus(cell *args) {
     result.divisor = 1;
     if (!list_pop(&args, &a)
      || !get_number(a, &result, args)) return cell_void(); // error
-    if (args == NIL) {
-        // special case, one argument
-        if (result.divisor == 0) {
-            result.dividend.fval = -result.dividend.fval;
-	    // cannot overflow, we believe
-        } else {
-#ifdef __GNUC__
-	    if (__builtin_ssubll_overflow(0,
-					  result.dividend.ival,
-                                          &(result.dividend.ival))) {
-		return err_overflow(args);
-            }
-#else
-            // no overflow detection
-            result.dividend.ival = -result.dividend.ival;
-#endif
+    if (args == NIL) { // special case, one argument?
+        if (!make_negative(&result)) {
+            return err_overflow(args);
         }
     }
     while (list_pop(&args, &a)) {

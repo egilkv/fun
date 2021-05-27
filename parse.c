@@ -123,18 +123,8 @@ static cell *expr(precedence lv, lxfile *in) {
         if (!p2) return badeof();
         if (cell_is_number(p2)) {
             // handle unary minus of number here TODO sure?
-            if (p2->_.n.divisor == 0) {
-                p2->_.n.dividend.fval = -p2->_.n.dividend.fval;
-            } else {
-#ifdef __GNUC__
-                if (__builtin_ssubll_overflow(0, p2->_.n.dividend.ival,
-                                              &(p2->_.n.dividend.ival))) {
-                    return err_overflow(p2);
-                }
-#else
-                // no overflow detection
-                p2->_.n.dividend.ival = -p2->_.n.dividend.ival;
-#endif
+            if (!make_negative(&(p2->_.n))) {
+                return err_overflow(p2);
             }
 	    return p2;
 	}

@@ -132,3 +132,5 @@ Mechanisms to deal with non-pure stuff:
       * Erlang
 
 Are symbols really functions that define the same value every time??
+
+Float to int overflow detection

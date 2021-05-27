@@ -42,18 +42,17 @@ static cell *cmath_mod(cell *a, cell *b) {
 
 static cell *cmath_abs(cell *a) {
     number na;
-    if (!get_number(a, &na, NIL)) return cell_void(); // error
+    if (!peek_number(a, &na, a)) return cell_void(); // error
 
     // TODO can optimize to return argument if >= 0
     if (na.divisor == 0) {
-        if (na.dividend.fval < 0) {
-            na.dividend.fval = -na.dividend.fval;
-        }
+        if (na.dividend.fval >= 0.0) return a;
     } else {
-        if (na.dividend.ival < 0) {
-            na.dividend.ival = -na.dividend.ival;
-            // TODO overflow...
-        }
+        if (na.dividend.ival >= 0) return a;
+    }
+    cell_unref(a);
+    if (!make_negative(&na)) {
+        return err_overflow(NIL);
     }
     return cell_number(&na);
 }
@@ -61,7 +60,7 @@ static cell *cmath_abs(cell *a) {
 // convert to integer, rounding to closest
 static cell *cmath_int(cell *a) {
     number na;
-    if (!get_number(a, &na, NIL)) return cell_void(); // error
+    if (!peek_number(a, &na, a)) return cell_void(); // error
 
     switch (na.divisor) {
     default:
@@ -73,14 +72,14 @@ static cell *cmath_int(cell *a) {
         } else if (na.dividend.fval < 0.0) {
             na.dividend.fval -= 0.5;
         }
-        // TODO overflow
+        // TODO overflow detection how?
         na.dividend.ival = na.dividend.fval;
         na.divisor = 1;
         break;
     case 1:
-        // TODO can optimize to return argument
-        break;
+        return a; // int already
     }
+    cell_unref(a);
     return cell_number(&na);
 }
 

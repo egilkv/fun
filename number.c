@@ -83,6 +83,25 @@ void normalize_q(number *np) {
     }
 }
 
+int make_negative(number *np) {
+    if (np->divisor == 0) {
+        // cannot overflow, we believe
+        np->dividend.fval = -np->dividend.fval;
+    } else {
+#ifdef __GNUC__
+        if (__builtin_ssubll_overflow(0,
+                                      np->dividend.ival,
+                                      &(np->dividend.ival))) {
+            return 0;
+        }
+#else
+        // no overflow detection
+        np->dividend.ival = -np->dividend.ival;
+#endif
+    }
+    return 1;
+}
+
 // buf is of size FORMAT_REAL_LEN
 void format_real(real_t r, char *buf) {
     buf[0] = '\0';
@@ -105,3 +124,4 @@ cell *err_overflow(cell *dump) {
     cell_unref(dump);
     return e;
 }
+

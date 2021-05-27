@@ -497,6 +497,20 @@ static item *gotmult(char c, item *it, lxfile *in) {
     return it;
 }
 
+static item *gotplus(char c, item *it, lxfile *in) {
+    if (it) {
+        if (it->type == it_PLUS) { // ++
+            it->type = it_AMP;     // ++ same as & TODO for now
+            return it;
+        } else {
+            lxungetc(c, in);
+        }
+    } else {
+        it = nextchar(newitem(it_PLUS), in); // reqd for peek into next
+    }
+    return it;
+}
+
 static item *gotlt(char c, item *it, lxfile *in) {
     if (it) lxungetc(c, in);
     else it = nextchar(newitem(it_LT), in); // reqd for peek into next
@@ -516,7 +530,6 @@ static item *gotplain(char c, token type, item *it, lxfile *in) {
 }
 
 static item *gotquote(char c, item *it, lxfile *in) { return gotplain(c, it_QUOTE, it, in); }
-static item *gotplus(char c, item *it, lxfile *in)  { return gotplain(c, it_PLUS, it, in); }
 static item *gotminus(char c, item *it, lxfile *in) { return gotplain(c, it_MINUS, it, in); }
 static item *gotcomma(char c, item *it, lxfile *in) { return gotplain(c, it_COMMA, it, in); }
 static item *gotcolon(char c, item *it, lxfile *in) { return gotplain(c, it_COLON, it, in); }
