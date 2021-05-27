@@ -18,6 +18,7 @@
 static cell *io_assoc = NIL;
 
 #define DO_MULTILINE 0 // multiline tables and assocs
+#define MAX_INDENT 40
 
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
@@ -40,6 +41,7 @@ static void show_list(FILE *out, cell *ct) {
 
 // does not consume cell
 static void cell_writei(FILE *out, cell *ct, int indent) {
+    if (MAX_INDENT > 0 && indent > MAX_INDENT) indent = MAX_INDENT;
 
     if (!ct) {
         fprintf(out, "[]"); // NIL
@@ -144,6 +146,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         return;
 
     case c_CLOSURE0:
+    case c_CLOSURE0T:
         fprintf(out, "#closure0(\n%*sargs: ", indent+2,""); // TODO debug
         cell_writei(out, ct->_.cons.car, indent+4);
         fprintf(out, "\n%*sbody: ", indent+2,"");

@@ -153,3 +153,7 @@ av[3..3];
 
 [1, 2, 3] & [4, 5];
 #(1, 2, 3) & #(4, 5);
+
+#include("qsort.fun");
+qsort([5, 2, 7, 6, 3, 9, 12, 99, 1]);
+qsort(["the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog"]);

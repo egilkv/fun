@@ -130,3 +130,5 @@ Mechanisms to deal with non-pure stuff:
       * Clojure ???
       * Declare as mutable (F#)
       * Erlang
+
+Are symbols really functions that define the same value every time??

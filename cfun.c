@@ -14,6 +14,7 @@
 #include "number.h"
 #include "err.h"
 #include "parse.h" // chomp_file
+#include "debug.h"
 #if HAVE_MATH
 #include "m_math.h"
 #endif
@@ -633,9 +634,6 @@ static cell *cfunN_eq(cell *args) {
         case c_LIST:   // TODO not (yet) implemented
         case c_VECTOR: // TODO not (yet) implemented
         case c_SYMBOL: // straight comparison is enough
-	case c_FUNC:
-        case c_CLOSURE:
-        case c_CLOSURE0:
         default:
             eq = 0;
             cell_unref(args);
@@ -773,6 +771,48 @@ static cell *cfun1_include(cell *a) {
     return a;
 }
 
+// debugging, trace value being passed
+static cell *cfun1_trace(cell *a) {
+    debug_trace(a);
+    return a;
+}
+
+// debugging, enable trace, return first (valid) argument
+static cell *cfunQ_traceon(cell *args, cell *env) {
+    cell *result = cell_ref(hash_void);
+    cell *arg;
+    while (list_pop(&args, &arg)) {
+        if (!debug_traceon(arg)) {
+            arg = error_rt1("cannot enable trace for", arg);
+        }
+        if (result == hash_void) {
+            cell_unref(result);
+            result = arg;
+        } else {
+            cell_unref(arg);
+        }
+    }
+    return result;
+}
+
+// debugging, disable trace, return first (valid) argument
+static cell *cfunQ_traceoff(cell *args, cell *env) {
+    cell *result = cell_ref(hash_void);
+    cell *arg;
+    while (list_pop(&args, &arg)) {
+        if (!debug_traceoff(arg)) {
+            arg = error_rt1("cannot disable trace for", arg);
+        }
+        if (result == hash_void) {
+            cell_unref(result);
+            result = arg;
+        } else {
+            cell_unref(arg);
+        }
+    }
+    return result;
+}
+
 // set #args
 void cfun_args(int argc, char * const argv[]) {
     cell *vector = NIL;
@@ -796,6 +836,9 @@ void cfun_init() {
     hash_amp      = oblistv("#amp",      cell_cfunN(cfunN_amp));
     hash_and      = oblistv("#and",      cell_cfunQ(cfunQ_and));
     hash_assoc    = oblistv("#assoc",    cell_cfunN(cfunN_assoc));
+                    oblistv("#trace",    cell_cfun1(cfun1_trace)); // debugging
+                    oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
+                    oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
     hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));

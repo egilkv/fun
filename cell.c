@@ -392,6 +392,7 @@ static void cell_free(cell *node) {
     case c_LABEL:
     case c_CLOSURE:
     case c_CLOSURE0:
+    case c_CLOSURE0T:
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
         break;

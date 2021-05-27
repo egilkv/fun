@@ -8,6 +8,7 @@
 
 #include "cmod.h"
 #include "err.h"
+#include "debug.h"
 
 static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *contenv) {
 #if 0 // TODO enable end recursion detection BUG: does not work
@@ -27,9 +28,13 @@ static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *conten
 static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     cell *nam;
     cell *val;
-    assert(fun->type == c_CLOSURE0);
+    assert(fun && (fun->type == c_CLOSURE0 || fun->type == c_CLOSURE0T));
     cell *argnames = cell_ref(fun->_.cons.car);
     cell *newassoc = cell_assoc();
+
+    if (fun->type == c_CLOSURE0T) {
+        debug_prints("\n*** "); // trace
+    }
 
     // pick up arguments one by one and add to assoc
     while (list_pop(&argnames, &nam)) {
@@ -42,10 +47,18 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
 	    // TODO C recursion, should be avoided
 	    val = eval(val, *envp);
 	}
+        if (fun->type == c_CLOSURE0T) {
+            debug_write(nam);
+            debug_prints(": ");
+            debug_write(val);
+        }
 	if (!assoc_set(newassoc, nam, val)) {
 	    cell_unref(val);
 	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
 	}
+    }
+    if (fun->type == c_CLOSURE0T) {
+        // debug_prints("\n");
     }
     arg0(args); // too many args?
     insert_prog(envp, cell_ref(fun->_.cons.cdr), newassoc, contenv);
@@ -166,7 +179,6 @@ cell *eval(cell *arg, cell *env) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        assert(lambda && lambda->type == c_CLOSURE0);
 
                         apply_closure(lambda, args, contenv, &env);
                     }
@@ -174,6 +186,7 @@ cell *eval(cell *arg, cell *env) {
 		    break; // continue executing
 
                 case c_CLOSURE0:
+                case c_CLOSURE0T:
                     apply_closure(fun, args, NIL, &env);
 		    result = NIL; // TODO probably #void
 		    break; // continue executing

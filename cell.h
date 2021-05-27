@@ -11,8 +11,9 @@ enum cell_t {
    c_LIST,      // car is first item, cdr is rest of list
    c_FUNC,      // from parse: car is function, cdr is args
    c_ENV,       // car is pair, cdr is pair
-   c_CLOSURE,   // car is lambda, cdr is continuation env
+   c_CLOSURE,   // car is c_CLOSURE0, cdr is continuation env
    c_CLOSURE0,  // car is argnames, cdr is the body, nil cont env, aka lambda
+   c_CLOSURE0T, // same as c_CLOSURE0, but tracing is enabled
    c_RANGE,     // car is lower, car is upper bound; both may be nil
    c_LABEL,     // car is label, car is expr
    c_PAIR,      // car is left, car is right part
