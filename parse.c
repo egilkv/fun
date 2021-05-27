@@ -12,6 +12,7 @@
 #include "cfun.h"
 #include "number.h"
 #include "err.h"
+#include "m_io.h" // cell_write
 
 #include "oblist.h"
 
@@ -23,6 +24,45 @@ static cell *binary(cell *left, precedence lv, lxfile *in);
 static cell *badeof() {
     error_par(" at eof", "unexpected end of file");
     return 0;
+}
+
+void chomp_lx(lxfile *lxf) {
+    cell *ct;
+
+    for (;;) {
+        ct = expression(lxf);
+	if (!ct) break; // eof
+        if (lxf->f == stdin) {
+            if (lxf->show_parse) {
+                cell_write(stdout, ct);
+                printf(" ==> ");
+	    }
+	}
+        ct = eval(ct, NULL);
+        if (lxf->f == stdin) {
+            cell_write(stdout, ct);
+            if (!(lxf->is_terminal)) {
+                printf("\n");
+            }
+	}
+        cell_unref(ct);
+    }
+    if (lxf->is_terminal) {
+        printf("\n");
+    }
+}
+
+int chomp_file(const char *name) {
+    FILE *f = fopen(name, "r");
+    lxfile cfile;
+    if (!f) {
+        error_cmdstr("cannot find file", name);
+        return 0;
+    }
+    lxfile_init(&cfile, f);
+    chomp_lx(&cfile);
+    fclose(cfile.f);
+    return 1;
 }
 
 // get expression at the outer level, where semicolon is separator

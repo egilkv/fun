@@ -3,15 +3,17 @@
  *  TODO should evaluation happen in functions? perhaps
  */
 
-#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include <math.h>
 
 #include "cfun.h"
 #include "oblist.h"
 #include "number.h"
 #include "err.h"
+#include "parse.h" // chomp_file
 #if HAVE_MATH
 #include "m_math.h"
 #endif
@@ -420,12 +422,11 @@ static cell *cfunN_list(cell *args) {
 }
 
 static cell *cfunN_vector(cell *args) {
-    cell *vector;
+    cell *vector = NIL; // empty vector is NIL
     index_t len;
     cell *a;
     // vector of length determined by initialization
     len = 0;
-    vector = cell_vector(0);
     // TODO rather inefficient
     while (list_pop(&args, &a)) {
         if (cell_is_label(a)) { // index : value
@@ -435,7 +436,8 @@ static cell *cfunN_vector(cell *args) {
             if (get_index(a, &index, b)) { // TODO a not evaluated?
                 if (index >= len) {
                     len = index+1;
-                    vector_resize(vector, len);
+                    if (vector == NIL) vector = cell_vector(len);
+                    else vector_resize(vector, len);
                 }
                 // TODO check if redefining, which is not allowed
                 if (!vector_set(vector, index, b)) {
@@ -443,7 +445,9 @@ static cell *cfunN_vector(cell *args) {
                 }
             }
         } else {
-            vector_resize(vector, ++len);
+            ++len;
+            if (vector == NIL) vector = cell_vector(len);
+            else vector_resize(vector, len);
             if (!vector_set(vector, len-1, a)) {
                 assert(0); // out of bounds should not happen
             }
@@ -748,7 +752,7 @@ static cell *cfun1_use(cell *a) {
 
 static cell *cfun1_exit(cell *a) {
     integer_t val;
-    if (!get_integer(a, &val, NIL)) { // optional...
+    if (!get_integer(a, &val, NIL)) { // TODO optional...
         val = 0;
     }
 
@@ -757,6 +761,16 @@ static cell *cfun1_exit(cell *a) {
 
     assert(0); // should never reach here
     return NIL;
+}
+
+static cell *cfun1_include(cell *a) {
+    char_t *name;
+    index_t len;
+    if (!peek_string(a, &name, &len, a)) return cell_void(); // error
+    if (!chomp_file(name)) {
+        return error_rt1("cannot read include-file", a);
+    }
+    return a;
 }
 
 // set #args
@@ -789,6 +803,7 @@ void cfun_init() {
     hash_ge       = oblistv("#ge",       cell_cfunN(cfunN_ge));
     hash_gt       = oblistv("#gt",       cell_cfunN(cfunN_gt));
     hash_if       = oblistv("#if",       cell_cfunQ(cfunQ_if));
+                    oblistv("#include",  cell_cfun1(cfun1_include));
     hash_lambda   = oblistv("#lambda",   cell_cfunQ(cfunQ_lambda));
                     oblistv("#length",   cell_cfun1(cfun1_length));
     hash_le       = oblistv("#le",       cell_cfunN(cfunN_le));

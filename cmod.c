@@ -237,11 +237,11 @@ cell *ref_index(cell *a, index_t index) {
 cell *ref_range1(cell *a, index_t index) {
     switch (a ? a->type : c_LIST) {
 
-    case c_VECTOR:
-        return ref_range2(a, index, a->_.vector.len - index);
-
     case c_STRING:
         return ref_range2(a, index, a->_.string.len - index);
+
+    case c_VECTOR:
+        return ref_range2(a, index, a->_.vector.len - index);
 
     case c_LIST:
         if (!list_spin(&a, index)) return a;
@@ -257,23 +257,6 @@ cell *ref_range1(cell *a, index_t index) {
 cell *ref_range2(cell *a, index_t index, integer_t len) {
     switch (a ? a->type : c_LIST) {
 
-    case c_VECTOR:
-        {
-            cell *value = NIL;
-            integer_t i;
-            if (index > a->_.vector.len) {
-                return error_rti("vector range out of bounds", index);
-            }
-            if (index+len > a->_.vector.len) {
-                return error_rti("vector range out of bounds", index+len-1);
-            }
-            value = cell_vector(len);
-            for (i = 0; i < len; ++i) {
-                value->_.vector.table[i] = cell_ref(a->_.vector.table[index+i]);
-            }
-            return value;
-	}
-
     case c_STRING:
         {
             char_t *s;
@@ -288,6 +271,27 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
 	    assert(s);
             memcpy(s, &(a->_.string.ptr[index]), (len+1) * sizeof(char_t)); // including '\0'
             return cell_astring(s, len);
+	}
+
+    case c_VECTOR:
+        {
+            cell *value = NIL;
+            integer_t i;
+            if (index > a->_.vector.len) {
+                return error_rti("vector range out of bounds", index);
+            }
+            if (index+len > a->_.vector.len) {
+                return error_rti("vector range out of bounds", index+len-1);
+            }
+            if (len > 0) {
+                value = cell_vector(len);
+                for (i = 0; i < len; ++i) {
+                    value->_.vector.table[i] = cell_ref(a->_.vector.table[index+i]);
+                }
+            } else {
+                value = NIL; // empty vector is always NIL
+            }
+            return value;
 	}
 
     case c_LIST:

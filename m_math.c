@@ -52,6 +52,7 @@ static cell *cmath_abs(cell *a) {
     } else {
         if (na.dividend.ival < 0) {
             na.dividend.ival = -na.dividend.ival;
+            // TODO overflow...
         }
     }
     return cell_number(&na);
@@ -72,6 +73,7 @@ static cell *cmath_int(cell *a) {
         } else if (na.dividend.fval < 0.0) {
             na.dividend.fval -= 0.5;
         }
+        // TODO overflow
         na.dividend.ival = na.dividend.fval;
         na.divisor = 1;
         break;
