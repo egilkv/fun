@@ -21,6 +21,13 @@ GTK example-2 button 1 quits. Why?
 
 1/2 + 1/3;
 
+Problem: Should the thing ahead of : be evaluated?
+name: "Alice"
+(name): "Alice"
+10: "Tenth"
+10-1: "Ninth"
+(10-1): "Ninth"     Is maybe a compromise??
+
 Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
 Haskell uses : as cons operator, TBD
@@ -112,11 +119,9 @@ Should boolean be a separate type? May still make sense to refer to the same cel
 
 Allow infinite as a number?
 
-Compare strings with NUL (so use memcmp instead of strcmp)
+Compare strings with NUL-characters in them (so use memcmp instead of strcmp)
 
 TODO what to do about integer overflow? Convert to float?
-
-#include("filename");
 
 A continuation is also called a closure.
 Funtional programming vz imperative.
@@ -125,7 +130,7 @@ Symbols can be called atoms
 
 Maybe #length() should be some sort of operator? Hash?
 
-Ellipsis (range) is 3 dots?
+Ellipsis (range) is 3 dots instead of 2?
 
 Div and mod as operators?
 
@@ -142,6 +147,8 @@ Mechanisms to deal with non-pure stuff:
       * Declare as mutable (F#)
       * Erlang
 
-Are symbols really functions that define the same value every time??
+Are symbols with values really functions that define the same value every time??
 
-Float to int overflow detection
+Quoting operators: '+ same as #plus and so on?
+
+Implement &, | and ^ as homage to C?

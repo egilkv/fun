@@ -34,25 +34,25 @@ aa.one;
 aa.two;
 aa.three;
 // aa.ix;
-aa & { four : "FOUR" }; // modified assoc, add keyt if same
-aa & { two : "TWO" }; // modified assoc, modify key
+aa ++ { four : "FOUR" }; // modified assoc, add keyt if same
+aa ++ { two : "TWO" }; // modified assoc, modify key
 [ 3 : 99, 0 : "test" ]; // 1 and 2 are undefined
 
 list = [ 1, 2, 3 ];
 list[0];
 list.0;
 // TODO module.symbol;
-"abc" & "def";
+"abc" ++ "def";
 "abcdef"[2];
 array1 = [ 1,2,3,4,5,6 ];       // TODO array1 = [ 0..5 : 0];
 array1[0];
 array1[3];
 array1[3..4];
 
-// TODO consider a = [0..20: #t };
-// TODO list[1 ..];
-j = 15;
-// TODO a[..j-1] & []{#f} & a[j+1..];
+a = [0..10-1: #t ];
+j = 5;
+a[..4] ++ [#f] ++ a[6..];
+a[..j-1] ++ [#f] ++ a[j+1..];
 
 // TODO what happens to '.' here:
 // ((a) { a<=1 ? a : a*.(a-1) }) (5);
@@ -151,8 +151,8 @@ as[3..3];
 al[3..3];
 av[3..3];
 
-[0: 1, 2, 3] & [0: 4, 5];
-[ 1, 2, 3 ] & [ 4, 5 ];
+[0: 1, 2, 3] ++ [0: 4, 5];
+[ 1, 2, 3 ] ++ [ 4, 5 ];
 
 #include("qsort.fun");
 qsort([5, 2, 7, 6, 3, 9, 12, 99, 1]);
@@ -180,8 +180,8 @@ m.int(4/3);
 m.int(5/3);
 -4-1;
 
-[0: 1, 2, 3] & [ 4, 5];
-[ 1, 2, 3 ] & [ 0: 4, 5 ];
+[0: 1, 2, 3] ++ [ 4, 5];
+[ 1, 2, 3 ] ++ [ 0: 4, 5 ];
 qsort([0:5, 2, 7, 6, 3, 9, 12, 99, 1]);
 
 [ 0..3: 99, 100 ];

@@ -204,8 +204,12 @@ cell *eval(cell *arg, cell *env) {
             {
                 cell *b1, *b2;
                 range_split(arg, &b1, &b2);
-                if (b1) b1 = eval(b1, env);
-                if (b2) b2 = eval(b2, env);
+                if (b1) {
+                    b1 = eval(b1, env);
+                }
+                if (b2) {
+                    b2 = eval(b2, env);
+                }
                 result = cell_range(b1, b2);
             }
 	    break;
@@ -214,7 +218,12 @@ cell *eval(cell *arg, cell *env) {
             {
                 cell *b1, *b2;
                 label_split(arg, &b1, &b2);
-                if (b2) b2 = eval(b2, env);
+                if (!cell_is_symbol(b1)) {
+                    b1 = eval(b1, env); // evaluate only if not standalone
+                }
+                if (b2) {
+                    b2 = eval(b2, env);
+                }
                 result = cell_label(b1, b2);
             }
 	    break;

@@ -670,7 +670,7 @@ static cell *cfunN_cat(cell *args) {
         default:
             cell_unref(result);
             cell_unref(args);
-	    return error_rt1("operator & cannot be applied", a);
+            return error_rt1("cannot catenate", a);
         }
     }
     assert(args == NIL);

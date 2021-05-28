@@ -52,7 +52,10 @@ ft(50, 5) ==> 55
 #ref(array1, 0) ==> 1
 #ref(array1, 3) ==> 4
 #ref(array1, 3 .. 4) ==> [ 4, 5 ]
-#defq(j, 15) ==> 15
+#defq(a, #list(0 .. #minus(10, 1): #t)) ==> [ 0: #t, #t, #t, #t, #t, #t, #t, #t, #t, #t ] 
+#defq(j, 5) ==> 5
+#cat(#ref(a,  .. 4), #list(#f), #ref(a, 6 .. )) ==> [ 0: #t, #t, #t, #t, #t, #f, #t, #t, #t, #t ] 
+#cat(#ref(a,  .. #minus(j, 1)), #list(#f), #ref(a, #plus(j, 1) .. )) ==> [ 0: #t, #t, #t, #t, #t, #f, #t, #t, #t, #t ] 
 #defq(f, #defq(g, 9)) ==> 9
 #plus(g, f, 12) ==> 30
 #minus(#plus(g, f, 12), 30) ==> 0
