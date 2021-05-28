@@ -82,27 +82,46 @@ static int compar_sym(const void *a, const void *b) {
     return strcmp(aa->key->_.symbol.nam, bb->key->_.symbol.nam);
 }
 
-// return all assoc key pairs as an allocated NULL-terminated vector
-// TODO slow
-//
-struct assoc_s **assoc2vector(cell *anode) {
+void assoc_iter(struct assoc_i *ip, cell *anode) {
     assert(cell_is_assoc(anode));
-    int length = 0;
-    struct assoc_s **vector = malloc(sizeof(struct assoc_s *));
-    assert(vector);
+    ip->anode = anode;
+    ip->p = NULL;
+    ip->h = 0;
+}
 
-    if (anode->_.assoc.table != NULL) {
-        struct assoc_s *p;
-        int h;
-        for (h = 0; h < ASSOC_HASH_SIZE; ++h) {
-            p = anode->_.assoc.table[h];
-            while (p) {
-                vector = realloc(vector, (++length+1) * sizeof(struct assoc_s *));
-                assert(vector);
-                vector[length-1] = p;
-                p = p->next;
-            }
-	}
+// iterate over assoc
+// TODO inline?
+struct assoc_s *assoc_next(struct assoc_i *ip) {
+    struct assoc_s *result;
+    while (!ip->p) {
+        if (ip->h >= ASSOC_HASH_SIZE) {
+            return NULL;
+        }
+        if (ip->anode->_.assoc.table == NULL) {
+            return NULL; // TODO do in initializer
+        }
+        ip->p = (ip->anode)->_.assoc.table[ip->h];
+        (ip->h)++;
+    }
+    result = ip->p;
+    ip->p = ip->p->next;
+    return result;
+}
+
+ // return all assoc key pairs as an allocated NULL-terminated vector
+// TODO slow
+struct assoc_s **assoc2vector(cell *anode) {
+    struct assoc_i iter;
+    struct assoc_s *p;
+    struct assoc_s **vector = malloc(sizeof(struct assoc_s *));
+    index_t length = 0;
+    assert(vector);
+    assoc_iter(&iter, anode);
+
+    while ((p = assoc_next(&iter))) {
+        vector = realloc(vector, (++length+1) * sizeof(struct assoc_s *));
+        assert(vector);
+        vector[length-1] = p;
     }
     vector[length] = NULL;
     if (length > 1) {
@@ -111,24 +130,16 @@ struct assoc_s **assoc2vector(cell *anode) {
     return vector;
 }
 
-// clean up on exit
+// clean up on unref
 void assoc_drop(cell *anode) {
-    assert(cell_is_assoc(anode));
-    if (anode->_.assoc.table) {
-        struct assoc_s *p;
-        int h;
-        for (h = 0; h < ASSOC_HASH_SIZE; ++h) {
-            p = anode->_.assoc.table[h];
-            while (p) {
-                struct assoc_s *q = p->next;
-                cell_unref(p->key);
-                cell_unref(p->val);
-                free(p);
-                p = q;
-            }
-        }
-        free(anode->_.assoc.table);
-        anode->_.assoc.table = NULL; // not really required
+    struct assoc_i iter;
+    struct assoc_s *p;
+    assoc_iter(&iter, anode);
+
+    while ((p = assoc_next(&iter))) {
+        cell_unref(p->key);
+        cell_unref(p->val);
+        free(p);
     }
 }
 

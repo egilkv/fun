@@ -517,7 +517,7 @@ static cell *cfunN_cat(cell *args) {
             } else if (!cell_is_string(result)) {
                 cell_unref(result);
                 cell_unref(args);
-                return error_rt1("& applied to non-string and string", a);
+                return error_rt1("cannon catenate non-string and string", a);
             } else {
                 // TODO optimize for case of more than two arguments
 		index_t rlen = result->_.string.len;
@@ -571,7 +571,7 @@ static cell *cfunN_cat(cell *args) {
             default:
                 cell_unref(result);
                 cell_unref(args);
-                return error_rt1("& applied to non-vector/list and vector", a);
+                return error_rt1("cannon catenate non-list and list", a);
             }
             break;
 
@@ -605,23 +605,43 @@ static cell *cfunN_cat(cell *args) {
             default:
                 cell_unref(result);
                 cell_unref(args);
-                return error_rt1("& applied to non-list and list", a);
+                return error_rt1("cannon catenate non-list and list", a);
             }
             break;
 
         case c_ASSOC:
             if (result == NIL) {
                 result = a; // somewhat cheeky, initial condition
-	    } else if (!cell_is_assoc(result)) {
+            } else if (cell_is_assoc(result)) {
+                cell *newassoc = cell_assoc();
+                struct assoc_i iter;
+                struct assoc_s *p;
+
+                // make a copy of first assoc
+                assoc_iter(&iter, result);
+                while ((p = assoc_next(&iter))) {
+                    if (!assoc_set(newassoc, cell_ref(p->key), cell_ref(p->val))) {
+                        // already defined, should not happen
+                        assert(0);
+                    }
+                }
+
+                // add contents of second assoc
+                assoc_iter(&iter, a);
+                while ((p = assoc_next(&iter))) {
+                    if (!assoc_set(newassoc, cell_ref(p->key), cell_ref(p->val))) {
+                        // already defined
+                        cell_unref(error_rt1("duplicate key ignored", p->key));
+                        cell_unref(p->val);
+                    }
+                }
+		cell_unref(result);
+                cell_unref(a);
+                result = newassoc;
+            } else {
                 cell_unref(result);
                 cell_unref(args);
-                return error_rt1("& applied to non-assoc and assoc", a);
-            } else {
-		// TODO make copy of all elements in result
-		// TODO overlay with all elements in a
-		cell_unref(result);
-		cell_unref(args);
-		return error_rt1("assoc & not yet implemented", a);
+                return error_rt1("cannon catenate non-assoc and assoc", a);
             }
             break;
 

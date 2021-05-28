@@ -25,7 +25,7 @@ Env is a structure with misc state info?
 
 Quote should be on both sides? Practical?
 
-[] should continue parsing...
+OK? [] should continue parsing...
 
 Functions within assocs must be able to refer to their own assoc
 
@@ -60,7 +60,8 @@ What is the difference between (){} for function and {} for assoc, really.
 Try to nullify it. So in addition to { a : b }, we can also have { a }
 which means? And { a ; b }
 
-The & operator can update values in assocs? Probably | is better! What about vectors?
+The ++ operator can update values in assocs? Probably | is better! What about vectors?
+How to deal with duplicate keys on ++
 
 Fully implement function call without use of C stack
 
