@@ -504,7 +504,7 @@ static cell *cat_vectors(cell *a, cell *b)
 }
 
 // consume both
-static cell *cfunN_amp(cell *args) {
+static cell *cfunN_cat(cell *args) {
     cell *a;
     cell *result = NIL;
 
@@ -872,16 +872,12 @@ void cfun_args(int argc, char * const argv[]) {
 }
 
 void cfun_init() {
-    // TODO hash_amp etc are unrefferenced, and depends on oblist
+    // TODO hash_and etc are unrefferenced, and depends on oblist
     //      to keep symbols in play
-    hash_amp      = oblistv("#amp",      cell_cfunN(cfunN_amp));
     hash_and      = oblistv("#and",      cell_cfunQ(cfunQ_and));
     hash_assoc    = oblistv("#assoc",    cell_cfunN(cfunN_assoc));
-                    oblistv("#trace",    cell_cfun1(cfun1_trace)); // debugging
-                    oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
-                    oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
+    hash_cat      = oblistv("#cat",      cell_cfunN(cfunN_cat));
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
-    hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
                     oblistv("#exit",     cell_cfunN(cfunN_exit));
     hash_ge       = oblistv("#ge",       cell_cfunN(cfunN_ge));
@@ -898,9 +894,13 @@ void cfun_init() {
     hash_or       = oblistv("#or",       cell_cfunQ(cfunQ_or));
     hash_plus     = oblistv("#plus",     cell_cfunN(cfunN_plus));
     hash_quote    = oblistv("#quote",    cell_cfunQ(cfunQ_quote));
+    hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
     hash_ref      = oblistv("#ref",      cell_cfun2(cfun2_ref));
     hash_refq     = oblistv("#refq",     cell_cfunQ(cfunQ_refq));
     hash_times    = oblistv("#times",    cell_cfunN(cfunN_times));
+                    oblistv("#trace",    cell_cfun1(cfun1_trace)); // debugging
+                    oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
+                    oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
 		    oblistv("#use",      cell_cfun1(cfun1_use));
     hash_vector   = oblistv("#vector",   cell_cfunN(cfunN_vector));
 
@@ -925,4 +925,3 @@ static void cfun_exit(void) {
     oblist_set(hash_void, NIL);
     oblist_set(hash_undefined, NIL);
 }
-

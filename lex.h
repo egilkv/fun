@@ -28,14 +28,15 @@ enum it_ {
    it_QUEST,   // 20
    it_BAR,
    it_OR,
+   it_CAT,
    it_LPAR,
-   it_RPAR,
-   it_LBRK,    // 25
+   it_RPAR,    // 25
+   it_LBRK,
    it_RBRK,
    it_LBRC,
    it_RBRC,
-   it_NUMBER,
-   it_STRING,  // 30
+   it_NUMBER,  // 30
+   it_STRING,
    it_SYMBOL
 } ;
 

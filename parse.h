@@ -21,7 +21,7 @@ enum prec_ {
     l_OR ,      // ||           TODO
     l_AND,      // &&
     l_BAR,      // |            TODO revise
-    l_AMP,      // &            TODO revise
+    l_CAT,      // & ++         TODO revise and choos
     l_EQEQ,     // == !=
     l_REL,      // < <= > >=
     l_ADD,      // + -

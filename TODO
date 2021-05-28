@@ -1,7 +1,4 @@
-
-Fix single quote
-
-1/2 + 1/3;
+Should array indexing be by () instead?
 
 errors from normalize_q ??
 
@@ -16,9 +13,9 @@ Enable in-line for #if
 
 GTK example-2 button 1 quits. Why?
 
-Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
+1/2 + 1/3;
 
-Should array indexing be by () instead?
+Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
 Haskell uses : as cons operator, TBD
 

@@ -5,10 +5,10 @@
 #include "cell.h"
 #include "cmod.h"
 
-cell *hash_amp;
 cell *hash_and;
 cell *hash_args;
 cell *hash_assoc;
+cell *hash_cat;
 cell *hash_defq;
 cell *hash_do;
 cell *hash_eq;

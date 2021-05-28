@@ -241,6 +241,7 @@ static cell *expr(precedence lv, lxfile *in) {
     case it_NTEQ:
     case it_EQEQ:
     case it_AMP:
+    case it_CAT:
     case it_BAR:
     case it_AND:
     case it_OR:
@@ -378,7 +379,8 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_EQEQ, cell_ref(hash_eq), op, lv, in);
 
     case it_AMP:
-        return binary_l2rN(left, l_AMP,  cell_ref(hash_amp), op, lv, in);
+    case it_CAT:
+        return binary_l2rN(left, l_CAT,  cell_ref(hash_cat), op, lv, in);
 
     case it_BAR:
         return binary_l2r(left, l_BAR,   cell_symbol("#bar"), op, lv, in); // TODO check if N args

@@ -498,7 +498,7 @@ static item *gotmult(char c, item *it, lxfile *in) {
 static item *gotplus(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_PLUS) { // ++
-            it->type = it_AMP;     // ++ same as & TODO for now
+            it->type = it_CAT;     // ++ same as it_AMP TODO for now
             return it;
         } else {
             lxungetc(c, in);
