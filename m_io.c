@@ -49,9 +49,9 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     } else switch (ct->type) {
 
     case c_LIST:
-        fprintf(out, "#(");
+        fprintf(out, "[ ");
         show_list(out, ct);
-        fprintf(out, ")");
+        fprintf(out, " ]");
         return;
 
     case c_FUNC:
@@ -194,7 +194,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             int more = 0;
             index_t n = ct->_.vector.len;
             index_t i;
-            fprintf(out, "[ ");
+            fprintf(out, "[ 0: ");
             for (i = 0; i < n; ++i) {
 #if DO_MULTILINE
                 fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");

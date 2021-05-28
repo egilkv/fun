@@ -1,6 +1,6 @@
 
 #args
-A list of command line argumentse (not used by fun itself). #args[0] is the name of the program.
+A list of command line arguments (not used by fun itself). #args[0] is the name of the program.
 
 Compare operators of the same kind may be used N-ary, e.g. a < b < c. This does not work with 
 different operators, e.g. 1 < a <= 5.

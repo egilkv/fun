@@ -5,17 +5,17 @@
 #plus(a, b) ==> 3
 #plus(a, b) ==> 3
 #if(c, a, b) ==> 1
-#defq(factorial, #lambda(#(n), #if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))))) ==> #closure0(
-  args: #(n)
-  body: #(#if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))))
+#defq(factorial, #lambda([ n ], #if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))))) ==> #closure0(
+  args: [ n ]
+  body: [ #if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))) ]
 ) 
 factorial(10) ==> 3628800
-#defq(ft, #lambda(#(a, b), #defq(c, a), #defq(d, b), #plus(c, d))) ==> #closure0(
-  args: #(a, b)
-  body: #(#defq(c, a), #defq(d, b), #plus(c, d))
+#defq(ft, #lambda([ a, b ], #defq(c, a), #defq(d, b), #plus(c, d))) ==> #closure0(
+  args: [ a, b ]
+  body: [ #defq(c, a), #defq(d, b), #plus(c, d) ]
 ) 
 ft(50, 5) ==> 55
-#defq(v, #vector(7, 8, "hello")) ==> [ 7, 8, "hello" ] 
+#defq(v, #vector(7, 8, "hello")) ==> [ 7, 8, "hello" ]
 #ref(v, 0) ==> 7
 #ref(v, 2) ==> "hello"
 #defq(aa, #assoc(one: 1, two: 2, three: 3)) ==> { 
@@ -36,16 +36,16 @@ ft(50, 5) ==> 55
 #amp(aa, #assoc(two: "TWO")) ==> error; assoc & not yet implemented: { 
   two : "TWO"
 } 
-#vector(3: 99, 0: "test") ==> [ "test", [], [], 99 ] 
-#defq(list, #(1, 2, 3)) ==> #(1, 2, 3)
+#vector(3: 99, 0: "test") ==> [ 0: "test", [], [], 99 ] 
+#defq(list, #vector(1, 2, 3)) ==> [ 1, 2, 3 ]
 #ref(list, 0) ==> 1
 #refq(list, 0) ==> 1
 #amp("abc", "def") ==> "abcdef"
 #ref("abcdef", 2) ==> "c"
-#defq(array1, #vector(1, 2, 3, 4, 5, 6)) ==> [ 1, 2, 3, 4, 5, 6 ] 
+#defq(array1, #vector(1, 2, 3, 4, 5, 6)) ==> [ 1, 2, 3, 4, 5, 6 ]
 #ref(array1, 0) ==> 1
 #ref(array1, 3) ==> 4
-#ref(array1, 3 .. 4) ==> [ 4, 5 ] 
+#ref(array1, 3 .. 4) ==> [ 4, 5 ]
 #defq(j, 15) ==> 15
 #defq(f, #defq(g, 9)) ==> 9
 #plus(g, f, 12) ==> 30
@@ -63,19 +63,19 @@ undefined ==> #undefined
 } 
 #defq(text1, "ECHO") ==> "ECHO"
 #defq(text2, "DELTA") ==> "DELTA"
-#defq(invoke, #lambda(#(fn), #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #closure0(
-  args: #(fn)
-  body: #(#defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)
+#defq(invoke, #lambda([ fn ], #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #closure0(
+  args: [ fn ]
+  body: [ #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2 ]
 ) 
 invoke(#lambda([], #refq(io, println)("case 1 is ", text1, " and ", text2))) ==> case 1 is ECHO and DELTA
 "CAROLINE"
 #defq(func, #lambda([], #defq(text1, "ALICE"), invoke(#lambda([], #refq(io, println)("case 2 is ", text1, " and ", text2))))) ==> #closure0(
   args: []
-  body: #(#defq(text1, "ALICE"), invoke(#lambda([], #refq(io, println)("case 2 is ", text1, " and ", text2))))
+  body: [ #defq(text1, "ALICE"), invoke(#lambda([], #refq(io, println)("case 2 is ", text1, " and ", text2))) ]
 ) 
 func() ==> case 2 is ALICE and DELTA
 "CAROLINE"
-#lambda(#(text2), invoke(#lambda([], #refq(io, println)("case 3 is ", text1, " and ", text2))))("ZZZ") ==> case 3 is ECHO and ZZZ
+#lambda([ text2 ], invoke(#lambda([], #refq(io, println)("case 3 is ", text1, " and ", text2))))("ZZZ") ==> case 3 is ECHO and ZZZ
 "CAROLINE"
 -3 ==> -3
 #times(12345678.901234, 100000) ==> 1234567890123.4
@@ -128,11 +128,11 @@ func() ==> case 2 is ALICE and DELTA
 #lt("aa", "a") ==> #f
 #lt("b", "a", "x") ==> #f
 #defq(as, "abc") ==> "abc"
-#defq(al, #(1, 2, 3)) ==> #(1, 2, 3)
-#defq(av, #vector(1, 2, 3)) ==> [ 1, 2, 3 ] 
+#defq(al, #vector(1, 2, 3)) ==> [ 1, 2, 3 ]
+#defq(av, #vector(0: 1, 2, 3)) ==> [ 0: 1, 2, 3 ] 
 #ref(as, 2 .. ) ==> "c"
-#ref(al, 2 .. ) ==> #(3)
-#ref(av, 2 .. ) ==> [ 3 ] 
+#ref(al, 2 .. ) ==> [ 3 ]
+#ref(av, 2 .. ) ==> [ 0: 3 ] 
 #ref(as, 3 .. ) ==> ""
 #ref(al, 3 .. ) ==> []
 #ref(av, 3 .. ) ==> []
@@ -140,19 +140,19 @@ func() ==> case 2 is ALICE and DELTA
 #ref(al, 4 .. ) ==> error; list index out of bounds: 4
 #ref(av, 4 .. ) ==> error; vector range out of bounds: 4
 #ref(as, 2 .. 2) ==> "c"
-#ref(al, 2 .. 2) ==> #(3)
-#ref(av, 2 .. 2) ==> [ 3 ] 
+#ref(al, 2 .. 2) ==> [ 3 ]
+#ref(av, 2 .. 2) ==> [ 0: 3 ] 
 #ref(as, 2 .. 3) ==> error; string range out of bounds: 3
 #ref(al, 2 .. 3) ==> error; list range out of bounds: 3
 #ref(av, 2 .. 3) ==> error; vector range out of bounds: 3
 #ref(as, 3 .. 3) ==> error; string range out of bounds: 3
 #ref(al, 3 .. 3) ==> error; list range out of bounds: 3
 #ref(av, 3 .. 3) ==> error; vector range out of bounds: 3
-#amp(#vector(1, 2, 3), #vector(4, 5)) ==> [ 1, 2, 3, 4, 5 ] 
-#amp(#(1, 2, 3), #(4, 5)) ==> #(1, 2, 3, 4, 5)
+#amp(#vector(0: 1, 2, 3), #vector(0: 4, 5)) ==> [ 0: 1, 2, 3, 4, 5 ] 
+#amp(#vector(1, 2, 3), #vector(4, 5)) ==> [ 1, 2, 3, 4, 5 ]
 #include("qsort.fun") ==> "qsort.fun"
-qsort(#vector(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ] 
-qsort(#vector("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ] 
+qsort(#vector(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
+qsort(#vector("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ]
 #defq(max, 9223372036854775807) ==> 9223372036854775807
 #plus(max, 1) ==> error; numerical overflow
 #minus(max) ==> -9223372036854775807
@@ -174,3 +174,5 @@ qsort(#vector("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog
 #refq(m, int)(4/3) ==> 1
 #refq(m, int)(5/3) ==> 2
 #minus(-4, 1) ==> -5
+#amp(#vector(0: 1, 2, 3), #vector(4, 5)) ==> [ 0: 1, 2, 3, 4, 5 ] 
+#amp(#vector(1, 2, 3), #vector(0: 4, 5)) ==> [ 1, 2, 3, 4, 5 ]

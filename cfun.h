@@ -16,7 +16,6 @@ cell *hash_ge;
 cell *hash_gt;
 cell *hash_if;
 cell *hash_lambda;
-cell *hash_list;
 cell *hash_le;
 cell *hash_lt;
 cell *hash_minus;

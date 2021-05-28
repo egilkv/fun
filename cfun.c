@@ -405,10 +405,7 @@ CFUNN_COMPARE(cfunN_gt, C_GT)
 CFUNN_COMPARE(cfunN_le, C_LE)
 CFUNN_COMPARE(cfunN_lt, C_LT)
 
-static cell *cfunN_list(cell *args) {
-    return args;
-}
-
+// TODO this is really vector-or-list
 static cell *cfunN_vector(cell *args) {
     cell *vector = NIL; // empty vector is NIL
     index_t len;
@@ -417,7 +414,7 @@ static cell *cfunN_vector(cell *args) {
     len = 0;
     // TODO rather inefficient
     while (list_pop(&args, &a)) {
-        if (cell_is_label(a)) { // index : value
+        if (cell_is_label(a)) { // index:value?
 	    index_t index;
             cell *b;
             label_split(a, &a, &b);
@@ -432,7 +429,13 @@ static cell *cfunN_vector(cell *args) {
                     assert(0); // out of bounds should not happen
                 }
             }
+        } else if (!vector) {
+            // first item is not index:value
+            // TODO look for more labels?
+            return cell_list(a, args); // we are dealing with a humble list
+
         } else {
+            // vector non-indexed item
             ++len;
             if (vector == NIL) vector = cell_vector(len);
             else vector_resize(vector, len);
@@ -464,16 +467,53 @@ static cell *cfunN_assoc(cell *args) {
     return assoc;
 }
 
+// b can be a vector or a list
+static cell *cat_vectors(cell *a, cell *b)
+{
+    // TODO optimize for case of more than two arguments
+    index_t alen = ref_length(a);
+    index_t blen = ref_length(b);
+    if (blen == 0) {
+        cell_unref(b);
+    } else if (alen == 0) {
+        cell_unref(a);
+        a = b;
+    } else {
+        cell *newvector = cell_vector(alen + blen);
+        integer_t i;
+        for (i = 0; i < alen; ++i) {
+            newvector->_.vector.table[i] = cell_ref(a->_.vector.table[i]);
+        }
+        if (cell_is_list(b)) {
+            cell *b1;
+            i = 0;
+            while (list_pop(&b, &b1)) {
+                newvector->_.vector.table[alen+i++] = b1;
+            }
+            assert(i == blen);
+        } else {
+            for (i = 0; i < blen; ++i) {
+                newvector->_.vector.table[alen+i] = cell_ref(b->_.vector.table[i]);
+            }
+        }
+        cell_unref(a);
+        cell_unref(b);
+        a = newvector;
+    }
+    return a;
+}
+
+// consume both
 static cell *cfunN_amp(cell *args) {
     cell *a;
     cell *result = NIL;
+
     while (list_pop(&args, &a)) {
 	switch (a ? a->type : c_LIST) {
 
         case c_STRING:
             if (result == NIL) {
-                result = a; // somewhat cheeky, initial condition
-                // TODO consider raising alarm
+                result = a; // TODO somewhat cheeky, initial condition
             } else if (!cell_is_string(result)) {
                 cell_unref(result);
                 cell_unref(args);
@@ -488,8 +528,8 @@ static cell *cfunN_amp(cell *args) {
 		    cell_unref(result);
 		    result = a;
 		} else {
-		    char_t *newstr = malloc(rlen + alen + 1);
-		    assert(newstr);
+                    char_t *newstr = malloc(rlen + alen + 1);
+                    assert(newstr);
 		    memcpy(newstr, result->_.string.ptr, rlen);
 		    memcpy(newstr+rlen, a->_.string.ptr, alen);
 		    newstr[rlen+alen] = '\0';
@@ -503,33 +543,35 @@ static cell *cfunN_amp(cell *args) {
         case c_VECTOR:
             if (result == NIL) {
                 result = a; // simple enough
-            } else if (!cell_is_vector(result)) {
-                // TODO vector & list should be supported
+            } else switch (result->type) {
+            case c_VECTOR:
+                // TODO optimize for case of more than two arguments
+                result = cat_vectors(result, a);
+                break;
+            case c_LIST:
+                {
+                    // TODO optimize for case of more than two arguments
+                    cell *newlist = NIL;
+                    cell **pnext = &newlist;
+                    index_t i;
+                    // copy first list
+                    while (result) {
+                        *pnext = cell_list(cell_ref(cell_car(result)), NIL);
+                        pnext = &((*pnext)->_.cons.cdr);
+                        result = cell_cdr(result);
+                    }
+                    for (i=0; i < a->_.vector.len; ++i) {
+                        *pnext = cell_list(cell_ref(a->_.vector.table[i]), NIL);
+                        pnext = &((*pnext)->_.cons.cdr);
+                    }
+                    cell_unref(result);
+                    result = newlist;
+                }
+                break;
+            default:
                 cell_unref(result);
                 cell_unref(args);
-                return error_rt1("& applied to non-vector and vector", a);
-            } else {
-                // TODO optimize for case of more than two arguments
-                index_t rlen = result->_.vector.len;
-                index_t alen = a->_.vector.len;
-		if (alen == 0) {
-		    cell_unref(a);
-		} else if (rlen == 0) {
-		    cell_unref(result);
-		    result = a;
-		} else {
-                    cell *newvector = cell_vector(rlen + alen);
-                    integer_t i;
-                    for (i = 0; i < rlen; ++i) {
-                        newvector->_.vector.table[i] = cell_ref(result->_.vector.table[i]);
-                    }
-                    for (i = 0; i < alen; ++i) {
-                        newvector->_.vector.table[rlen+i] = cell_ref(a->_.vector.table[i]);
-                    }
-		    cell_unref(result);
-		    cell_unref(a);
-                    result = newvector;
-		}
+                return error_rt1("& applied to non-vector/list and vector", a);
             }
             break;
 
@@ -538,24 +580,32 @@ static cell *cfunN_amp(cell *args) {
             if (a == NIL) {
                 // add nothing
                 // TODO but not if result is string
-            } else if (result && !cell_is_list(result)) {
-                // TODO vector & list should be supported
+            } else if (result == NIL) {
+                result = a; // simple enough
+            } else switch (result->type) {
+            case c_VECTOR:
+                result = cat_vectors(result, a);
+                break;
+            case c_LIST:
+                {
+                    // TODO optimize for case of more than two arguments
+                    cell *newlist = NIL;
+                    cell **pnext = &newlist;
+                    // copy first list
+                    while (result) {
+                        *pnext = cell_list(cell_ref(cell_car(result)), NIL);
+                        pnext = &((*pnext)->_.cons.cdr);
+                        result = cell_cdr(result);
+                    }
+                    *pnext = a;
+                    cell_unref(result);
+                    result = newlist;
+                }
+                break;
+            default:
                 cell_unref(result);
                 cell_unref(args);
                 return error_rt1("& applied to non-list and list", a);
-            } else {
-                cell *newlist = NIL;
-                cell **pp = &newlist;
-                // copy first list
-                while (result) {
-                    assert(cell_is_list(result));
-                    *pp = cell_list(cell_ref(cell_car(result)), NIL);
-                    pp = &((*pp)->_.cons.cdr);
-                    result = cell_cdr(result);
-                }
-                *pp = a;
-                cell_unref(result);
-                result = newlist;
             }
             break;
 
@@ -842,7 +892,6 @@ void cfun_init() {
                     oblistv("#length",   cell_cfun1(cfun1_length));
     hash_le       = oblistv("#le",       cell_cfunN(cfunN_le));
     hash_lt       = oblistv("#lt",       cell_cfunN(cfunN_lt));
-    hash_list     = oblistv("#",         cell_cfunN(cfunN_list)); // TODO remove?
     hash_minus    = oblistv("#minus",    cell_cfunN(cfunN_minus));
     hash_not      = oblistv("#not",      cell_cfun1(cfun1_not));
     hash_noteq    = oblistv("#noteq",    cell_cfunN(cfunN_noteq));

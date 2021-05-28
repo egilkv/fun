@@ -38,7 +38,7 @@ aa & { four : "FOUR" }; // modified assoc, add keyt if same
 aa & { two : "TWO" }; // modified assoc, modify key
 [ 3 : 99, 0 : "test" ]; // 1 and 2 are undefined
 
-list = #(1, 2, 3);
+list = [ 1, 2, 3 ];
 list[0];
 list.0;
 // TODO module.symbol;
@@ -130,8 +130,8 @@ m.int(11/3);
 "b" < "a" < "x";
 
 as = "abc";
-al = #( 1, 2, 3 );
-av = [ 1, 2, 3 ];
+al = [ 1, 2, 3 ];
+av = [ 0: 1, 2, 3 ];
 as[2..];
 al[2..];
 av[2..];
@@ -151,8 +151,8 @@ as[3..3];
 al[3..3];
 av[3..3];
 
-[1, 2, 3] & [4, 5];
-#(1, 2, 3) & #(4, 5);
+[0: 1, 2, 3] & [0: 4, 5];
+[ 1, 2, 3 ] & [ 4, 5 ];
 
 #include("qsort.fun");
 qsort([5, 2, 7, 6, 3, 9, 12, 99, 1]);
@@ -180,3 +180,6 @@ m.int(4/3);
 m.int(5/3);
 -4-1;
 
+[0: 1, 2, 3] & [ 4, 5];
+[ 1, 2, 3 ] & [ 0: 4, 5 ];
+qsort([0:5, 2, 7, 6, 3, 9, 12, 99, 1]);

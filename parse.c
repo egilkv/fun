@@ -166,8 +166,9 @@ static cell *expr(precedence lv, lxfile *in) {
         // get function body
         {
             cell *body = getlist(it, it_SEMI, it_RBRC, l_BASE, in);
-            return cell_func(cell_ref(hash_lambda), cell_list(pt, body));
+            pt = cell_func(cell_ref(hash_lambda), cell_list(pt, body));
         }
+        return binary(pt, lv, in);
 
     case it_LBRC: // assoc definition or a compound statement
         pt = getlist(it, it_COMMA, it_RBRC, l_PERHAPS, in);
