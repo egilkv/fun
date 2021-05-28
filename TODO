@@ -1,8 +1,15 @@
 
-vector_set should give error if not undefined, just like assoc_set
+trace(a,b,c) should print a,b,c and return value of c
+
+2^;
+
+b = [1, 2, 3];
+b(1);                "not a function" -- can we fix that?
 
 If ++ is catenation, then +- could be replacements for vectors and assocs
 Then -- could be to remove whatever...
+(The ++ operator can update values in assocs? Probably | is better! What about vectors?
+How to deal with duplicate keys on ++)
 
 Should array indexing be by () instead?
 
@@ -19,7 +26,25 @@ Enable in-line for #if
 
 GTK example-2 button 1 quits. Why?
 
+Returning io in m_gtk, is that really smart
+
 1/2 + 1/3;
+
+Clojure:
+Quotient is that called a ratio? Assoc is that a map
+#doc(func) shows documentation
+*1 is the latest result
+
+Modules. Namespaces?
+
+How to assign defaults to variables.
+Variadic functions: fn = (a b & c) where c contains a list of the resto of the params
+
+These are the same:
+#apply(f, [1, 2, 3, 4])
+#apply(f, 1, 2, [3, 4])
+#apply(f, 1, 2, 3, 4, [])
+f(1, 2, 3, 4)
 
 Problem: Should the thing ahead of : be evaluated?
 name: "Alice"
@@ -49,8 +74,6 @@ Lists and assocs can also be used for functions. Skip [] operator?
 [] is NIL, maybe also {} ??
 Delay creation of assoc list?
 
-Lists and vectors are the same, so drop lists (make it up to runtime to switch)
-
 Invocations of eval still uses C stack, so still not proper end recursion
 
 DO not have pair as a data type using :. Instead, : is a label data type (left side quoted).
@@ -73,9 +96,6 @@ What is the difference between (){} for function and {} for assoc, really.
 Try to nullify it. So in addition to { a : b }, we can also have { a }
 which means? And { a ; b }
 
-The ++ operator can update values in assocs? Probably | is better! What about vectors?
-How to deal with duplicate keys on ++
-
 Vector/list and function subscript is the same? So fib(0..10) returns a vector??
 
 Fully implement function call without use of C stack
@@ -89,7 +109,7 @@ Fully implement non-mutable 'variables'
 
 TODO allow for byte order mark and other Unicode stuff in reader
 
-Assoc keys can be symbols, integers. Or strings?
+Assoc keys can be symbols. Strings are demoted to symbols. Integers are for vectors.
 
 Have === operator in addition to ==. === corresponds to eq? in Scheme,
 while == corresponds to eqv? (egual value). (There is no equal?)
@@ -99,6 +119,11 @@ write S-expressions that 'read' can read. We should be able to read JSON
 directly.
 
 List functions: map
+
+Sanity check symbol!?
+a = { "one": 1 };
+a."one";
+a["one"];
 
 ELM and Haskell uses ++ instead of & to concatenate.
 

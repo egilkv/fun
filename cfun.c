@@ -479,9 +479,12 @@ static cell *cfunN_assoc(cell *args) {
 	    cell_unref(error_rt1("initialization item not in form of key: value", a));
         } else {
 	    label_split(a, &a, &b);
-	    if (!assoc_set(assoc, a, b)) {
+            if (!cell_is_symbol(a)) {
+                cell_unref(error_rt1("key must be a symbol", a));
 		cell_unref(b);
+            } else if (!assoc_set(assoc, a, b)) {
 		cell_unref(error_rt1("duplicate key ignored", a));
+		cell_unref(b);
 	    }
 	}
     }

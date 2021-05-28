@@ -174,15 +174,15 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         return;
 
     case c_ENV:
-        fprintf(out, "#env(\n%*sprev: ", indent+2,""); // TODO debug
-        cell_writei(out, ct->_.cons.car->_.cons.car, indent+4);
-        fprintf(out, "\n%*sprog: ", indent+2,"");
-        cell_writei(out, ct->_.cons.car->_.cons.cdr, indent+4);
-        fprintf(out, "\n%*sassoc: ", indent+2,"");
-        cell_writei(out, ct->_.cons.cdr->_.cons.car, indent+4);
-        fprintf(out, "\n%*scont: ", indent+2,"");
-        cell_writei(out, ct->_.cons.cdr->_.cons.cdr, indent+4);
-        fprintf(out, "\n%*s)", indent,"");
+        fprintf(out, "#env(\n%*sprev: ", indent+4,""); // TODO debug
+        cell_writei(out, ct->_.cons.car->_.cons.car, indent+6);
+        fprintf(out, "\n%*sprog: ", indent+4,"");
+        cell_writei(out, ct->_.cons.car->_.cons.cdr, indent+6);
+        fprintf(out, "\n%*sassoc: ", indent+4,"");
+        cell_writei(out, ct->_.cons.cdr->_.cons.car, indent+6);
+        fprintf(out, "\n%*scont: ", indent+4,"");
+        cell_writei(out, ct->_.cons.cdr->_.cons.cdr, indent+6);
+        fprintf(out, "\n%*s)", indent+2,"");
         return;
 
     case c_SPECIAL:
@@ -269,7 +269,7 @@ static cell *cfio_write(cell *args) {
 	cell_unref(a);
     }
     assert(args == NIL);
-    return cell_ref(io_assoc); // return assoc
+    return cell_void();
 }
 
 static cell *cfio_print(cell *args) {
@@ -290,7 +290,7 @@ static cell *cfio_print(cell *args) {
         cell_unref(a);
     }
     assert(args == NIL);
-    return cell_ref(io_assoc); // return assoc
+    return cell_void();
 }
 
 static cell *cfio_println(cell *args) {

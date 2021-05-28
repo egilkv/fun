@@ -62,7 +62,7 @@ f = g = 9;
 g + f + 12;
 g + f + 12 - 30;
 
-// error reporting
+// TODO parsing does not stop at semicolon
 2^;
 
 // '/' associates left-to-right
@@ -190,3 +190,13 @@ qsort([0:5, 2, 7, 6, 3, 9, 12, 99, 1]);
 [ 0: 98, ..3 : 99, 100 ];
 
 [ 0: 1.23, 2.34, 3:3.14, 0: 2];
+
+// closures https://clojure.org/guides/learn/functions
+messenger_builder = (greeting) {
+  (who) { io.println(greeting, " ", who) } }; // closes over greeting
+
+// greeting provided here, then goes out of scope
+hello_er = messenger_builder("Hello");
+
+// greeting value still available because hello-er is a closure
+hello_er("world!");

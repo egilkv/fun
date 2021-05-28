@@ -218,8 +218,22 @@ cell *eval(cell *arg, cell *env) {
             {
                 cell *b1, *b2;
                 label_split(arg, &b1, &b2);
-                if (!cell_is_symbol(b1)) {
-                    b1 = eval(b1, env); // evaluate only if not standalone
+		if (b1) switch (b1->type) {
+		case c_STRING:
+		    // TODO consider if we should sanity check this
+		    // TODO and what about NULs in strings
+		    if (b1->_.string.len > 0) {
+			cell *b1a = cell_symbol(b1->_.string.ptr);
+			cell_unref(b1);
+			b1 = b1a;
+		    }
+		    break;
+		case c_SYMBOL:
+		    // a symbol stays as is
+		    break;
+		default:
+		    b1 = eval(b1, env); // evaluate in all other cases
+		    break;
                 }
                 if (b2) {
                     b2 = eval(b2, env);

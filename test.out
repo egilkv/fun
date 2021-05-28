@@ -190,3 +190,20 @@ qsort(#list(0: 5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
 #list(0: 98,  .. 3: 99, 100) ==> [ 0: 98, 99, 99, 99, 100 ] 
 #list(0: 1.23, 2.34, 3: 3.14, 0: 2) ==> error; cannot redefine vector, index : 0
 [ 0: 1.23, 2.34, #undefined, 3.14 ] 
+#defq(messenger_builder, #lambda([ greeting ], #lambda([ who ], #refq(io, println)(greeting, " ", who)))) ==> #closure0(
+  args: [ greeting ]
+  body: [ #lambda([ who ], #refq(io, println)(greeting, " ", who)) ]
+) 
+#defq(hello_er, messenger_builder("Hello")) ==> #closure(
+  args: [ who ]
+  body: [ #refq(io, println)(greeting, " ", who) ]
+  cont: #env(
+    prev: []
+    prog: []
+    assoc: { 
+        greeting : "Hello"
+      } 
+    cont: []
+  )
+) 
+hello_er("world!") ==> Hello world!
