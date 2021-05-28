@@ -174,7 +174,8 @@ static cell *cfunN_plus(cell *args) {
                                           &(result.dividend.ival))
              || __builtin_smulll_overflow(result.divisor,
                                           operand.divisor,
-                                          &(result.divisor))) {
+                                          &(result.divisor))
+             || !normalize_q(&result)) {
 		return err_overflow(args);
             }
 #else
@@ -182,8 +183,8 @@ static cell *cfunN_plus(cell *args) {
             result.dividend.ival = result.dividend.ival * operand.divisor +
                                    operand.dividend.ival * result.divisor;
             result.divisor *= operand.divisor;
-#endif
             normalize_q(&result);
+#endif
         }
     }
     assert(args == NIL);
@@ -223,7 +224,8 @@ static cell *cfunN_minus(cell *args) {
                                           &(result.dividend.ival))
              || __builtin_smulll_overflow(result.divisor,
                                           operand.divisor,
-                                          &(result.divisor))) {
+                                          &(result.divisor))
+             || !normalize_q(&result)) {
 		return err_overflow(args);
             }
 #else
@@ -231,8 +233,8 @@ static cell *cfunN_minus(cell *args) {
             result.dividend.ival = result.dividend.ival * operand.divisor -
                                    operand.dividend.ival * result.divisor;
             result.divisor *= operand.divisor;
-#endif
             normalize_q(&result);
+#endif
         }
     }
     assert(args == NIL);
@@ -256,14 +258,15 @@ static cell *cfunN_times(cell *args) {
 #ifdef __GNUC__
             if (__builtin_smulll_overflow(result.dividend.ival,
                                           operand.dividend.ival,
-                                          &(result.dividend.ival))) {
+                                          &(result.dividend.ival))
+             || !normalize_q(&result)) {
 		return err_overflow(args);
             }
 #else
             // no overflow detection
             result.divisor *= operand.divisor;
-#endif
             normalize_q(&result);
+#endif
         }
         // TODO overflow etc
     }
@@ -313,7 +316,9 @@ static cell *cfunN_quotient(cell *args) {
                 cell_unref(args);
 		return error_rt0("attempted division by zero");
 	    }
-            normalize_q(&result);
+            if (!normalize_q(&result)) {
+		return err_overflow(args);
+            }
 	}
     }
     return cell_number(&result);

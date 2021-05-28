@@ -324,7 +324,9 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 	    cell *c;
             nval.dividend.ival = cell_car(cell_cdr(left))->_.n.dividend.ival;
             nval.divisor = cell_car(cell_cdr(cell_cdr(left)))->_.n.dividend.ival;
-            normalize_q(&nval);
+            if (!normalize_q(&nval)) {
+                return err_overflow(left);
+            }
             if ((c = cell_cdr(cell_cdr(cell_cdr(left))))) { // more than 2 args?
                 c = cell_func(cell_ref(hash_quotient),
                               cell_list(cell_number(&nval), cell_ref(c)));

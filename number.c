@@ -68,19 +68,31 @@ static integer_t gcd(integer_t a, integer_t b) {
 }
 
 // normalize quotient, i.e. remove gcd component
-void normalize_q(number *np) {
-    if (np->divisor < 0) { // TODO only possible after a division????
+// false if overflow
+int normalize_q(number *np) {
+    if (np->divisor < 0) { // TODO only possible after a division?
+        // cannot overflow
         np->divisor = -np->divisor; // divisor always positive
+#ifdef __GNUC__
+        if (__builtin_ssubll_overflow(0,
+                                      np->dividend.ival,
+                                      &(np->dividend.ival))) {
+            return 0;
+        }
+#else
+        // no overflow detection
         np->dividend.ival = -np->dividend.ival;
-        // TODO overflow
+#endif
     }
     if (np->divisor > 1) {
         integer_t c = gcd(np->dividend.ival, np->divisor);
         if (c > 1) {
+            // cannot overflow
             np->dividend.ival /= c;
             np->divisor /= c;
         }
     }
+    return 1;
 }
 
 int make_negative(number *np) {

@@ -13,7 +13,12 @@ How to deal with duplicate keys on ++)
 
 Should array indexing be by () instead?
 
-errors from normalize_q ??
+Should we have sets, which are essentialls assocs with keys but no vals,
+or are assoc sufficient
+How to check if a set contains an element #contains() ? Or use #try
+
+"Associate" is the same as adding to assocs
+The map can be used as a function. Maybe that is the preferred or only way?
 
 #void should have something that suppresses further error messages
 
@@ -34,6 +39,8 @@ Clojure:
 Quotient is that called a ratio? Assoc is that a map
 #doc(func) shows documentation
 *1 is the latest result
+#length is called count, which is better, really
+Catenate is called conjoin
 
 Modules. Namespaces?
 
