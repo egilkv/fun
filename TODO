@@ -1,3 +1,9 @@
+
+vector_set should give error if not undefined, just like assoc_set
+
+If ++ is catenation, then +- could be replacements for vectors and assocs
+Then -- could be to remove whatever...
+
 Should array indexing be by () instead?
 
 errors from normalize_q ??
@@ -63,6 +69,8 @@ which means? And { a ; b }
 The ++ operator can update values in assocs? Probably | is better! What about vectors?
 How to deal with duplicate keys on ++
 
+Vector/list and function subscript is the same? So fib(0..10) returns a vector??
+
 Fully implement function call without use of C stack
 
 c_STRING8
@@ -70,7 +78,7 @@ c_STRING16
 c_STRING24?
 c_STRINGU // UTF8
 
-Implement non-mutable 'variables'
+Fully implement non-mutable 'variables'
 
 TODO allow for byte order mark and other Unicode stuff in reader
 
@@ -86,8 +94,6 @@ directly.
 List functions: map
 
 ELM and Haskell uses ++ instead of & to concatenate.
-
-Do we really need lists and vectors to be different things???
 
 Easy to use threading, like goroutines, i.e.: go function() i.e. !! function()
 
@@ -111,8 +117,6 @@ Compare strings with NUL (so use memcmp instead of strcmp)
 TODO what to do about integer overflow? Convert to float?
 
 #include("filename");
-
-Vector/list and function subscript is the same? So fib(0..10) returns a vector
 
 A continuation is also called a closure.
 Funtional programming vz imperative.

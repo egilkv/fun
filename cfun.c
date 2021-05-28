@@ -414,22 +414,44 @@ static cell *cfunN_vector(cell *args) {
     len = 0;
     // TODO rather inefficient
     while (list_pop(&args, &a)) {
-        if (cell_is_label(a)) { // index:value?
-	    index_t index;
+        if (cell_is_label(a)) { // index:value or index..index:value
+            index_t index = len; // for range, start defaults to current position
+            index_t indexN = 0;
             cell *b;
             label_split(a, &a, &b);
-            if (get_index(a, &index, b)) { // TODO a not evaluated?
-                if (index >= len) {
-                    len = index+1;
+            if (cell_is_range(a)) {
+                index_t index2;
+                cell *a1, *a2;
+                range_split(a, &a1, &a2);
+                if (a1 == NIL || get_index(a1, &index, a2)) {
+                    if (!a2) {
+                        cell_unref(error_rt0("upper range required for vector index"));
+                    } else if (get_index(a2, &index2, NIL)) {
+                        if (index2 < index) {
+                            return error_rti("index range cannot be reverse", index2);
+                        } else {
+                            indexN = 1+index2 - index;
+                        }
+                    }
+                }
+            } else if (get_index(a, &index, b)) {
+                indexN = 1;
+            }
+            if (indexN > 0) {
+                if (index+indexN > len) {
+                    len = index+indexN;
                     if (vector == NIL) vector = cell_vector(len);
                     else vector_resize(vector, len);
                 }
-                // TODO check if redefining, which is not allowed
-                if (!vector_set(vector, index, b)) {
-                    assert(0); // out of bounds should not happen
+                while (indexN-- > 0) {
+                    // TODO check if redefining, which is not allowed
+                    if (!vector_set(vector, index++, (indexN == 0) ? b : cell_ref(b))) {
+                        assert(0); // out of bounds should not happen
+                    }
                 }
             }
-        } else if (!vector) {
+
+        } else if (vector == NIL) {
             // first item is not index:value
             // TODO look for more labels?
             return cell_list(a, args); // we are dealing with a humble list
@@ -740,8 +762,8 @@ static cell *cfun2_ref(cell *a, cell *b) {
         cell *b1, *b2;
         range_split(b, &b1, &b2);
         if (b1) {
-            if (!get_index(b1, &index1, a)) {
-                cell_unref(b2);
+            if (!get_index(b1, &index1, b2)) {
+                cell_unref(a);
                 return cell_void(); // error
             }
         }
@@ -749,7 +771,6 @@ static cell *cfun2_ref(cell *a, cell *b) {
             index_t index2 = 0;
             if (!get_index(b2, &index2, a)) return cell_void(); // error
             if (index2 < index1) {
-                cell_unref(a);
                 return error_rti("index range cannot be reverse", index2);
             }
             value = ref_range2(a, index1, 1+index2 - index1);
