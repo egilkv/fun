@@ -176,42 +176,10 @@ static cell *expr(precedence lv, lxfile *in) {
         pt = cell_func(cell_ref(hash_assoc), pt);
         return binary(pt, lv, in);
 
-    case it_LBRK: // list or array definition
+    case it_LBRK: // list or vector definition
         pt = getlist(it, it_COMMA, it_RBRK, l_LABEL, in);
-        pt = cell_func(cell_ref(hash_vector), pt);
+        pt = cell_func(cell_ref(hash_list), pt);
         return binary(pt, lv, in);
-
-
-#if 0 // TODO
-        it = lexical(in);
-        if (!it || it->type != it_LBRC) {
-	    error_par(lxfile_info(in), "expected initializer (left curly bracket)");
-            if (it) pushitem(it);
-            // assume empty initializer
-            return cell_func(cell_ref(hash_vector), cell_list(pt, NIL));
-        }
-        {
-            cell *init = getlist(it, it_COMMA, it_RBRC, l_LABEL, in);
-
-	    // peek to see if it is a colon-style initializer
-	    if ((cell_is_list(init) && cell_is_pair(cell_car(init)))
-	      || (pt == NIL && init == NIL)) {
-		if (pt) {
-		    error_pa1(lxfile_info(in), "length specified for assoc ignored", pt); // TODO rephrase?
-		}
-
-	    } else { // vector
-		// vector of straight length is special case
-		if (cell_is_list(pt) && cell_cdr(pt) == NIL) {
-		    // have number, not a list
-                    list_split(pt, &pt, NULL);
-		}
-                // TODO what if more than two items???
-                // TODO also support for rvalues???
-                return cell_func(cell_ref(hash_vector), cell_list(pt, init));
-	    }
-        }
-#endif
 
     case it_RANGE: // start of range is empty, treat as binary
         pushitem(it);

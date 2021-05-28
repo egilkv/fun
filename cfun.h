@@ -18,6 +18,7 @@ cell *hash_if;
 cell *hash_lambda;
 cell *hash_le;
 cell *hash_lt;
+cell *hash_list;
 cell *hash_minus;
 cell *hash_not;
 cell *hash_noteq;
@@ -28,7 +29,6 @@ cell *hash_quotient;
 cell *hash_ref;
 cell *hash_refq;
 cell *hash_times;
-cell *hash_vector;
 
 void cfun_init();
 void cfun_args(int argc, char * const argv[]);

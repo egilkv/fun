@@ -405,8 +405,8 @@ CFUNN_COMPARE(cfunN_gt, C_GT)
 CFUNN_COMPARE(cfunN_le, C_LE)
 CFUNN_COMPARE(cfunN_lt, C_LT)
 
-// TODO this is really vector-or-list
-static cell *cfunN_vector(cell *args) {
+// this is really vector-or-list
+static cell *cfunN_list(cell *args) {
     cell *vector = NIL; // empty vector is NIL
     index_t len;
     cell *a;
@@ -929,6 +929,7 @@ void cfun_init() {
                     oblistv("#length",   cell_cfun1(cfun1_length));
     hash_le       = oblistv("#le",       cell_cfunN(cfunN_le));
     hash_lt       = oblistv("#lt",       cell_cfunN(cfunN_lt));
+    hash_list     = oblistv("#list",     cell_cfunN(cfunN_list));
     hash_minus    = oblistv("#minus",    cell_cfunN(cfunN_minus));
     hash_not      = oblistv("#not",      cell_cfun1(cfun1_not));
     hash_noteq    = oblistv("#noteq",    cell_cfunN(cfunN_noteq));
@@ -943,7 +944,6 @@ void cfun_init() {
                     oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
                     oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
 		    oblistv("#use",      cell_cfun1(cfun1_use));
-    hash_vector   = oblistv("#vector",   cell_cfunN(cfunN_vector));
 
     // values
     hash_f       = oblistv("#f",       NIL);

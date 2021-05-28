@@ -15,7 +15,7 @@ factorial(10) ==> 3628800
   body: [ #defq(c, a), #defq(d, b), #plus(c, d) ]
 ) 
 ft(50, 5) ==> 55
-#defq(v, #vector(7, 8, "hello")) ==> [ 7, 8, "hello" ]
+#defq(v, #list(7, 8, "hello")) ==> [ 7, 8, "hello" ]
 #ref(v, 0) ==> 7
 #ref(v, 2) ==> "hello"
 #defq(aa, #assoc(one: 1, two: 2, three: 3)) ==> { 
@@ -42,13 +42,13 @@ ft(50, 5) ==> 55
   three : 3,
   two : 2
 } 
-#vector(3: 99, 0: "test") ==> [ 0: "test", [], [], 99 ] 
-#defq(list, #vector(1, 2, 3)) ==> [ 1, 2, 3 ]
+#list(3: 99, 0: "test") ==> [ 0: "test", [], [], 99 ] 
+#defq(list, #list(1, 2, 3)) ==> [ 1, 2, 3 ]
 #ref(list, 0) ==> 1
 #refq(list, 0) ==> 1
 #cat("abc", "def") ==> "abcdef"
 #ref("abcdef", 2) ==> "c"
-#defq(array1, #vector(1, 2, 3, 4, 5, 6)) ==> [ 1, 2, 3, 4, 5, 6 ]
+#defq(array1, #list(1, 2, 3, 4, 5, 6)) ==> [ 1, 2, 3, 4, 5, 6 ]
 #ref(array1, 0) ==> 1
 #ref(array1, 3) ==> 4
 #ref(array1, 3 .. 4) ==> [ 4, 5 ]
@@ -134,8 +134,8 @@ func() ==> case 2 is ALICE and DELTA
 #lt("aa", "a") ==> #f
 #lt("b", "a", "x") ==> #f
 #defq(as, "abc") ==> "abc"
-#defq(al, #vector(1, 2, 3)) ==> [ 1, 2, 3 ]
-#defq(av, #vector(0: 1, 2, 3)) ==> [ 0: 1, 2, 3 ] 
+#defq(al, #list(1, 2, 3)) ==> [ 1, 2, 3 ]
+#defq(av, #list(0: 1, 2, 3)) ==> [ 0: 1, 2, 3 ] 
 #ref(as, 2 .. ) ==> "c"
 #ref(al, 2 .. ) ==> [ 3 ]
 #ref(av, 2 .. ) ==> [ 0: 3 ] 
@@ -154,11 +154,11 @@ func() ==> case 2 is ALICE and DELTA
 #ref(as, 3 .. 3) ==> error; string range out of bounds: 3
 #ref(al, 3 .. 3) ==> error; list range out of bounds: 3
 #ref(av, 3 .. 3) ==> error; vector range out of bounds: 3
-#cat(#vector(0: 1, 2, 3), #vector(0: 4, 5)) ==> [ 0: 1, 2, 3, 4, 5 ] 
-#cat(#vector(1, 2, 3), #vector(4, 5)) ==> [ 1, 2, 3, 4, 5 ]
+#cat(#list(0: 1, 2, 3), #list(0: 4, 5)) ==> [ 0: 1, 2, 3, 4, 5 ] 
+#cat(#list(1, 2, 3), #list(4, 5)) ==> [ 1, 2, 3, 4, 5 ]
 #include("qsort.fun") ==> "qsort.fun"
-qsort(#vector(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
-qsort(#vector("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ]
+qsort(#list(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
+qsort(#list("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ]
 #defq(max, 9223372036854775807) ==> 9223372036854775807
 #plus(max, 1) ==> error; numerical overflow
 #minus(max) ==> -9223372036854775807
@@ -180,10 +180,10 @@ qsort(#vector("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog
 #refq(m, int)(4/3) ==> 1
 #refq(m, int)(5/3) ==> 2
 #minus(-4, 1) ==> -5
-#cat(#vector(0: 1, 2, 3), #vector(4, 5)) ==> [ 0: 1, 2, 3, 4, 5 ] 
-#cat(#vector(1, 2, 3), #vector(0: 4, 5)) ==> [ 1, 2, 3, 4, 5 ]
-qsort(#vector(0: 5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
-#vector(0 .. 3: 99, 100) ==> [ 0: 99, 99, 99, 99, 100 ] 
-#vector(0: 99, 3: 99, 100) ==> [ 0: 99, #undefined, #undefined, 99, 100 ] 
-#vector(0: 98,  .. 3: 99, 100) ==> [ 0: 98, 99, 99, 99, 100 ] 
-#vector(0: 98,  .. 3: 99, 100) ==> [ 0: 98, 99, 99, 99, 100 ] 
+#cat(#list(0: 1, 2, 3), #list(4, 5)) ==> [ 0: 1, 2, 3, 4, 5 ] 
+#cat(#list(1, 2, 3), #list(0: 4, 5)) ==> [ 1, 2, 3, 4, 5 ]
+qsort(#list(0: 5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
+#list(0 .. 3: 99, 100) ==> [ 0: 99, 99, 99, 99, 100 ] 
+#list(0: 99, 3: 99, 100) ==> [ 0: 99, #undefined, #undefined, 99, 100 ] 
+#list(0: 98,  .. 3: 99, 100) ==> [ 0: 98, 99, 99, 99, 100 ] 
+#list(0: 98,  .. 3: 99, 100) ==> [ 0: 98, 99, 99, 99, 100 ] 
