@@ -119,6 +119,13 @@ static cell *expr(precedence lv, lxfile *in) {
         pt = cell_func(cell_ref(hash_not), cell_list(pt, NIL));
         return binary(pt, lv, in);
 
+    case it_TILDE: // unary only
+        dropitem(it);
+        pt = expr(l_UNARY, in);
+        if (!pt) return badeof();
+        pt = cell_func(cell_symbol("#bitnot"), cell_list(pt, NIL));
+        return binary(pt, lv, in);
+
     case it_MINUS: // unary and binary
         dropitem(it);
         pt = expr(l_UNARY, in);
@@ -211,6 +218,7 @@ static cell *expr(precedence lv, lxfile *in) {
     case it_AMP:
     case it_CAT:
     case it_BAR:
+    case it_CIRC:
     case it_AND:
     case it_OR:
     case it_STOP:
@@ -346,12 +354,17 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
     case it_EQEQ:
         return binary_l2rN(left, l_EQEQ, cell_ref(hash_eq), op, lv, in);
 
-    case it_AMP:
     case it_CAT:
         return binary_l2rN(left, l_CAT,  cell_ref(hash_cat), op, lv, in);
 
+    case it_AMP:
+        return binary_l2rN(left, l_AMP,  cell_symbol("#bitand"), op, lv, in);
+
     case it_BAR:
-        return binary_l2r(left, l_BAR,   cell_symbol("#bar"), op, lv, in); // TODO check if N args
+        return binary_l2rN(left, l_BAR,  cell_symbol("#bitor"), op, lv, in);
+
+    case it_CIRC:
+        return binary_l2rN(left, l_BAR,  cell_symbol("#bitxor"), op, lv, in); // TODO l_BAR?
 
     case it_AND:
         return binary_l2rN(left, l_AND,  cell_ref(hash_and), op, lv, in);
@@ -500,6 +513,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 
     case it_NOT: // unary only
     case it_QUOTE:
+    case it_TILDE:
     case it_LBRC:
     case it_NUMBER:
     case it_STRING:

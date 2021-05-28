@@ -126,7 +126,7 @@ cell *cell_vector(index_t length);
 int cell_is_vector(cell *cp);
 int vector_set(cell *vector, index_t index, cell *value);
 int vector_get(cell *node, index_t index, cell **valuep);
-void vector_resize(cell *vector, index_t newlen);
+cell *vector_resize(cell* node, index_t newlen);
 
 cell *cell_symbol(const char *symbol);
 cell *cell_asymbol(char_t *symbol);

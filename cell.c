@@ -298,48 +298,53 @@ cell *cell_cfun3(struct cell_s *(*fun)(cell *, cell *, cell *)) {
 
 cell *cell_vector(index_t length) {
     // TODO or NIL if length==0
-    cell *node = newcell(c_VECTOR);
-    node->_.vector.len = length;
+    cell *node = NIL;
     if (length > 0) { // if length==0 table is NULL
+        index_t i;
         // TODO have some sanity check on vector length
+        node = newcell(c_VECTOR);
+        node->_.vector.len = length;
         node->_.vector.table = malloc(length * sizeof(cell *));
         assert(node->_.vector.table);
-        // NIL as default value
-        memset(node->_.vector.table, 0, length * sizeof(cell *));
+        for (i = 0; i < length; ++i) {
+            node->_.vector.table[i] = cell_ref(hash_undefined);
+        }
     }
     return node;
 }
 
-void vector_resize(cell* node, index_t newlen) {
+cell *vector_resize(cell* node, index_t newlen) {
     // TODO have some sanity check on new vector length
+    index_t i;
     index_t oldlen;
-    assert(cell_is_vector(node));
-    oldlen = node->_.vector.len;
+    if (node == NIL) { // oldlen is zero
+        node = cell_vector(newlen);
 
-    if (oldlen > 0 && oldlen > newlen) {
-        index_t i;
-	for (i = newlen; i < oldlen; ++i) {
-	    cell_unref(node->_.vector.table[i]);
-	    node->_.vector.table[i] = NIL; // TODO not really needed
-	}
-    }
-    if (newlen > 0 && newlen != oldlen) {
-	// realloc works also with NULL
-        node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
-	assert(node->_.vector.table);
-        while (oldlen < newlen) {
-            node->_.vector.table[oldlen] = cell_ref(hash_undefined);
-            ++oldlen;
-        }
-        //  memset(&(node->_.vector.table[oldlen]), 0, (newlen-oldlen) * sizeof(cell *));
-
-    } else if (oldlen > 0) {
-	free(node->_.vector.table);
-	node->_.vector.table = NULL;
     } else {
-	assert(node->_.vector.table == NULL);
+        assert(cell_is_vector(node));
+        oldlen = node->_.vector.len;
+        assert(oldlen > 0);
+        if (newlen == 0) {
+            cell_unref(node);
+            node = NIL;
+
+        } else if (oldlen > newlen) { // shrinking?
+            for (i = newlen; i < oldlen; ++i) {
+                cell_unref(node->_.vector.table[i]);
+            }
+            node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
+            node->_.vector.len = newlen;
+
+        } else if (newlen > oldlen) { // increasing
+            node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
+            assert(node->_.vector.table);
+            node->_.vector.len = newlen;
+            for (i = oldlen; i < newlen; ++i) {
+                node->_.vector.table[i] = cell_ref(hash_undefined);
+            }
+        }
     }
-    node->_.vector.len = newlen;
+    return node;
 }
 
 // consume value, but not vector
@@ -347,6 +352,11 @@ int vector_set(cell *node, index_t index, cell *value) {
     assert(cell_is_vector(node));
     if (index < 0 || index >= node->_.vector.len) {
         // out of bounds
+        cell_unref(value);
+        return 0;
+    }
+    if (node->_.vector.table[index] != hash_undefined) {
+        // cannot redefine
         cell_unref(value);
         return 0;
     }

@@ -42,7 +42,7 @@ ft(50, 5) ==> 55
   three : 3,
   two : 2
 } 
-#list(3: 99, 0: "test") ==> [ 0: "test", [], [], 99 ] 
+#list(3: 99, 0: "test") ==> [ 0: "test", #undefined, #undefined, 99 ] 
 #defq(list, #list(1, 2, 3)) ==> [ 1, 2, 3 ]
 #ref(list, 0) ==> 1
 #refq(list, 0) ==> 1
@@ -59,9 +59,7 @@ ft(50, 5) ==> 55
 #defq(f, #defq(g, 9)) ==> 9
 #plus(g, f, 12) ==> 30
 #minus(#plus(g, f, 12), 30) ==> 0
-error at 66:2; bad character, ignored: "^"
-2 ==> 2
-#quotient(50, 2) ==> 25
+#bitxor(2, #quotient(50, 2)) ==> error; not a function: #undefined
 undefined ==> #undefined
 #defq(io, #use("io")) ==> { 
   getline : #cfun0(),
@@ -190,3 +188,5 @@ qsort(#list(0: 5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
 #list(0: 99, 3: 99, 100) ==> [ 0: 99, #undefined, #undefined, 99, 100 ] 
 #list(0: 98,  .. 3: 99, 100) ==> [ 0: 98, 99, 99, 99, 100 ] 
 #list(0: 98,  .. 3: 99, 100) ==> [ 0: 98, 99, 99, 99, 100 ] 
+#list(0: 1.23, 2.34, 3: 3.14, 0: 2) ==> error; cannot redefine vector, index : 0
+[ 0: 1.23, 2.34, #undefined, 3.14 ] 

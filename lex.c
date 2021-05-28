@@ -533,6 +533,8 @@ static item *gotcomma(char c, item *it, lxfile *in) { return gotplain(c, it_COMM
 static item *gotcolon(char c, item *it, lxfile *in) { return gotplain(c, it_COLON, it, in); }
 static item *gotsemi(char c, item *it, lxfile *in)  { return gotplain(c, it_SEMI, it, in); }
 static item *gotquest(char c, item *it, lxfile *in) { return gotplain(c, it_QUEST, it, in); }
+static item *gotcirc(char c, item *it, lxfile *in)  { return gotplain(c, it_CIRC, it, in); }
+static item *gottilde(char c, item *it, lxfile *in) { return gotplain(c, it_TILDE, it, in); }
 static item *gotlpar(char c, item *it, lxfile *in)  { return gotplain(c, it_LPAR, it, in); }
 static item *gotrpar(char c, item *it, lxfile *in)  { return gotplain(c, it_RPAR, it, in); }
 static item *gotlbrk(char c, item *it, lxfile *in)  { return gotplain(c, it_LBRK, it, in); }
@@ -600,7 +602,7 @@ static item *gotchar(int c, item *it, lxfile *in) {
     case ']':
         return gotrbrk(c, it, in);
     case '^':
-        break; // not used
+        return gotcirc(c, it, in);
     case '_':
         return gotsymbol(c, it, in);
     case '`':
@@ -612,7 +614,7 @@ static item *gotchar(int c, item *it, lxfile *in) {
     case '}':
         return gotrbrc(c, it, in);
     case '~':
-        break; // not used
+        return gottilde(c, it, in);
 
     case '\r':
     case '\n':

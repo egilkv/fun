@@ -440,14 +440,15 @@ static cell *cfunN_list(cell *args) {
             if (indexN > 0) {
                 if (index+indexN > len) {
                     len = index+indexN;
-                    if (vector == NIL) vector = cell_vector(len);
-                    else vector_resize(vector, len);
+                    vector = vector_resize(vector, len);
                 }
                 while (indexN-- > 0) {
                     // TODO check if redefining, which is not allowed
-                    if (!vector_set(vector, index++, (indexN == 0) ? b : cell_ref(b))) {
-                        assert(0); // out of bounds should not happen
+                    if (!vector_set(vector, index, (indexN == 0) ? b : cell_ref(b))) {
+                        cell_unref(error_rti("cannot redefine vector, index ", index));
+                        // TODO should probably only have one error message
                     }
+                    ++index;
                 }
             }
 
@@ -459,10 +460,9 @@ static cell *cfunN_list(cell *args) {
         } else {
             // vector non-indexed item
             ++len;
-            if (vector == NIL) vector = cell_vector(len);
-            else vector_resize(vector, len);
+            vector = vector_resize(vector, len);
             if (!vector_set(vector, len-1, a)) {
-                assert(0); // out of bounds should not happen
+                cell_unref(error_rti("cannot redefine vector, index ", len-1));
             }
         }
     }
