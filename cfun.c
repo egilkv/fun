@@ -24,6 +24,7 @@
 #include "m_io.h"
 #include "m_bit.h"
 #include "m_string.h"
+#include "m_time.h"
 
 static void cfun_exit(void);
 
@@ -799,6 +800,10 @@ static cell *cfun1_use(cell *a) {
     if (strcmp(str, "bit") == 0) {
 	cell_unref(a);
         return module_bit();
+    }
+    if (strcmp(str, "time") == 0) {
+	cell_unref(a);
+        return module_time();
     }
     return error_rt1("module not found", a); // should
 }

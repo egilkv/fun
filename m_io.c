@@ -1,6 +1,7 @@
 /*  TAB-P
  *
  *  module io
+ *  non-pure functions
  */
 
 #include <stdio.h>
