@@ -645,12 +645,12 @@ static cell *cfunN_cat(cell *args) {
             } else if (cell_is_assoc(result)) {
                 cell *newassoc = cell_assoc();
                 struct assoc_i iter;
-                struct assoc_s *p;
+                cell *p;
 
                 // make a copy of first assoc
                 assoc_iter(&iter, result);
                 while ((p = assoc_next(&iter))) {
-                    if (!assoc_set(newassoc, cell_ref(p->key), cell_ref(p->val))) {
+                    if (!assoc_set(newassoc, cell_ref(cell_car(p)), cell_ref(cell_cdr(p)))) {
                         // already defined, should not happen
                         assert(0);
                     }
@@ -659,10 +659,10 @@ static cell *cfunN_cat(cell *args) {
                 // add contents of second assoc
                 assoc_iter(&iter, a);
                 while ((p = assoc_next(&iter))) {
-                    if (!assoc_set(newassoc, cell_ref(p->key), cell_ref(p->val))) {
+                    if (!assoc_set(newassoc, cell_ref(cell_car(p)), cell_ref(cell_cdr(p)))) {
                         // already defined
-                        cell_unref(error_rt1("duplicate key ignored", p->key));
-                        cell_unref(p->val);
+                        cell_unref(error_rt1("duplicate key ignored", cell_car(p)));
+                        cell_unref(cell_cdr(p)); // val
                     }
                 }
 		cell_unref(result);

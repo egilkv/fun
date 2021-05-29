@@ -17,6 +17,7 @@ enum cell_t {
    c_RANGE,     // car is lower, car is upper bound; both may be nil
    c_LABEL,     // car is label, car is expr
    c_PAIR,      // car is left, car is right part
+   c_ELIST,     // car is first item, cdr is rest of elist, or last
    c_SYMBOL,
    c_STRING,
    c_NUMBER,
@@ -45,7 +46,7 @@ struct cell_s {
             index_t len; // length of vector
         } vector;
         struct {
-	    struct assoc_s **table; // pointer to hash table
+            struct cell_s **table; // pointer to hash table
 	    index_t size; // TODO not used size of hash table
         } assoc;
         struct {
@@ -95,11 +96,13 @@ cell *cell_cfun2(cell *(*fun)(cell *, cell *));
 cell *cell_cfun3(cell *(*fun)(cell *, cell *, cell *));
 
 cell *cell_list(cell *car, cell *cdr);
+cell *cell_elist(cell *car, cell *cdr);
 cell *cell_func(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
 cell *cell_range(cell *car, cell *cdr);
 cell *cell_label(cell *car, cell *cdr);
 int cell_is_list(cell *cp);
+int cell_is_elist(cell *cp);
 int cell_is_func(cell *cp);
 int cell_is_env(cell *cp);
 int cell_is_pair(cell *cp);

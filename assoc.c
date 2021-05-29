@@ -21,7 +21,8 @@ static unsigned int hash_cons(cell *key) {
 // on success, key and val are consumed, but not anode
 // return false if already defined, and do not consume key and val
 int assoc_set(cell *anode, cell* key, cell* val) {
-    struct assoc_s **pp;
+    cell *p;
+    cell **pp;
     int hash = hash_cons(key);
     assert(cell_is_assoc(anode));
 
@@ -32,23 +33,28 @@ int assoc_set(cell *anode, cell* key, cell* val) {
 	memset(anode->_.assoc.table, 0, ASSOC_HASH_SIZE * sizeof(struct assoc_s *));
 	anode->_.assoc.size = ASSOC_HASH_SIZE;
     }
-
     pp = &(anode->_.assoc.table[hash]);
-    while (*pp) {
-	if ((*pp)->key == key) {
-	    // exists already
-	    // cell_unref((*pp)->val);
-	    // (*pp)->val = val;
-	    // cell_unref(key);
-	    return 0;
-	}
-	pp = &(*pp)->next;
+
+    if ((p = *pp)) { // there is a table?
+        while (cell_is_elist(p)) {
+            assert(cell_is_pair(p->_.cons.car));
+            if (p->_.cons.car->_.cons.car == key) {
+                // exists already
+                return 0;
+            }
+            p = p->_.cons.cdr;
+        }
+        // last item
+        assert(cell_is_pair(p));
+        if (p->_.cons.car == key) {
+            return 0; // exists already
+        }
+        // not found, make new entry
+        *pp = cell_elist(cell_pair(key,val), *pp);
+    } else {
+        // empty list, make new entry
+        anode->_.assoc.table[hash] = cell_pair(key,val);
     }
-    // not found, make entry
-    *pp = malloc(sizeof(struct assoc_s));
-    (*pp)->next = 0;
-    (*pp)->key = key;
-    (*pp)->val = val;
     return 1;
 }
 
@@ -58,15 +64,22 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
     assert(cell_is_assoc(anode));
 
     if (anode->_.assoc.table != NULL) {
-	struct assoc_s **pp;
+        cell *p;
 	int hash = hash_cons(key);
-	pp = &(anode->_.assoc.table[hash]);
-	while (*pp) {
-	    if ((*pp)->key == key) {
-		*valuep = cell_ref((*pp)->val);
-		return 1;
-	    }
-	    pp = &(*pp)->next;
+        if ((p = anode->_.assoc.table[hash])) {
+            while (cell_is_elist(p)) {
+                assert(cell_is_pair(p->_.cons.car));
+                if (p->_.cons.car->_.cons.car == key) { // found?
+                    *valuep = cell_ref(p->_.cons.car->_.cons.cdr);
+                    return 1;
+                }
+                p = p->_.cons.cdr;
+            }
+            assert(cell_is_pair(p));
+            if (p->_.cons.car == key) { // found?
+                *valuep = cell_ref(p->_.cons.cdr);
+                return 1;
+            }
 	}
     }
     // not found
@@ -74,12 +87,12 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
 }
 
 static int compar_sym(const void *a, const void *b) {
-    struct assoc_s *aa = *((struct assoc_s **)a);
-    struct assoc_s *bb = *((struct assoc_s **)b);
+    cell *aa = *((cell **)a);
+    cell *bb = *((cell **)b);
     // TODO what about non-symbolic keys
-    assert(cell_is_symbol(aa->key));
-    assert(cell_is_symbol(bb->key));
-    return strcmp(aa->key->_.symbol.nam, bb->key->_.symbol.nam);
+    assert(cell_is_symbol(cell_car(aa)));
+    assert(cell_is_symbol(cell_car(aa)));
+    return strcmp(cell_car(aa)->_.symbol.nam, cell_car(bb)->_.symbol.nam);
 }
 
 void assoc_iter(struct assoc_i *ip, cell *anode) {
@@ -89,37 +102,43 @@ void assoc_iter(struct assoc_i *ip, cell *anode) {
     ip->h = 0;
 }
 
-// iterate over assoc
+// iterate over assoc, return key-val pair
 // TODO inline?
-struct assoc_s *assoc_next(struct assoc_i *ip) {
-    struct assoc_s *result;
+struct cell_s *assoc_next(struct assoc_i *ip) {
+    struct cell_s *result;
     while (!ip->p) {
         if (ip->h >= ASSOC_HASH_SIZE) {
             return NULL;
         }
         if (ip->anode->_.assoc.table == NULL) {
-            return NULL; // TODO do in initializer
+            return NULL; // TODO do in initializer?
         }
-        ip->p = (ip->anode)->_.assoc.table[ip->h];
+        ip->p = ip->anode->_.assoc.table[ip->h];
         (ip->h)++;
     }
-    result = ip->p;
-    ip->p = ip->p->next;
+    if (cell_is_elist(ip->p)) {
+        result = ip->p->_.cons.car;
+        ip->p = ip->p->_.cons.cdr;
+    } else {
+        result = ip->p;
+        ip->p = NIL;
+    }
+    assert(cell_is_pair(result));
     return result;
 }
 
  // return all assoc key pairs as an allocated NULL-terminated vector
 // TODO slow
-struct assoc_s **assoc2vector(cell *anode) {
+cell **assoc2vector(cell *anode) {
     struct assoc_i iter;
-    struct assoc_s *p;
-    struct assoc_s **vector = malloc(sizeof(struct assoc_s *));
+    cell *p;
+    cell **vector = malloc(sizeof(cell *));
     index_t length = 0;
     assert(vector);
     assoc_iter(&iter, anode);
 
     while ((p = assoc_next(&iter))) {
-        vector = realloc(vector, (++length+1) * sizeof(struct assoc_s *));
+        vector = realloc(vector, (++length+1) * sizeof(cell *));
         assert(vector);
         vector[length-1] = p;
     }
@@ -130,16 +149,18 @@ struct assoc_s **assoc2vector(cell *anode) {
     return vector;
 }
 
-// clean up on unref
+// clean up on unref, all but node itself
 void assoc_drop(cell *anode) {
-    struct assoc_i iter;
-    struct assoc_s *p;
-    assoc_iter(&iter, anode);
+    cell **t;
+    assert(cell_is_assoc(anode));
 
-    while ((p = assoc_next(&iter))) {
-        cell_unref(p->key);
-        cell_unref(p->val);
-        free(p);
+    if ((t = anode->_.assoc.table)) {
+        index_t h;
+        anode->_.assoc.table = NULL;
+        for (h = 0; h < ASSOC_HASH_SIZE; ++h) {
+            cell_unref(t[h]);
+        }
+        free(t);
     }
 }
 

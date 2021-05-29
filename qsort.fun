@@ -21,6 +21,7 @@ qsort = (list) {
     #length(list) <= 1 ? list
 		       : q(list[1..], [], [])
 };
+*/
 
 qsort = (list) {
     pivot = list != [] ? list[0];
@@ -32,17 +33,17 @@ qsort = (list) {
     #length(list) <= 1 ? list
 		       : q(list[1..], [], [])
 };
-*/
 
+/*
 qsort = (list) {
     pivot = list != [] ? list(0);
     q1 = (list, first, last) {
-	 list == [] ? qsort(first)++[pivot]++qsort(last)
+         list == [] ? qsort(first)++[pivot]++qsort(last)
 		    : list(0) < pivot ? q1(list(1..), list(0..0)++first, last)
 				      : q1(list(1..), first, list(0..0)++last)
     };
     #length(list) <= 1 ? list
 		       : q1(list(1..), [], [])
 };
-
+*/
 

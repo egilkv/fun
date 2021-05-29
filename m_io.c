@@ -30,13 +30,23 @@ static void show_list(FILE *out, cell *ct) {
                 fprintf(out, ", ");
                 show_list(out, cell_cdr(ct));
             } else {
-                fprintf(out, " . "); // TODO not supported on read
+                fprintf(out, " :: "); // TODO should not happen, not supported on read
                 cell_write(out, ct);
             }
         }
     } else {
         assert(0);
     }
+}
+
+static void show_elist(FILE *out, cell *ct) {
+    while (cell_is_elist(ct)) {
+        cell_write(out, ct->_.cons.car);
+        fprintf(out, ", ");
+        ct = ct->_.cons.cdr;
+    }
+    // last element
+    cell_write(out, ct);
 }
 
 // does not consume cell
@@ -51,6 +61,12 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_LIST:
         fprintf(out, "[ ");
         show_list(out, ct);
+        fprintf(out, " ]");
+        return;
+
+    case c_ELIST: // debug only TODO show difference?
+        fprintf(out, "[ ");
+        show_elist(out, ct);
         fprintf(out, " ]");
         return;
 
@@ -214,37 +230,34 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 
     case c_ASSOC:
         if (opt_assocsorted) {
-            struct assoc_s **v = assoc2vector(ct);
+            // TODO perhaps have assoc_iter have a "sorted" option instead
+            cell **v = assoc2vector(ct);
             index_t n = 0;
             fprintf(out, "{ ");
             for (n = 0; v[n]; ++n) {
                 fprintf(out,(n > 0 ? ",\n%*s":"\n%*s"), indent+2,"");
-                cell_writei(out, v[n]->key, indent);
+                cell_writei(out, cell_car(v[n]), indent);
                 fprintf(out, " : ");
-                cell_writei(out, v[n]->val, indent);
+                cell_writei(out, cell_cdr(v[n]), indent);
 	    }
             fprintf(out, "\n%*s} ", indent,"");
-			free(v);
-		} else {
-	    struct assoc_s *p;
+            free(v);
+        } else {
+            struct assoc_i iter;
+            cell *p;
             int more = 0;
-            index_t n = ct->_.assoc.size;
-            index_t i;
-			fprintf(out, "{ ");
-			if (ct->_.assoc.table) for (i = 0; i < n; ++i) {
-		p = ct->_.assoc.table[i];
-		while (p) {
+            assoc_iter(&iter, ct);
+            fprintf(out, "{ ");
+            while ((p = assoc_next(&iter))) {
 #if DO_MULTILINE
-                    fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
+                fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
 #else
-                    if (more) fprintf(out, ", ");
+                if (more) fprintf(out, ", ");
 #endif
-                    more = 1;
-                    cell_writei(out, p->key, indent);
-		    fprintf(out, " : ");
-                    cell_writei(out, p->val, indent);
-		    p = p->next;
-		}
+                more = 1;
+                cell_writei(out, cell_car(p), indent);
+                fprintf(out, " : ");
+                cell_writei(out, cell_cdr(p), indent);
 	    }
 #if DO_MULTILINE
             fprintf(out, "\n%*s} ", indent,"");

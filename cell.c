@@ -25,6 +25,13 @@ cell *cell_list(cell *car, cell *cdr) {
     return node;
 }
 
+cell *cell_elist(cell *car, cell *cdr) {
+    cell *node = newcell(c_ELIST);
+    node->_.cons.car = car;
+    node->_.cons.cdr = cdr;
+    return node;
+}
+
 cell *cell_func(cell *car, cell *cdr) {
     cell *node = newcell(c_FUNC);
     node->_.cons.car = car;
@@ -62,6 +69,11 @@ cell *cell_ref(cell *cp) {
 // TODO inline
 int cell_is_list(cell *cp) {
     return cp && cp->type == c_LIST;
+}
+
+// TODO inline
+int cell_is_elist(cell *cp) {
+    return cp && cp->type == c_ELIST;
 }
 
 int cell_is_func(cell *cp) {
@@ -396,6 +408,7 @@ static void cell_free(cell *node) {
 
     switch (node->type) {
     case c_LIST:
+    case c_ELIST:
     case c_FUNC:
     case c_PAIR:
     case c_RANGE:
