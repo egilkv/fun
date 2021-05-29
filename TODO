@@ -3,15 +3,16 @@ trace(a,b,c) should print a,b,c and return value of c
 
 2^;
 
-b = [1, 2, 3];
-b(1);                "not a function" -- can we fix that?
-
 If ++ is catenation, then +- could be replacements for vectors and assocs
 Then -- could be to remove whatever...
 (The ++ operator can update values in assocs? Probably | is better! What about vectors?
 How to deal with duplicate keys on ++)
 
-Should array indexing be by () instead?
+Array indexing can also be done by (), as a function arg. Maybe skip [] altogether.
+b = [1, 2, 3];
+b(1);
+Consider: Second argument is default value if lookup fail (for assocs at least)
+Consider: NIL as first argument
 
 Should we have sets, which are essentialls assocs with keys but no vals,
 or are assoc sufficient
@@ -160,7 +161,7 @@ Funtional programming vz imperative.
 Assocs are called Maps in Erlang.
 Symbols can be called atoms
 
-Maybe #length() should be some sort of operator? Hash?
+Maybe #length() should be some sort of operator? Hash something? #(array)
 
 Ellipsis (range) is 3 dots instead of 2?
 

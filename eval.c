@@ -191,6 +191,15 @@ cell *eval(cell *arg, cell *env) {
 		    result = NIL; // TODO probably #void
 		    break; // continue executing
 
+                case c_ASSOC:
+                case c_VECTOR:
+                case c_LIST:
+                case c_STRING:
+                    if (arg1(args, &result)) { // if error, result is void
+                        result = cfun2_ref(fun, eval(result, env));
+                    }
+		    break;
+
 		default: // not a function
 		    // TODO show item before eval
                     cell_unref(args);

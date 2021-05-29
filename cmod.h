@@ -28,4 +28,5 @@ cell *ref_range1(cell *a, index_t index);
 cell *ref_range2(cell *a, index_t index, integer_t len);
 cell *cell_void();
 
+cell *cfun2_ref(cell *a, cell *b);
 

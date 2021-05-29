@@ -204,6 +204,45 @@ static int list_spin(cell **ap, index_t times) {
     return 1;
 }
 
+// high level reference function, does it all
+// consumes both arguments, produces error messages
+cell *cfun2_ref(cell *a, cell *b) {
+    cell *value;
+    if (cell_is_assoc(a)) {
+	if (!assoc_get(a, b, &value)) {
+	    cell_unref(a);
+	    return error_rt1("assoc key does not exist", b);
+	}
+        cell_unref(b);
+    } else if (cell_is_range(b)) {
+        index_t index1 = 0;
+        cell *b1, *b2;
+        range_split(b, &b1, &b2);
+        if (b1) {
+            if (!get_index(b1, &index1, b2)) {
+                cell_unref(a);
+                return cell_void(); // error
+            }
+        }
+        if (b2) {
+            index_t index2 = 0;
+            if (!get_index(b2, &index2, a)) return cell_void(); // error
+            if (index2 < index1) {
+                return error_rti("index range cannot be reverse", index2);
+            }
+            value = ref_range2(a, index1, 1+index2 - index1);
+        } else {
+            value = ref_range1(a, index1);
+        }
+    } else {
+	index_t index;
+        if (!get_index(b, &index, a)) return cell_void(); // error
+	value = ref_index(a, index);
+    }
+    cell_unref(a);
+    return value;
+}
+
 // does not consume
 cell *ref_index(cell *a, index_t index) {
     cell *value = NIL;
