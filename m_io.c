@@ -17,7 +17,8 @@
 
 static cell *io_assoc = NIL;
 
-#define DO_MULTILINE 0 // multiline tables and assocs
+#define MULTILINE_VECTOR 0  // multiline vectors
+#define MULTILINE_ASSOC  1  // multiline assocs
 #define MAX_INDENT 40
 
 static void show_list(FILE *out, cell *ct) {
@@ -212,7 +213,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             index_t i;
             fprintf(out, "[ 0: ");
             for (i = 0; i < n; ++i) {
-#if DO_MULTILINE
+#if MULTILINE_VECTOR
                 fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
 #else
                 if (more) fprintf(out, ", ");
@@ -220,7 +221,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
                 more = 1;
                 cell_writei(out, ct->_.vector.table[i], indent+4);
             }
-#if DO_MULTILINE
+#if MULTILINE_VECTOR
             fprintf(out, "\n%*s] ", indent,"");
 #else
             fprintf(out, more ? " ] ":"] ");
@@ -229,27 +230,18 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         return;
 
     case c_ASSOC:
-        if (opt_assocsorted) {
-            // TODO perhaps have assoc_iter have a "sorted" option instead
-            cell **v = assoc2vector(ct);
-            index_t n = 0;
-            fprintf(out, "{ ");
-            for (n = 0; v[n]; ++n) {
-                fprintf(out,(n > 0 ? ",\n%*s":"\n%*s"), indent+2,"");
-                cell_writei(out, cell_car(v[n]), indent);
-                fprintf(out, " : ");
-                cell_writei(out, cell_cdr(v[n]), indent);
-	    }
-            fprintf(out, "\n%*s} ", indent,"");
-            free(v);
-        } else {
+        {
             struct assoc_i iter;
             cell *p;
             int more = 0;
-            assoc_iter(&iter, ct);
+            if (opt_assocsorted) {
+                assoc_iter_sorted(&iter, ct);
+            } else {
+                assoc_iter(&iter, ct);
+            }
             fprintf(out, "{ ");
             while ((p = assoc_next(&iter))) {
-#if DO_MULTILINE
+#if MULTILINE_ASSOC
                 fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
 #else
                 if (more) fprintf(out, ", ");
@@ -259,7 +251,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
                 fprintf(out, " : ");
                 cell_writei(out, cell_cdr(p), indent);
 	    }
-#if DO_MULTILINE
+#if MULTILINE_ASSOC
             fprintf(out, "\n%*s} ", indent,"");
 #else
             fprintf(out, more ? " } ":"} ");

@@ -98,6 +98,7 @@ static int compar_sym(const void *a, const void *b) {
 void assoc_iter(struct assoc_i *ip, cell *anode) {
     assert(cell_is_assoc(anode));
     ip->anode = anode;
+    ip->sorted = NULL;
     ip->p = NULL;
     ip->h = 0;
 }
@@ -106,6 +107,15 @@ void assoc_iter(struct assoc_i *ip, cell *anode) {
 // TODO inline?
 struct cell_s *assoc_next(struct assoc_i *ip) {
     struct cell_s *result;
+    if (ip->sorted) {
+        result = ip->sorted[(ip->h)++];
+        if (!result) { // end of list
+            free(ip->sorted);
+            ip->sorted = NULL;
+        }
+        return result;
+    }
+
     while (!ip->p) {
         if (ip->h >= ASSOC_HASH_SIZE) {
             return NULL;
@@ -127,17 +137,15 @@ struct cell_s *assoc_next(struct assoc_i *ip) {
     return result;
 }
 
- // return all assoc key pairs as an allocated NULL-terminated vector
-// TODO slow
-cell **assoc2vector(cell *anode) {
-    struct assoc_i iter;
+// iterate, returning key-val pairs in sorted sequence
+void assoc_iter_sorted(struct assoc_i *ip, cell *anode) {
     cell *p;
-    cell **vector = malloc(sizeof(cell *));
     index_t length = 0;
+    cell **vector = malloc(sizeof(cell *));
     assert(vector);
-    assoc_iter(&iter, anode);
+    assoc_iter(ip, anode);
 
-    while ((p = assoc_next(&iter))) {
+    while ((p = assoc_next(ip))) {
         vector = realloc(vector, (++length+1) * sizeof(cell *));
         assert(vector);
         vector[length-1] = p;
@@ -146,7 +154,8 @@ cell **assoc2vector(cell *anode) {
     if (length > 1) {
         qsort(vector, length, sizeof(struct assoc_s *), compar_sym);
     }
-    return vector;
+    ip->sorted = vector;
+    ip->h = 0;
 }
 
 // clean up on unref, all but node itself
