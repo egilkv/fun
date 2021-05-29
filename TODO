@@ -1,4 +1,7 @@
 
+list[1..] 
+list(0..0)
+
 trace(a,b,c) should print a,b,c and return value of c
 
 2^;
@@ -185,3 +188,4 @@ Are symbols with values really functions that define the same value every time??
 Quoting operators: '+ same as #plus and so on?
 
 Implement &, | and ^ as homage to C?
+Throw away #bitand, #bitor etc

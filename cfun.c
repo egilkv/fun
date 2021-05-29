@@ -18,6 +18,12 @@
 #if HAVE_MATH
 #include "m_math.h"
 #endif
+#if HAVE_GTK
+#include "m_gtk.h"
+#endif
+#include "m_io.h"
+#include "m_bit.h"
+#include "m_string.h"
 
 static void cfun_exit(void);
 
@@ -772,27 +778,27 @@ static cell *cfun1_use(cell *a) {
     }
 #ifdef HAVE_GTK
     if (strcmp(str, "gtk3") == 0) {
-        extern cell *module_gtk();
 	cell_unref(a);
         return module_gtk();
     }
 #endif
     if (strcmp(str, "io") == 0) {
-	extern cell *module_io();
 	cell_unref(a);
 	return module_io();
     }
 #if HAVE_MATH
     if (strcmp(str, "math") == 0) {
-        extern cell *module_math();
 	cell_unref(a);
         return module_math();
     }
 #endif
     if (strcmp(str, "string") == 0) {
-        extern cell *module_string();
 	cell_unref(a);
         return module_string();
+    }
+    if (strcmp(str, "bit") == 0) {
+	cell_unref(a);
+        return module_bit();
     }
     return error_rt1("module not found", a); // should
 }
