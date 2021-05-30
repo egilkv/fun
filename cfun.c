@@ -808,6 +808,77 @@ static cell *cfun1_use(cell *a) {
     return error_rt1("module not found", a); // should
 }
 
+static cell *cfun1_type(cell *a) {
+    const char *t = NULL;
+    switch (a ? a->type : c_LIST) {
+    case c_LIST:
+        t = "list";
+        break;
+
+    case c_VECTOR:
+        t = "vector";
+        break;
+
+    case c_ASSOC:
+        t = "assoc"; // TODO association list
+        break;
+
+    case c_RANGE:
+        t = "range"; // TODO so this is a type
+        break;
+
+    case c_NUMBER:
+        switch (a->_.n.divisor) {
+        case 1:
+            t = "integer";
+            break;
+        case 0:
+            t = "real";
+            break;
+        default:
+            t = "ratio"; // TODO name?
+            break;
+        }
+        break;
+
+    case c_STRING:
+        t = "string";
+        break;
+
+    case c_SYMBOL:
+        t = "symbol";
+        break;
+
+    case c_CLOSURE:
+    case c_CLOSURE0: // TODO are closures at global level really closures?
+    case c_CLOSURE0T:
+        t = "closure";
+        break;
+
+    case c_FUNC:
+    case c_CFUNQ:
+    case c_CFUN0:
+    case c_CFUN1:
+    case c_CFUN2:
+    case c_CFUN3:
+    case c_CFUNN:
+        t = "function"; // happens only for built in functions
+        break;
+
+    case c_ELIST: // internal use only
+    case c_PAIR:
+    case c_LABEL: // cannot be seen in the flesh
+    case c_ENV:
+    case c_SPECIAL:
+        t = "internal"; // TODO should not happen
+        break;
+    }
+    cell_unref(a);
+    // TODO can optimize by storing symbols
+    assert(t);
+    return cell_symbol(t);
+}
+
 static cell *cfunN_exit(cell *args) {
     integer_t sts = 0;
     cell *arg;
@@ -925,6 +996,7 @@ void cfun_init() {
                     oblistv("#trace",    cell_cfun1(cfun1_trace)); // debugging
                     oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
                     oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
+                    oblistv("#type",     cell_cfun1(cfun1_type));
 		    oblistv("#use",      cell_cfun1(cfun1_use));
 
     // values

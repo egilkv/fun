@@ -207,3 +207,11 @@ qsort(#list(0: 5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
   )
 ) 
 hello_er("world!") ==> Hello world!
+#type("abc") ==> string
+#type(hello_er) ==> closure
+#type(list) ==> list
+#type(1) ==> integer
+#type(1.0) ==> real
+#type(1/2) ==> ratio
+#type(#quote(sym)) ==> symbol
+#type(#type) ==> function

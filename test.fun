@@ -200,3 +200,12 @@ hello_er = messenger_builder("Hello");
 
 // greeting value still available because hello-er is a closure
 hello_er("world!");
+
+#type("abc");
+#type(hello_er);
+#type(list);
+#type(1);
+#type(1.0);
+#type(1/2);
+#type('sym);
+#type(#type);
