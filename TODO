@@ -191,3 +191,8 @@ Quoting operators: '+ same as #plus and so on?
 
 Implement &, | and ^ as homage to C?
 Throw away #bitand, #bitor etc
+
+Let "bit" also work for Booleans
+#type #t #f #void what are they?
+
+How to do switches efficiently

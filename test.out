@@ -215,3 +215,6 @@ hello_er("world!") ==> Hello world!
 #type(1/2) ==> ratio
 #type(#quote(sym)) ==> symbol
 #type(#type) ==> function
+#type(#t) ==> boolean
+#type(#void) ==> void
+#type(akka) ==> undefined

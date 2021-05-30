@@ -209,3 +209,6 @@ hello_er("world!");
 #type(1/2);
 #type('sym);
 #type(#type);
+#type(#t);
+#type(#void);
+#type(akka);

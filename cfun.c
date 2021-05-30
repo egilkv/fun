@@ -846,7 +846,15 @@ static cell *cfun1_type(cell *a) {
         break;
 
     case c_SYMBOL:
-        t = "symbol";
+        if (a == hash_t || a == hash_f) {
+            t = "boolean";
+        } else if (a == hash_void) {
+            t = "void";
+        } else if (a == hash_undefined) {
+            t = "undefined";
+        } else {
+            t = "symbol";
+        }
         break;
 
     case c_CLOSURE:
