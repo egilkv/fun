@@ -51,29 +51,22 @@ static int get_seconds(cell *args, struct timeval *tvp) {
         if (!get_number(a, &secs, args)) return 0;
         // TODO what about negative numbers?
 	arg0(args);
-        switch (secs.divisor) {
-        default:
-            secs.dividend.fval = (secs.dividend.ival * 1.0) / secs.divisor;
-            // continue to double...
-        case 0:
-            {
-                number isecs = secs;
-                if (!make_integer(&isecs)) return 0; // overflow
-
-                tvp->tv_sec = isecs.dividend.ival; // rounded down
-                tvp->tv_usec = (secs.dividend.fval - isecs.dividend.ival) * 1000000;
-                if (tvp->tv_usec < 0) {
-                    // happens only with negative seconds
-                    tvp->tv_usec += 1000000;
-                    tvp->tv_sec -= 1;
-                }
-                assert(tvp->tv_usec >= 0 && tvp->tv_usec < 1000000);
-            }
-            break;
-        case 1:
+        if (secs.divisor == 1) { // integer?
             tvp->tv_sec = secs.dividend.ival;
             tvp->tv_usec = 0;
-            break;
+        } else {
+            number isecs = secs;
+            make_float(&secs);
+            if (!make_integer(&isecs)) return 0; // overflow
+
+            tvp->tv_sec = isecs.dividend.ival; // rounded down
+            tvp->tv_usec = (secs.dividend.fval - isecs.dividend.ival) * 1000000;
+            if (tvp->tv_usec < 0) {
+                // happens only with negative seconds
+                tvp->tv_usec += 1000000;
+                tvp->tv_sec -= 1;
+            }
+            assert(tvp->tv_usec >= 0 && tvp->tv_usec < 1000000);
         }
     } else {
         gettimeofday(tvp, (struct timezone *)0);
@@ -101,11 +94,47 @@ static cell *ctime_localtime(cell *args) {
     return tm2assoc(&tm, tv.tv_usec);
 }
 
+// seconds since epoch, with sub second accuracy
+static cell *ctime_sleep(cell *a) {
+    number secs;
+    struct timespec ts;
+    if (!get_number(a, &secs, NIL)) return 0;
+    // TODO negative?
+    if (secs.divisor == 1) { // integer?
+        ts.tv_sec = secs.dividend.ival;
+        ts.tv_nsec = 0;
+    } else {
+        number isecs = secs;
+        make_float(&secs);
+        if (!make_integer(&isecs)) return err_overflow(NIL); // overflow
+
+        ts.tv_sec = isecs.dividend.ival; // rounded down
+        ts.tv_nsec = (secs.dividend.fval - isecs.dividend.ival) * 1000000000;
+        if (ts.tv_nsec < 0) {
+            // happens only with negative seconds
+            ts.tv_nsec += 1000000000;
+            ts.tv_sec -= 1;
+        }
+        assert(ts.tv_nsec >= 0 && ts.tv_nsec < 1000000000);
+    }
+    if (ts.tv_sec < 0) return cell_void(); // TODO should there be an error message?
+
+    {   // TODO will have to be redone
+        struct timespec rem;
+        while (nanosleep(&ts, &rem) == -1) {
+            // assert(errno == EINTR);
+            ts = rem;
+        }
+    }
+    return cell_void();
+}
+
 cell *module_time() {
     if (!time_assoc) {
         time_assoc = cell_assoc();
 
         assoc_set(time_assoc, cell_symbol("seconds"),cell_cfun0(ctime_seconds));
+        assoc_set(time_assoc, cell_symbol("sleep"),cell_cfun1(ctime_sleep));
 	assoc_set(time_assoc, cell_symbol("localtime"),cell_cfunN(ctime_localtime));
 	assoc_set(time_assoc, cell_symbol("utctime"),cell_cfunN(ctime_utctime));
     }

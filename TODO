@@ -19,6 +19,9 @@ b(1);
 Consider: Second argument is default value if lookup fail (for assocs at least)
 Consider: NIL as first argument
 
+Clojure stores state in ATOMs, uses swap! function with current value as arg,
+next value as result.
+
 Should we have sets, which are essentialls assocs with keys but no vals,
 or are assoc sufficient
 How to check if a set contains an element #contains() ? Or use #try
@@ -193,6 +196,12 @@ Implement &, | and ^ as homage to C?
 Throw away #bitand, #bitor etc
 
 Let "bit" also work for Booleans
-#type #t #f #void what are they?
+#type #t #f #void what are they? What is #type([])
 
 How to do switches efficiently
+
+Can we index a range? Is it meaningful
+
+Implement lazy sequences etc
+
+In clojure, 'recur' is to call itself. We should have something alike.
