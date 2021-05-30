@@ -904,14 +904,17 @@ static cell *cfunN_exit(cell *args) {
     return NIL;
 }
 
+// return last (or only) item in file
 static cell *cfun1_include(cell *a) {
     char_t *name;
     index_t len;
+    cell *result = NIL;
     if (!peek_string(a, &name, &len, a)) return cell_void(); // error
-    if (!chomp_file(name)) {
+    if (!chomp_file(name, &result)) {
         return error_rt1("cannot find include-file", a);
     }
-    return a;
+    cell_unref(a);
+    return result;
 }
 
 // debugging, trace value being passed

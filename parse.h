@@ -36,7 +36,7 @@ typedef enum prec_ precedence;
 
 cell *expression(lxfile *in);
 
-void chomp_lx(lxfile *lxf);
+cell *chomp_lx(lxfile *lxf);
 
-int chomp_file(const char *name);
+int chomp_file(const char *name, cell **resultp);
 

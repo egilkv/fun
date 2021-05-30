@@ -60,12 +60,12 @@ int main(int argc, char * const argv[]) {
         }
         cfun_args(0, NULL);
 
-        chomp_lx(&infile);
+        cell_unref(chomp_lx(&infile));
     } else {
         cfun_args(argc-optind, &argv[optind]); // argv[0] is program name
         // TODO consider setting linux program name too
 
-        if (!chomp_file(argv[optind])) { // filename on command line
+        if (!chomp_file(argv[optind], NULL)) { // filename on command line
             error_cmdstr("cannot find file", argv[optind]);
         }
     }

@@ -26,7 +26,9 @@ static cell *badeof() {
     return 0;
 }
 
-void chomp_lx(lxfile *lxf) {
+// return last item, or void if none
+cell *chomp_lx(lxfile *lxf) {
+    cell *result = cell_void();
     cell *ct;
 
     for (;;) {
@@ -48,21 +50,26 @@ void chomp_lx(lxfile *lxf) {
                 }
             }
 	}
-        cell_unref(ct);
+        cell_unref(result);
+       result = ct;
     }
     if (lxf->is_terminal) {
         printf("\n");
     }
+    return result;
 }
 
-int chomp_file(const char *name) {
+int chomp_file(const char *name, cell **resultp) {
+    cell *result;
     FILE *f = fopen(name, "r");
     lxfile cfile;
     if (!f) {
         return 0;
     }
     lxfile_init(&cfile, f);
-    chomp_lx(&cfile);
+    result = chomp_lx(&cfile);
+    if (resultp) *resultp = result;
+    else cell_unref(result);
     fclose(cfile.f);
     return 1;
 }

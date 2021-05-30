@@ -157,7 +157,10 @@ func() ==> case 2 is ALICE and DELTA
 #ref(av, 3 .. 3) ==> error; vector range out of bounds: 3
 #cat(#list(0: 1, 2, 3), #list(0: 4, 5)) ==> [ 0: 1, 2, 3, 4, 5 ] 
 #cat(#list(1, 2, 3), #list(4, 5)) ==> [ 1, 2, 3, 4, 5 ]
-#include("qsort.fun") ==> "qsort.fun"
+#include("qsort.fun") ==> #closure0(
+  args: [ list ]
+  body: [ #defq(pivot, #if(#noteq(list, #list()), list(0))), #defq(q, #lambda([ list, first, last ], #if(#eq(list, #list()), #cat(qsort(first), #list(pivot), qsort(last)), #if(#lt(list(0), pivot), q(#ref(list, 1 .. ), #cat(list(0 .. 0), first), last), q(#ref(list, 1 .. ), first, #cat(list(0 .. 0), last)))))), #if(#le(#length(list), 1), list, q(#ref(list, 1 .. ), #list(), #list())) ]
+) 
 qsort(#list(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
 qsort(#list("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ]
 #defq(max, 9223372036854775807) ==> 9223372036854775807
