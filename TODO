@@ -6,6 +6,8 @@ trace(a,b,c) should print a,b,c and return value of c
 
 2^;
 
+get_integer() -> get_anyinteger()
+
 If ++ is catenation, then +- could be replacements for vectors and assocs
 Then -- could be to remove whatever...
 (The ++ operator can update values in assocs? Probably | is better! What about vectors?

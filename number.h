@@ -9,6 +9,8 @@ int get_float(cell *a, number *np, cell *dump);
 cell *cell_integer(integer_t integer);
 cell *cell_real(real_t real);
 
+int make_integer(number *np);
+int round_integer(number *np);
 void make_float(number *np);
 int sync_float(number *n1, number *n2);
 int normalize_q(number *np);

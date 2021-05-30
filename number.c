@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
+#include <limits.h>
 
 #include "type.h"
 #include "cmod.h"
@@ -51,6 +53,59 @@ int sync_float(number *n1, number *n2) {
         return 1;
     } else {
         return 0;
+    }
+}
+
+// make integer, truncating
+// false if overflow
+int make_integer(number *np) {
+    switch (np->divisor) {
+    case 0:
+	// overflow detection
+        // TODO nextafter() should be a constant
+        if (np->dividend.fval > nextafter(LLONG_MAX, 0) || np->dividend.fval < nextafter(LLONG_MIN, 0)) {
+            return 0;
+	}
+        np->dividend.ival = np->dividend.fval;
+        np->divisor = 1;
+        break;
+
+    default: // quotient
+        np->dividend.ival /= np->divisor;
+        np->divisor = 1;
+	break;
+
+    case 1:
+        break; // int already
+    }
+    return 1;
+}
+
+// round to nearest integer
+int round_integer(number *np) {
+    switch (np->divisor) {
+    case 0:
+        // rounding
+        np->dividend.fval += (np->dividend.fval < 0.0) ? -0.5 : 0.5;
+        return make_integer(np);
+
+    default: // quotient
+	{
+            integer_t mod = np->dividend.ival % np->divisor;
+            np->dividend.ival /= np->divisor;
+	    if (mod >= 0) {
+		// 4 % 3 ==> 1
+                if (mod*2 >= np->divisor) ++np->dividend.ival; // round up
+	    } else {
+		// -4 % 3 ==> -1
+                if (-mod*2 >= np->divisor) --np->dividend.ival; // round "up"
+	    }
+            np->divisor = 1;
+	}
+        return 1;
+
+    case 1:
+        return 1;
     }
 }
 

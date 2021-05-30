@@ -4,7 +4,6 @@
  */
 
 #include <math.h>
-#include <limits.h>
 
 #include "cmod.h"
 #include "number.h"
@@ -61,39 +60,13 @@ static cell *cmath_abs(cell *a) {
 // convert to integer, rounding to closest
 static cell *cmath_int(cell *a) {
     number na;
-    if (!peek_number(a, &na, a)) return cell_void(); // error
-
-    switch (na.divisor) {
-    case 0:
-	// rounding
-	na.dividend.fval += (na.dividend.fval < 0.0) ? -0.5 : 0.5;
-	// overflow detection
-        if (na.dividend.fval > nextafter(LLONG_MAX, 0) || na.dividend.fval < nextafter(LLONG_MIN, 0)) {
-	    return err_overflow(a);
-	}
-        na.dividend.ival = na.dividend.fval;
-        na.divisor = 1;
-        break;
-
-    default: // quotient
-	{
-	    integer_t mod = na.dividend.ival % na.divisor;
-	    na.dividend.ival /= na.divisor;
-	    if (mod >= 0) {
-		// 4 % 3 ==> 1
-		if (mod*2 >= na.divisor) ++na.dividend.ival; // round up
-	    } else {
-		// -4 % 3 ==> -1
-                if (-mod*2 >= na.divisor) --na.dividend.ival; // round "up"
-	    }
-            na.divisor = 1;
-	}
-	break;
-
-    case 1:
-        return a; // int already
+    if (cell_is_integer(a)) {
+        return a;
     }
-    cell_unref(a);
+    if (!get_number(a, &na, NIL)) return cell_void(); // error
+    if (!round_integer(&na)) {
+        return err_overflow(a);
+    }
     return cell_number(&na);
 }
 
