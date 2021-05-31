@@ -9,10 +9,28 @@
 #include "oblist.h"
 #include "cmod.h" // hash_undefined
 
+#define HAVE_FREELIST 0
+
+#if HAVE_FREELIST
+// holds all free cells
+static cell *freelist = NIL;
+#endif
+
 static  cell *newcell(celltype t) {
-    cell *node = malloc(sizeof(cell));
-    assert(node);
-    memset(node, 0, sizeof(cell)); // TODO improve
+    cell *node;
+#if HAVE_FREELIST
+    if (freelist) {
+        node = freelist;
+        assert(node->type == c_FREE);
+        freelist = node->_.cons.car;
+        node->_.cons.car = NIL;
+    } else 
+#endif
+    {
+        node = malloc(sizeof(cell));
+        assert(node);
+        memset(node, 0, sizeof(cell)); // TODO improve
+    }
     node->type = t;
     node->ref = 1;
     return node;
@@ -449,8 +467,17 @@ static void cell_free(cell *node) {
     case c_SPECIAL:
         // TODO invoke magic free function
         break;
+    case c_FREE:
+        assert(0); // shall not happen
     }
+#if HAVE_FREELIST
+    node->type = c_FREE;
+    node->_.cons.car = freelist;
+    node->_.cons.cdr = NIL; // not required
+    freelist = node->_.cons.car;
+#else
     free(node);
+#endif
 }
 
 // asym is allocated already
@@ -466,9 +493,28 @@ cell *cell_oblist_item(char_t *asym) {
     return node;
 }
 
-
 // TODO inline
 void cell_unref(cell *node) {
     if (node && --(node->ref) == 0) cell_free(node);
 }
 
+#if HAVE_FREELIST
+static void cell_exit() {
+    cell *p = freelist;
+    cell *next;
+    freelist = NIL;
+    while (p) {
+        assert(p->type == c_FREE);
+        next = p->_.cons.car;
+        free(p);
+        p = next;
+    }
+}
+#endif
+
+void cell_init() {
+#if HAVE_FREELIST
+    freelist = NIL;
+    atexit(cell_exit);
+#endif
+}

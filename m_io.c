@@ -72,6 +72,59 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, " ]");
         return;
 
+    case c_VECTOR:
+        {
+            int more = 0;
+            index_t n = ct->_.vector.len;
+            index_t i;
+            fprintf(out, "[ 0: ");
+            for (i = 0; i < n; ++i) {
+#if MULTILINE_VECTOR
+                fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
+#else
+                if (more) fprintf(out, ", ");
+#endif
+                more = 1;
+                cell_writei(out, ct->_.vector.table[i], indent+4);
+            }
+#if MULTILINE_VECTOR
+            fprintf(out, "\n%*s] ", indent,"");
+#else
+            fprintf(out, more ? " ] ":"] ");
+#endif
+        }
+        return;
+
+    case c_ASSOC:
+        {
+            struct assoc_i iter;
+            cell *p;
+            int more = 0;
+            if (opt_assocsorted) {
+                assoc_iter_sorted(&iter, ct);
+            } else {
+                assoc_iter(&iter, ct);
+            }
+            fprintf(out, "{ ");
+            while ((p = assoc_next(&iter))) {
+#if MULTILINE_ASSOC
+                fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
+#else
+                if (more) fprintf(out, ", ");
+#endif
+                more = 1;
+                cell_writei(out, cell_car(p), indent);
+                fprintf(out, " : ");
+                cell_writei(out, cell_cdr(p), indent);
+	    }
+#if MULTILINE_ASSOC
+            fprintf(out, "\n%*s} ", indent,"");
+#else
+            fprintf(out, more ? " } ":"} ");
+#endif
+        }
+        return;
+
     case c_FUNC:
         cell_writei(out, cell_car(ct), indent);
         fprintf(out, "(");
@@ -207,57 +260,8 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "#special_%s()", ct->_.special.magic);
         return;
 
-    case c_VECTOR:
-        {
-            int more = 0;
-            index_t n = ct->_.vector.len;
-            index_t i;
-            fprintf(out, "[ 0: ");
-            for (i = 0; i < n; ++i) {
-#if MULTILINE_VECTOR
-                fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
-#else
-                if (more) fprintf(out, ", ");
-#endif
-                more = 1;
-                cell_writei(out, ct->_.vector.table[i], indent+4);
-            }
-#if MULTILINE_VECTOR
-            fprintf(out, "\n%*s] ", indent,"");
-#else
-            fprintf(out, more ? " ] ":"] ");
-#endif
-        }
-        return;
-
-    case c_ASSOC:
-        {
-            struct assoc_i iter;
-            cell *p;
-            int more = 0;
-            if (opt_assocsorted) {
-                assoc_iter_sorted(&iter, ct);
-            } else {
-                assoc_iter(&iter, ct);
-            }
-            fprintf(out, "{ ");
-            while ((p = assoc_next(&iter))) {
-#if MULTILINE_ASSOC
-                fprintf(out,(more ? ",\n%*s":"\n%*s"), indent+2,"");
-#else
-                if (more) fprintf(out, ", ");
-#endif
-                more = 1;
-                cell_writei(out, cell_car(p), indent);
-                fprintf(out, " : ");
-                cell_writei(out, cell_cdr(p), indent);
-	    }
-#if MULTILINE_ASSOC
-            fprintf(out, "\n%*s} ", indent,"");
-#else
-            fprintf(out, more ? " } ":"} ");
-#endif
-        }
+    case c_FREE: // shall not happen
+        fprintf(out, "#free");
         return;
     }
     assert(0);

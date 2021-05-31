@@ -226,6 +226,7 @@ hello_er("world!") ==> Hello world!
   mktime : #cfun1(),
   seconds : #cfun0(),
   sleep : #cfun1(),
+  time : #cfunQ(),
   utctime : #cfun1()
 } 
 #refq(time, utctime)(1622447459.9024) ==> { 
@@ -250,4 +251,4 @@ hello_er("world!") ==> Hello world!
   yday : 150,
   year : 2021
 } 
-#refq(time, mktime)(lt) ==> 1622447459.9024
+#refq(time, mktime)(lt) ==> 1622447459

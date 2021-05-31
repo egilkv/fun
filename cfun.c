@@ -880,6 +880,8 @@ static cell *cfun1_type(cell *a) {
     case c_SPECIAL:
         t = "internal"; // TODO should not happen
         break;
+    case c_FREE:
+        assert(0);
     }
     cell_unref(a);
     // TODO can optimize by storing symbols

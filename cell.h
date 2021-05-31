@@ -18,6 +18,7 @@ enum cell_t {
    c_LABEL,     // car is label, car is expr
    c_PAIR,      // car is left, car is right part
    c_ELIST,     // car is first item, cdr is rest of elist, or last
+   c_FREE,      // for freelist, car is next
    c_SYMBOL,
    c_STRING,
    c_NUMBER,
@@ -85,6 +86,7 @@ typedef enum cell_t celltype;
 
 typedef struct cell_s cell;
 
+void cell_init(); // called once at startup
 cell *cell_ref(cell *cp);
 void cell_unref(cell *cp);
 
