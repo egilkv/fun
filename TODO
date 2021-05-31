@@ -1,4 +1,6 @@
 
+Make garbage collection and verification
+
 list[1..] 
 list(0..0)
 
