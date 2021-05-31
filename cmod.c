@@ -9,6 +9,7 @@
 
 #include "cfun.h"
 #include "oblist.h"
+#include "number.h"
 #include "err.h"
 
 cell *hash_f;
@@ -79,6 +80,21 @@ int get_number(cell *a, number *np, cell *dump) {
     int ok = peek_number(a, np, dump);
     cell_unref(a);
     return ok;
+}
+
+// get a number, convert to integer
+// dump is unreffed only if error
+int get_any_integer(cell *a, integer_t *valuep, cell *dump) {
+    number nn;
+    if (!get_number(a, &nn, dump)) {
+	return 0;
+    }
+    if (!make_integer(&nn)) {
+        cell_unref(err_overflow(dump));
+        return 0;
+    }
+    *valuep = nn.dividend.ival;
+    return 1;
 }
 
 // a in always unreffed

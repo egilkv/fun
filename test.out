@@ -221,3 +221,33 @@ hello_er("world!") ==> Hello world!
 #type(#t) ==> boolean
 #type(#void) ==> void
 #type(akka) ==> undefined
+#defq(time, #use("time")) ==> { 
+  localtime : #cfun1(),
+  mktime : #cfun1(),
+  seconds : #cfun0(),
+  sleep : #cfun1(),
+  utctime : #cfun1()
+} 
+#refq(time, utctime)(1622447459.9024) ==> { 
+  hour : 7,
+  isdst : #f,
+  mday : 31,
+  min : 50,
+  mon : 5,
+  sec : 59.9024,
+  wday : 1,
+  yday : 150,
+  year : 2021
+} 
+#defq(lt, #refq(time, localtime)(1622447459.9024)) ==> { 
+  hour : 9,
+  isdst : #t,
+  mday : 31,
+  min : 50,
+  mon : 5,
+  sec : 59.9024,
+  wday : 1,
+  yday : 150,
+  year : 2021
+} 
+#refq(time, mktime)(lt) ==> 1622447459.9024

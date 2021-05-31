@@ -212,3 +212,8 @@ hello_er("world!");
 #type(#t);
 #type(#void);
 #type(akka);
+
+time = #use("time");
+time.utctime(1622447459.9024);
+lt = time.localtime(1622447459.9024);
+time.mktime(lt);
