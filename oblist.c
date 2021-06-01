@@ -10,6 +10,7 @@
 #include <assert.h>
 
 #include "oblist.h"
+#include "node.h"
 #include "opt.h"
 
 #define OBLIST_HASH_SIZE 256
@@ -123,8 +124,13 @@ static void oblist_exit() {
     }
     oblist_teardown = 0;
     if (opt_showoblist) printf("\n");
+
+    // thereafter, clean up chunks
+    node_exit();
 }
 
 void oblist_init() {
+    node_init();
+
     atexit(oblist_exit);
 }

@@ -35,6 +35,7 @@ enum cell_t {
 
 struct cell_s {
     unsigned ref     : 32; // TODO will limit total # of cells; 64bit
+    unsigned seen    : 1;  // for garbage collect
     enum cell_t type : 5;
     union {
         struct {
@@ -86,7 +87,6 @@ typedef enum cell_t celltype;
 
 typedef struct cell_s cell;
 
-void cell_init(); // called once at startup
 cell *cell_ref(cell *cp);
 void cell_unref(cell *cp);
 

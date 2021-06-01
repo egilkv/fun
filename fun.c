@@ -18,7 +18,6 @@ int main(int argc, char * const argv[]) {
     int stop = -1;
     int opt;
 
-    cell_init();
     oblist_init();
     cfun_init();
 

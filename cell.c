@@ -7,72 +7,46 @@
 #include <assert.h>                               // TODO superflous
 
 #include "oblist.h"
+#include "node.h"
 #include "cmod.h" // hash_undefined
 
-#define HAVE_FREELIST 0
-
-#if HAVE_FREELIST
-// holds all free cells
-static cell *freelist = NIL;
-#endif
-
-static  cell *newcell(celltype t) {
-    cell *node;
-#if HAVE_FREELIST
-    if (freelist) {
-        node = freelist;
-        assert(node->type == c_FREE);
-        freelist = node->_.cons.car;
-        node->_.cons.car = NIL;
-    } else 
-#endif
-    {
-        node = malloc(sizeof(cell));
-        assert(node);
-        memset(node, 0, sizeof(cell)); // TODO improve
-    }
-    node->type = t;
-    node->ref = 1;
-    return node;
-}
-
 cell *cell_list(cell *car, cell *cdr) {
-    cell *node = newcell(c_LIST);
+    cell *node = newnode(c_LIST);
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
 }
 
 cell *cell_elist(cell *car, cell *cdr) {
-    cell *node = newcell(c_ELIST);
+    cell *node = newnode(c_ELIST);
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
 }
 
 cell *cell_func(cell *car, cell *cdr) {
-    cell *node = newcell(c_FUNC);
+    cell *node = newnode(c_FUNC);
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
 }
 
 cell *cell_pair(cell *car, cell *cdr) {
-    cell *node = newcell(c_PAIR);
+    cell *node = newnode(c_PAIR);
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
 }
 
 cell *cell_range(cell *car, cell *cdr) {
-    cell *node = newcell(c_RANGE);
+    cell *node = newnode(c_RANGE);
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
 }
 
 cell *cell_label(cell *car, cell *cdr) {
-    cell *node = newcell(c_LABEL);
+    cell *node = newnode(c_LABEL);
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
@@ -167,21 +141,21 @@ cell *cell_cdr(cell *cp) {
 }
 
 cell *cell_lambda(cell *args, cell *body) {
-    cell *node = newcell(c_CLOSURE0);
+    cell *node = newnode(c_CLOSURE0);
     node->_.cons.car = args;
     node->_.cons.cdr = body;
     return node;
 }
 
 cell *cell_closure(cell *lambda, cell *contenv) {
-    cell *node = newcell(c_CLOSURE);
+    cell *node = newnode(c_CLOSURE);
     node->_.cons.car = lambda;
     node->_.cons.cdr = contenv;
     return node;
 }
 
 cell *cell_env(cell *prevenv, cell *prog, cell *assoc, cell *contenv) {
-    cell *node = newcell(c_ENV);
+    cell *node = newnode(c_ENV);
     node->_.cons.car = cell_pair(prevenv, prog);
     node->_.cons.cdr = cell_pair(assoc, contenv);
     return node;
@@ -278,50 +252,50 @@ cell *cell_asymbol(char *symbol) {
 }
 
 cell *cell_astring(char_t *string, index_t length) {
-    cell *node = newcell(c_STRING);
+    cell *node = newnode(c_STRING);
     node->_.string.ptr = string;
     node->_.string.len = length;
     return node;
 }
 
 cell *cell_number(number *np) {
-    cell *node = newcell(c_NUMBER);
+    cell *node = newnode(c_NUMBER);
     node->_.n = *np;
     return node;
 }
 
 cell *cell_cfunQ(struct cell_s *(*fun)(cell *, cell *)) {
-    cell *node = newcell(c_CFUNQ);
+    cell *node = newnode(c_CFUNQ);
     node->_.cfunq.def = fun;
     return node;
 }
 
 cell *cell_cfunN(struct cell_s *(*fun)(cell *)) {
-    cell *node = newcell(c_CFUNN);
+    cell *node = newnode(c_CFUNN);
     node->_.cfun1.def = fun;
     return node;
 }
 
 cell *cell_cfun0(struct cell_s *(*fun)(void)) {
-    cell *node = newcell(c_CFUN0);
+    cell *node = newnode(c_CFUN0);
     node->_.cfun0.def = fun;
     return node;
 }
 
 cell *cell_cfun1(struct cell_s *(*fun)(cell *)) {
-    cell *node = newcell(c_CFUN1);
+    cell *node = newnode(c_CFUN1);
     node->_.cfun1.def = fun;
     return node;
 }
 
 cell *cell_cfun2(struct cell_s *(*fun)(cell *, cell *)) {
-    cell *node = newcell(c_CFUN2);
+    cell *node = newnode(c_CFUN2);
     node->_.cfun2.def = fun;
     return node;
 }
 
 cell *cell_cfun3(struct cell_s *(*fun)(cell *, cell *, cell *)) {
-    cell *node = newcell(c_CFUN3);
+    cell *node = newnode(c_CFUN3);
     node->_.cfun3.def = fun;
     return node;
 }
@@ -332,7 +306,7 @@ cell *cell_vector(index_t length) {
     if (length > 0) { // if length==0 table is NULL
         index_t i;
         // TODO have some sanity check on vector length
-        node = newcell(c_VECTOR);
+        node = newnode(c_VECTOR);
         node->_.vector.len = length;
         node->_.vector.table = malloc(length * sizeof(cell *));
         assert(node->_.vector.table);
@@ -408,19 +382,18 @@ int vector_get(cell *node, index_t index, cell **valuep) {
 }
 
 cell *cell_assoc() {
-    cell *node = newcell(c_ASSOC);
+    cell *node = newnode(c_ASSOC);
     // no table required when empty
     return node;
 }
 
 cell *cell_special(const char *magic, void *ptr) {
-    cell *node = newcell(c_SPECIAL);
+    cell *node = newnode(c_SPECIAL);
     node->_.special.ptr = ptr;
     node->_.special.magic = magic;
     return node;
 }
 
-// TODO this will soon enough collapse
 static void cell_free(cell *node) {
     assert(node && node->ref == 0);
 
@@ -470,20 +443,13 @@ static void cell_free(cell *node) {
     case c_FREE:
         assert(0); // shall not happen
     }
-#if HAVE_FREELIST
-    node->type = c_FREE;
-    node->_.cons.car = freelist;
-    node->_.cons.cdr = NIL; // not required
-    freelist = node->_.cons.car;
-#else
-    free(node);
-#endif
+    freenode(node);
 }
 
 // asym is allocated already
 // return unreffed reference
 cell *cell_oblist_item(char_t *asym) {
-    cell *node = newcell(c_SYMBOL);
+    cell *node = newnode(c_SYMBOL);
     extern cell *hash_undefined;
     // TODO should create error message is reffed
     if (hash_undefined) {
@@ -496,25 +462,4 @@ cell *cell_oblist_item(char_t *asym) {
 // TODO inline
 void cell_unref(cell *node) {
     if (node && --(node->ref) == 0) cell_free(node);
-}
-
-#if HAVE_FREELIST
-static void cell_exit() {
-    cell *p = freelist;
-    cell *next;
-    freelist = NIL;
-    while (p) {
-        assert(p->type == c_FREE);
-        next = p->_.cons.car;
-        free(p);
-        p = next;
-    }
-}
-#endif
-
-void cell_init() {
-#if HAVE_FREELIST
-    freelist = NIL;
-    atexit(cell_exit);
-#endif
 }
