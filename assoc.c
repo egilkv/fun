@@ -37,23 +37,21 @@ int assoc_set(cell *anode, cell* key, cell* val) {
 
     if ((p = *pp)) { // there is a table?
         while (cell_is_elist(p)) {
-            assert(cell_is_pair(p->_.cons.car));
-            if (p->_.cons.car->_.cons.car == key) {
+            if (assoc_key(p->_.cons.car) == key) {
                 // exists already
                 return 0;
             }
             p = p->_.cons.cdr;
         }
         // last item
-        assert(cell_is_pair(p));
-        if (p->_.cons.car == key) {
+        if (assoc_key(p) == key) {
             return 0; // exists already
         }
         // not found, make new entry
-        *pp = cell_elist(cell_pair(key,val), *pp);
+        *pp = cell_elist(cell_keyval(key, val), *pp);
     } else {
         // empty list, make new entry
-        anode->_.assoc.table[hash] = cell_pair(key,val);
+        anode->_.assoc.table[hash] = cell_keyval(key, val);
     }
     return 1;
 }
@@ -68,16 +66,14 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
 	int hash = hash_cons(key);
         if ((p = anode->_.assoc.table[hash])) {
             while (cell_is_elist(p)) {
-                assert(cell_is_pair(p->_.cons.car));
-                if (p->_.cons.car->_.cons.car == key) { // found?
-                    *valuep = cell_ref(p->_.cons.car->_.cons.cdr);
+                if (assoc_key(p->_.cons.car) == key) { // found?
+                    *valuep = cell_ref(assoc_val(p->_.cons.car));
                     return 1;
                 }
                 p = p->_.cons.cdr;
             }
-            assert(cell_is_pair(p));
-            if (p->_.cons.car == key) { // found?
-                *valuep = cell_ref(p->_.cons.cdr);
+            if (assoc_key(p) == key) { // found?
+                *valuep = cell_ref(assoc_val(p));
                 return 1;
             }
 	}
@@ -90,9 +86,9 @@ static int compar_sym(const void *a, const void *b) {
     cell *aa = *((cell **)a);
     cell *bb = *((cell **)b);
     // TODO what about non-symbolic keys
-    assert(cell_is_symbol(cell_car(aa)));
-    assert(cell_is_symbol(cell_car(aa)));
-    return strcmp(cell_car(aa)->_.symbol.nam, cell_car(bb)->_.symbol.nam);
+    assert(cell_is_symbol(assoc_key(aa)));
+    assert(cell_is_symbol(assoc_key(aa)));
+    return strcmp(assoc_key(aa)->_.symbol.nam, assoc_key(bb)->_.symbol.nam);
 }
 
 void assoc_iter(struct assoc_i *ip, cell *anode) {
@@ -133,7 +129,7 @@ struct cell_s *assoc_next(struct assoc_i *ip) {
         result = ip->p;
         ip->p = NIL;
     }
-    assert(cell_is_pair(result));
+    assert(cell_is_keyval(result));
     return result;
 }
 
@@ -173,3 +169,14 @@ void assoc_drop(cell *anode) {
     }
 }
 
+// TODO inline
+cell *assoc_key(cell *cp) {
+    assert(cp && cp->type == c_KEYVAL);
+    return cp->_.cons.car;
+}
+
+// TODO inline
+cell *assoc_val(cell *cp) {
+    assert(cp && cp->type == c_KEYVAL);
+    return cp->_.cons.cdr;
+}

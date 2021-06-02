@@ -113,9 +113,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
                 if (more) fprintf(out, ", ");
 #endif
                 more = 1;
-                cell_writei(out, cell_car(p), indent);
-                fprintf(out, " : ");
-                cell_writei(out, cell_cdr(p), indent);
+                cell_writei(out, p, indent);
 	    }
 #if MULTILINE_ASSOC
             fprintf(out, "\n%*s} ", indent,"");
@@ -123,6 +121,12 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             fprintf(out, more ? " } ":"} ");
 #endif
         }
+        return;
+
+    case c_KEYVAL: // only in assocs
+        cell_writei(out, assoc_key(ct), indent);
+        fprintf(out, " : ");  // TODO remove blank
+        cell_writei(out, assoc_val(ct), indent);
         return;
 
     case c_FUNC:

@@ -16,7 +16,8 @@ enum cell_t {
    c_CLOSURE0T, // same as c_CLOSURE0, but tracing is enabled
    c_RANGE,     // car is lower, car is upper bound; both may be nil
    c_LABEL,     // car is label, car is expr
-   c_PAIR,      // car is left, car is right part
+   c_PAIR,      // car is left, cdr is right part
+   c_KEYVAL,    // car is key, cdr is value, for assocs
    c_ELIST,     // car is first item, cdr is rest of elist, or last
    c_FREE,      // for freelist, car is next
    c_SYMBOL,
@@ -101,6 +102,7 @@ cell *cell_list(cell *car, cell *cdr);
 cell *cell_elist(cell *car, cell *cdr);
 cell *cell_func(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
+cell *cell_keyval(cell *key, cell *val);
 cell *cell_range(cell *car, cell *cdr);
 cell *cell_label(cell *car, cell *cdr);
 int cell_is_list(cell *cp);
@@ -108,6 +110,7 @@ int cell_is_elist(cell *cp);
 int cell_is_func(cell *cp);
 int cell_is_env(cell *cp);
 int cell_is_pair(cell *cp);
+int cell_is_keyval(cell *cp);
 int cell_is_range(cell *cp);
 int cell_is_label(cell *cp);
 cell *cell_car(cell *cp);

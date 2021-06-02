@@ -38,6 +38,13 @@ cell *cell_pair(cell *car, cell *cdr) {
     return node;
 }
 
+cell *cell_keyval(cell *key, cell *val) {
+    cell *node = newnode(c_KEYVAL);
+    node->_.cons.car = key;
+    node->_.cons.cdr = val;
+    return node;
+}
+
 cell *cell_range(cell *car, cell *cdr) {
     cell *node = newnode(c_RANGE);
     node->_.cons.car = car;
@@ -78,6 +85,10 @@ int cell_is_env(cell *cp) {
 
 int cell_is_pair(cell *cp) {
     return cp && cp->type == c_PAIR;
+}
+
+int cell_is_keyval(cell *cp) {
+    return cp && cp->type == c_KEYVAL;
 }
 
 int cell_is_range(cell *cp) {
@@ -402,6 +413,7 @@ static void cell_free(cell *node) {
     case c_ELIST:
     case c_FUNC:
     case c_PAIR:
+    case c_KEYVAL:
     case c_RANGE:
     case c_LABEL:
     case c_CLOSURE:

@@ -657,7 +657,7 @@ static cell *cfunN_cat(cell *args) {
                 // make a copy of first assoc
                 assoc_iter(&iter, result);
                 while ((p = assoc_next(&iter))) {
-                    if (!assoc_set(newassoc, cell_ref(cell_car(p)), cell_ref(cell_cdr(p)))) {
+                    if (!assoc_set(newassoc, cell_ref(assoc_key(p)), cell_ref(assoc_val(p)))) {
                         // already defined, should not happen
                         assert(0);
                     }
@@ -666,10 +666,10 @@ static cell *cfunN_cat(cell *args) {
                 // add contents of second assoc
                 assoc_iter(&iter, a);
                 while ((p = assoc_next(&iter))) {
-                    if (!assoc_set(newassoc, cell_ref(cell_car(p)), cell_ref(cell_cdr(p)))) {
+                    if (!assoc_set(newassoc, cell_ref(assoc_key(p)), cell_ref(assoc_val(p)))) {
                         // already defined
-                        cell_unref(error_rt1("duplicate key ignored", cell_car(p)));
-                        cell_unref(cell_cdr(p)); // val
+                        cell_unref(error_rt1("duplicate key ignored", assoc_key(p)));
+                        cell_unref(assoc_val(p));
                     }
                 }
 		cell_unref(result);
@@ -878,6 +878,7 @@ static cell *cfun1_type(cell *a) {
     case c_LABEL: // cannot be seen in the flesh
     case c_ENV:
     case c_SPECIAL:
+    case c_KEYVAL:
         t = "internal"; // TODO should not happen
         break;
     case c_FREE:

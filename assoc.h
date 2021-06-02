@@ -19,5 +19,7 @@ void assoc_iter(struct assoc_i *ip, struct cell_s *anode);
 void assoc_iter_sorted(struct assoc_i *ip, struct cell_s *anode);
 struct cell_s *assoc_next(struct assoc_i *ip);
 
-void assoc_drop(struct cell_s *anode);
+struct cell_s *assoc_key(struct cell_s *p);
+struct cell_s *assoc_val(struct cell_s *p);
 
+void assoc_drop(struct cell_s *anode);
