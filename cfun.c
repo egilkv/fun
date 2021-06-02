@@ -429,8 +429,8 @@ static cell *cfunN_list(cell *args) {
         if (cell_is_label(a)) { // index:value or index..index:value
             index_t index = len; // for range, start defaults to current position
             index_t indexN = 0;
-            cell *b;
-            label_split(a, &a, &b);
+            cell *val;
+            label_split(a, &a, &val);
             if (cell_is_range(a)) {
                 index_t index2;
                 cell *a1, *a2;
@@ -446,7 +446,7 @@ static cell *cfunN_list(cell *args) {
                         }
                     }
                 }
-            } else if (get_index(a, &index, b)) {
+            } else if (get_index(a, &index, NIL)) {
                 indexN = 1;
             }
             if (indexN > 0) {
@@ -455,14 +455,14 @@ static cell *cfunN_list(cell *args) {
                     vector = vector_resize(vector, len);
                 }
                 while (indexN-- > 0) {
-                    // TODO check if redefining, which is not allowed
-                    if (!vector_set(vector, index, (indexN == 0) ? b : cell_ref(b))) {
+                    if (!vector_set(vector, index, cell_ref(val))) {
                         cell_unref(error_rti("cannot redefine vector, index ", index));
                         // TODO should probably only have one error message
                     }
                     ++index;
                 }
             }
+            cell_unref(val);
 
         } else if (vector == NIL) {
             // first item is not index:value
@@ -540,7 +540,20 @@ static cell *cat_vectors(cell *a, cell *b)
     return a;
 }
 
-// consume both
+// add list to a list
+static void add_list(cell *addlist, cell ***ppp) {
+    cell *p = addlist;
+    cell **pp = *ppp;
+    while (p) {
+        *pp = cell_list(cell_ref(cell_car(p)), NIL);
+        pp = &((*pp)->_.cons.cdr);
+        p = cell_cdr(p);
+    }
+    *ppp = pp;
+    cell_unref(addlist);
+}
+
+// catenate lists, vectors or strings
 static cell *cfunN_cat(cell *args) {
     cell *a;
     cell *result = NIL;
@@ -588,21 +601,17 @@ static cell *cfunN_cat(cell *args) {
             case c_LIST:
                 {
                     // TODO optimize for case of more than two arguments
-                    cell *newlist = NIL;
-                    cell **pnext = &newlist;
                     index_t i;
-                    // copy first list
-                    while (result) {
-                        *pnext = cell_list(cell_ref(cell_car(result)), NIL);
-                        pnext = &((*pnext)->_.cons.cdr);
-                        result = cell_cdr(result);
-                    }
-                    for (i=0; i < a->_.vector.len; ++i) {
-                        *pnext = cell_list(cell_ref(a->_.vector.table[i]), NIL);
-                        pnext = &((*pnext)->_.cons.cdr);
-                    }
-                    cell_unref(result);
+                    cell *newlist = NIL;
+                    cell **pp = &newlist;
+                    add_list(result, &pp); // copy first list
                     result = newlist;
+                    // then append elements from the vector
+                    for (i=0; i < a->_.vector.len; ++i) {
+                        *pp = cell_list(cell_ref(a->_.vector.table[i]), NIL);
+                        pp = &((*pp)->_.cons.cdr);
+                    }
+                    cell_unref(a);
                 }
                 break;
             default:
@@ -627,16 +636,10 @@ static cell *cfunN_cat(cell *args) {
                 {
                     // TODO optimize for case of more than two arguments
                     cell *newlist = NIL;
-                    cell **pnext = &newlist;
-                    // copy first list
-                    while (result) {
-                        *pnext = cell_list(cell_ref(cell_car(result)), NIL);
-                        pnext = &((*pnext)->_.cons.cdr);
-                        result = cell_cdr(result);
-                    }
-                    *pnext = a;
-                    cell_unref(result);
+                    cell **pp = &newlist;
+                    add_list(result, &pp); // copy first list
                     result = newlist;
+                    *pp = a; // then connect second list
                 }
                 break;
             default:
@@ -962,6 +965,12 @@ static cell *cfunQ_traceoff(cell *args, cell *env) {
     return result;
 }
 
+// debugging, run garbage collection
+static cell *cfun0_gc() {
+    oblist_sweep();
+    return cell_void();
+}
+
 // set #args
 void cfun_args(int argc, char * const argv[]) {
     cell *vector = NIL;
@@ -1007,11 +1016,13 @@ void cfun_init() {
     hash_ref      = oblistv("#ref",      cell_cfun2(cfun2_ref));
     hash_refq     = oblistv("#refq",     cell_cfunQ(cfunQ_refq));
     hash_times    = oblistv("#times",    cell_cfunN(cfunN_times));
+                    oblistv("#type",     cell_cfun1(cfun1_type));
+		    oblistv("#use",      cell_cfun1(cfun1_use));
+
+                    oblistv("#gc",       cell_cfun0(cfun0_gc)); // debugging
                     oblistv("#trace",    cell_cfun1(cfun1_trace)); // debugging
                     oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
                     oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
-                    oblistv("#type",     cell_cfun1(cfun1_type));
-		    oblistv("#use",      cell_cfun1(cfun1_use));
 
     // values
     hash_f       = oblistv("#f",       NIL);
