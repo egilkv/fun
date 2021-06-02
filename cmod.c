@@ -366,6 +366,7 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
             // TODO can optimize if all of remaining list
             for (i=0; i < len; ++i) {
                 if (!a) {
+                    cell_unref(value); // anything so far
                     return error_rti("list range out of bounds", index+len-1);
                 }
                 assert(cell_is_list(a));
