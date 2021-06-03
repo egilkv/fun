@@ -100,10 +100,34 @@ char *oblist_search(const char *lookfor, int state) {
     }
 }
 
+// do sweep and mark all cells we can reach
+integer_t oblist_sweep() {
+    int h;
+    struct ob_entry *p;
+
+    // mark every thing we can reach
+    for (h = 0; h < OBLIST_HASH_SIZE; ++h) {
+	p = ob_table[h];
+	while (p) {
+            assert(cell_is_symbol(p->symdef));
+            // TODO check if marked already. is that OK?
+            p->symdef->mark = 1;
+            cell_sweep(p->symdef->_.symbol.val);
+            p = p->next;
+	}
+    }
+    // then sweep up
+    return node_gc_cleanup();
+}
+
 // clean up on exit
 static void oblist_exit() {
     int h;
     struct ob_entry *p;
+
+    // do garbage collection first
+    oblist_sweep();
+
     oblist_teardown = 1;
     if (opt_showoblist) printf("\n\noblist:\n");
     for (h = 0; h < OBLIST_HASH_SIZE; ++h) {

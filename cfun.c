@@ -3,6 +3,8 @@
  *  TODO should evaluation happen in functions? perhaps
  */
 
+#define HAVE_WEAK 0
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,11 +41,24 @@ static cell *cfunQ_defq(cell *args, cell *env) {
     }
     b = eval(b, env);
     if (env) {
-	assert(env_assoc(env));
-	if (!assoc_set(env_assoc(env), a, cell_ref(b))) {
-	    cell_unref(b);
-	    cell_unref(error_rt1("cannot redefine immutable", a));
-	}
+#if HAVE_WEAK
+        if (b && b->type==c_CLOSURE && b->_.cons.cdr==env) {
+            // continuation in its own environment
+            // the assumption is that the environment will be dissolved first
+            // if the closure is passed on externally, it will have an extra
+            // ref, and live on
+            if (!assoc_set_weak(env_assoc(env), a, b)) {
+                cell_unref(b);
+                cell_unref(error_rt1("cannot redefine immutable", a));
+            }
+        } else 
+#endif
+        {
+            if (!assoc_set(env_assoc(env), a, cell_ref(b))) {
+                cell_unref(b);
+                cell_unref(error_rt1("cannot redefine immutable", a));
+            }
+        }
     } else {
 	// TODO mutable
 	oblist_set(a, cell_ref(b));
@@ -516,7 +531,7 @@ static cell *cat_vectors(cell *a, cell *b)
         cell_unref(a);
         a = b;
     } else {
-        cell *newvector = cell_vector(alen + blen);
+        cell *newvector = cell_vector_nil(alen + blen);
         integer_t i;
         for (i = 0; i < alen; ++i) {
             newvector->_.vector.table[i] = cell_ref(a->_.vector.table[i]);
@@ -881,7 +896,9 @@ static cell *cfun1_type(cell *a) {
     case c_LABEL: // cannot be seen in the flesh
     case c_ENV:
     case c_SPECIAL:
+    case c_STOP:
     case c_KEYVAL:
+    case c_KEYWEAK:
         t = "internal"; // TODO should not happen
         break;
     case c_FREE:
@@ -967,8 +984,8 @@ static cell *cfunQ_traceoff(cell *args, cell *env) {
 
 // debugging, run garbage collection
 static cell *cfun0_gc() {
-    oblist_sweep();
-    return cell_void();
+    integer_t nodes = oblist_sweep();
+    return cell_integer(nodes);
 }
 
 // set #args
@@ -977,7 +994,7 @@ void cfun_args(int argc, char * const argv[]) {
     assert(hash_args == NIL); // should not be invoked twice
     if (argc > 0) {
         int i;
-        vector = cell_vector(argc);
+        vector = cell_vector_nil(argc);
         for (i = 0; i < argc; ++i) {
             // TODO can optimize by not allocating fixed string here and in cfun_init
 	    char_t *s = strdup(argv[i]);

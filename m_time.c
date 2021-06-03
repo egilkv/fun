@@ -18,9 +18,7 @@
 #include "number.h"
 #include "err.h"
 
-static cell *time_assoc = NIL;
-
-// seconds since epoch, with sub second accuracy
+ // seconds since epoch, with sub second accuracy
 static cell *ctime_seconds() {
     number seconds;
     struct timeval tv;
@@ -216,17 +214,16 @@ static cell *ctime_sleep(cell *a) {
 }
 
 cell *module_time() {
-    if (!time_assoc) {
-        time_assoc = cell_assoc();
+    // TODO consider having a cache for this
+    cell *a = cell_assoc();
 
-        assoc_set(time_assoc, cell_symbol("seconds"),cell_cfun0(ctime_seconds));
-        assoc_set(time_assoc, cell_symbol("sleep"),cell_cfun1(ctime_sleep));
-        assoc_set(time_assoc, cell_symbol("localtime"),cell_cfun1(ctime_localtime));
-        assoc_set(time_assoc, cell_symbol("mktime"),cell_cfun1(ctime_mktime));
-        assoc_set(time_assoc, cell_symbol("time"),cell_cfunQ(ctime_time));
-        assoc_set(time_assoc, cell_symbol("utctime"),cell_cfun1(ctime_utctime));
-    }
-    // TODO static time_assoc owns one, hard to avoid
-    return cell_ref(time_assoc);
+    assoc_set(a, cell_symbol("seconds"),   cell_cfun0(ctime_seconds));
+    assoc_set(a, cell_symbol("sleep"),     cell_cfun1(ctime_sleep));
+    assoc_set(a, cell_symbol("localtime"), cell_cfun1(ctime_localtime));
+    assoc_set(a, cell_symbol("mktime"),    cell_cfun1(ctime_mktime));
+    assoc_set(a, cell_symbol("time"),      cell_cfunQ(ctime_time));
+    assoc_set(a, cell_symbol("utctime"),   cell_cfun1(ctime_utctime));
+
+    return a;
 }
 

@@ -45,6 +45,13 @@ cell *cell_keyval(cell *key, cell *val) {
     return node;
 }
 
+cell *cell_keyweak(cell *key, cell *val) {
+    cell *node = newnode(c_KEYVAL);
+    node->_.cons.car = key;
+    node->_.cons.cdr = val;
+    return node;
+}
+
 cell *cell_range(cell *car, cell *cdr) {
     cell *node = newnode(c_RANGE);
     node->_.cons.car = car;
@@ -88,7 +95,7 @@ int cell_is_pair(cell *cp) {
 }
 
 int cell_is_keyval(cell *cp) {
-    return cp && cp->type == c_KEYVAL;
+    return cp && (cp->type == c_KEYVAL || cp->type == c_KEYWEAK);
 }
 
 int cell_is_range(cell *cp) {
@@ -311,19 +318,15 @@ cell *cell_cfun3(struct cell_s *(*fun)(cell *, cell *, cell *)) {
     return node;
 }
 
-cell *cell_vector(index_t length) {
-    // TODO or NIL if length==0
-    cell *node = NIL;
+cell *cell_vector_nil(index_t length) {
+    cell *node = NIL; // result is NIL if length==0
     if (length > 0) { // if length==0 table is NULL
-        index_t i;
         // TODO have some sanity check on vector length
         node = newnode(c_VECTOR);
         node->_.vector.len = length;
         node->_.vector.table = malloc(length * sizeof(cell *));
         assert(node->_.vector.table);
-        for (i = 0; i < length; ++i) {
-            node->_.vector.table[i] = cell_ref(hash_undefined);
-        }
+        memset(node->_.vector.table, 0, length * sizeof(cell *)); // set to NIL
     }
     return node;
 }
@@ -333,22 +336,29 @@ cell *vector_resize(cell* node, index_t newlen) {
     index_t i;
     index_t oldlen;
     if (node == NIL) { // oldlen is zero
-        node = cell_vector(newlen);
+        node = cell_vector_nil(newlen);
+        for (i = 0; i < newlen; ++i) {
+            node->_.vector.table[i] = cell_ref(hash_undefined);
+        }
 
     } else {
         assert(cell_is_vector(node));
         oldlen = node->_.vector.len;
         assert(oldlen > 0);
-        if (newlen == 0) {
-            cell_unref(node);
-            node = NIL;
-
-        } else if (oldlen > newlen) { // shrinking?
+        if (oldlen > newlen) { // shrinking?
             for (i = newlen; i < oldlen; ++i) {
                 cell_unref(node->_.vector.table[i]);
             }
-            node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
-            node->_.vector.len = newlen;
+            if (newlen == 0) {
+                free(node->_.vector.table);
+                node->_.vector.table = 0;
+                node->_.vector.len = 0;
+                cell_unref(node);
+                node = NIL;
+            } else {
+                node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
+                node->_.vector.len = newlen;
+            }
 
         } else if (newlen > oldlen) { // increasing
             node->_.vector.table = realloc(node->_.vector.table, newlen * sizeof(cell *));
@@ -375,7 +385,7 @@ int vector_set(cell *node, index_t index, cell *value) {
         cell_unref(value);
         return 0;
     }
-    cell_unref(node->_.vector.table[index]);
+    cell_unref(hash_undefined);
     node->_.vector.table[index] = value;
     return 1;
 }
@@ -405,6 +415,70 @@ cell *cell_special(const char *magic, void *ptr) {
     return node;
 }
 
+void cell_sweep(cell *node) {
+    if (!node) return;
+    if (node->mark) return;
+
+    node->mark = 1;
+    switch (node->type) {
+    case c_LIST:
+    case c_ELIST:
+    case c_FUNC:
+    case c_PAIR:
+    case c_KEYVAL:
+    case c_RANGE:
+    case c_LABEL:
+    case c_CLOSURE:
+    case c_CLOSURE0:
+    case c_CLOSURE0T:
+        cell_sweep(node->_.cons.car);
+        cell_sweep(node->_.cons.cdr);
+        break;
+    case c_KEYWEAK:
+        cell_sweep(node->_.cons.car); 
+        cell_sweep(node->_.cons.cdr); // cdr is weak binding
+        break;
+
+    case c_ENV: // TODO
+        cell_sweep(node->_.cons.car);
+        cell_sweep(node->_.cons.cdr);
+        break;
+    case c_VECTOR:
+        if (node->_.vector.table) {
+            index_t i;
+            for (i = 0; i < node->_.vector.len; ++i) {
+                cell_sweep(node->_.vector.table[i]);
+            }
+        }
+        break;
+    case c_ASSOC:
+        if (node->_.assoc.table) {
+            index_t h;
+            for (h = 0; h < node->_.assoc.size; ++h) {
+                cell_sweep(node->_.assoc.table[h]);
+            }
+        }
+        break;
+    case c_SYMBOL: 
+        // TODO these should exist only on oblist ?
+        cell_sweep(node->_.symbol.val);
+        break;
+    case c_STRING:
+    case c_NUMBER:
+    case c_CFUNQ:
+    case c_CFUN0:
+    case c_CFUN1:
+    case c_CFUN2:
+    case c_CFUN3:
+    case c_CFUNN:
+    case c_SPECIAL:
+    case c_STOP:
+        break;
+    case c_FREE:
+        assert(0); // shall not happen
+    }
+}
+
 static void cell_free(cell *node) {
     assert(node && node->ref == 0);
 
@@ -422,7 +496,11 @@ static void cell_free(cell *node) {
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
         break;
-    case c_ENV:
+    case c_KEYWEAK:
+        cell_unref(node->_.cons.car);
+        // cdr is weak binding, no ref
+        break;
+    case c_ENV: // TODO
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
         break;
@@ -444,13 +522,23 @@ static void cell_free(cell *node) {
     case c_CFUNN:
         break;
     case c_VECTOR:
-        vector_resize(node, 0);
+        if (node->_.vector.table) {
+            index_t i;
+            cell *cp;
+            for (i = 0; i < node->_.vector.len; ++i) {
+                cp = node->_.vector.table[i];
+                node->_.vector.table[i] = NIL; // to be safe
+                cell_unref(cp);
+            }
+        }
         break;
     case c_ASSOC:
         assoc_drop(node);
         break;
     case c_SPECIAL:
         // TODO invoke magic free function
+        break;
+    case c_STOP:
         break;
     case c_FREE:
         assert(0); // shall not happen
@@ -462,7 +550,6 @@ static void cell_free(cell *node) {
 // return unreffed reference
 cell *cell_oblist_item(char_t *asym) {
     cell *node = newnode(c_SYMBOL);
-    extern cell *hash_undefined;
     // TODO should create error message is reffed
     if (hash_undefined) {
         node->_.symbol.val = cell_ref(hash_undefined);

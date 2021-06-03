@@ -346,7 +346,7 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
                 return error_rti("vector range out of bounds", index+len-1);
             }
             if (len > 0) {
-                value = cell_vector(len);
+                value = cell_vector_nil(len);
                 for (i = 0; i < len; ++i) {
                     value->_.vector.table[i] = cell_ref(a->_.vector.table[index+i]);
                 }

@@ -12,8 +12,6 @@
 #include "number.h"
 #include "m_string.h"
 
-static cell *string_assoc = NIL;
-
 static cell *cstr_length(cell *a) {
     char_t *ptr;
     index_t len;
@@ -79,17 +77,15 @@ static cell *cstr_ordinal(cell *a) {
 }
 
 cell *module_string() {
-    if (!string_assoc) {
-	string_assoc = cell_assoc();
+    // TODO consider cache
+    cell *a = cell_assoc();
 
-        // TODO these functions are impure
-        assoc_set(string_assoc, cell_symbol("length"),  cell_cfun1(cstr_length));
-        assoc_set(string_assoc, cell_symbol("lower"),   cell_cfun1(cstr_lower));
-        assoc_set(string_assoc, cell_symbol("ordinal"), cell_cfun1(cstr_ordinal));
-        assoc_set(string_assoc, cell_symbol("upper"),   cell_cfun1(cstr_upper));
-    }
-    // TODO static string_assoc owns one, hard to avoid
-    return cell_ref(string_assoc);
+    assoc_set(a, cell_symbol("length"),  cell_cfun1(cstr_length));
+    assoc_set(a, cell_symbol("lower"),   cell_cfun1(cstr_lower));
+    assoc_set(a, cell_symbol("ordinal"), cell_cfun1(cstr_ordinal));
+    assoc_set(a, cell_symbol("upper"),   cell_cfun1(cstr_upper));
+
+    return a;
 }
 
 

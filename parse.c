@@ -35,6 +35,9 @@ cell *chomp_lx(lxfile *lxf) {
         lxf->show_prompt = 1;
         ct = expression(lxf);
 	if (!ct) break; // eof
+
+        cell_unref(result);
+        result = NIL; // to avoid the ref
         if (lxf->f == stdin) {
             if (lxf->show_parse) {
                 cell_write(stdout, ct);
@@ -50,8 +53,7 @@ cell *chomp_lx(lxfile *lxf) {
                 }
             }
 	}
-        cell_unref(result);
-       result = ct;
+        result = ct;
     }
     if (lxf->is_terminal) {
         printf("\n");

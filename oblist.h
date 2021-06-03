@@ -12,5 +12,7 @@ void oblist_set(cell *sym, cell *val);
 
 char *oblist_search(const char *lookfor, int state);
 
+integer_t oblist_sweep();
+
 extern int oblist_teardown; // TODO for assert only
 

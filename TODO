@@ -1,5 +1,12 @@
 
-Make garbage collection and verification
+Make garbage collection and verification, beginning with mark-sweep
+
+qsort fails.
+
+Self referrences should default to weak refs.
+How to make weak bindings for local closures.
+keyval -> keyweak
+HAVE_WEAK for now disabled
 
 list[1..] 
 list(0..0)

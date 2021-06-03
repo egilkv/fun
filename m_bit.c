@@ -9,8 +9,6 @@
 #include "number.h"
 #include "cmod.h"
 
-static cell *bit_assoc = NIL;
-
 // TODO should it also work for booleans? possibly
 static cell *cbit_and(cell *args) {
     integer_t result;
@@ -74,16 +72,15 @@ static cell *cbit_shift(cell *a, cell *b) {
 }
 
 cell *module_bit() {
-    if (!bit_assoc) {
-        bit_assoc = cell_assoc();
+    // TODO consider cache
+    cell *a = cell_assoc();
 
-        assoc_set(bit_assoc, cell_symbol("and"),    cell_cfunN(cbit_and));
-        assoc_set(bit_assoc, cell_symbol("not"),    cell_cfun1(cbit_not));
-        assoc_set(bit_assoc, cell_symbol("or"),     cell_cfunN(cbit_or));
-        assoc_set(bit_assoc, cell_symbol("xor"),    cell_cfunN(cbit_xor));
-        assoc_set(bit_assoc, cell_symbol("shift"),  cell_cfun2(cbit_shift));
-    }
-    // TODO static bit_assoc owns one, hard to avoid
-    return cell_ref(bit_assoc);
+    assoc_set(a, cell_symbol("and"),    cell_cfunN(cbit_and));
+    assoc_set(a, cell_symbol("not"),    cell_cfun1(cbit_not));
+    assoc_set(a, cell_symbol("or"),     cell_cfunN(cbit_or));
+    assoc_set(a, cell_symbol("xor"),    cell_cfunN(cbit_xor));
+    assoc_set(a, cell_symbol("shift"),  cell_cfun2(cbit_shift));
+
+    return a;
 }
 

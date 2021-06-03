@@ -37,21 +37,57 @@ int assoc_set(cell *anode, cell* key, cell* val) {
 
     if ((p = *pp)) { // there is a table?
         while (cell_is_elist(p)) {
-            if (assoc_key(p->_.cons.car) == key) {
-                // exists already
+            if (assoc_key(p->_.cons.car) == key) { // exists already
                 return 0;
             }
             p = p->_.cons.cdr;
         }
         // last item
-        if (assoc_key(p) == key) {
-            return 0; // exists already
+        if (assoc_key(p) == key) { // exists already?
+            return 0; 
         }
         // not found, make new entry
         *pp = cell_elist(cell_keyval(key, val), *pp);
     } else {
         // empty list, make new entry
         anode->_.assoc.table[hash] = cell_keyval(key, val);
+    }
+    return 1;
+}
+
+// on success, key is consumed, but not anode
+// return false if already defined, and do not consume key and val
+int assoc_set_weak(cell *anode, cell* key, cell* val) {
+    cell *p;
+    cell **pp;
+    int hash = hash_cons(key);
+    assert(cell_is_assoc(anode));
+
+    if (anode->_.assoc.table == NULL) {
+        // table not yet allocated
+	anode->_.assoc.table = malloc(ASSOC_HASH_SIZE * sizeof(struct assoc_s *));
+	assert(anode->_.assoc.table);
+	memset(anode->_.assoc.table, 0, ASSOC_HASH_SIZE * sizeof(struct assoc_s *));
+	anode->_.assoc.size = ASSOC_HASH_SIZE;
+    }
+    pp = &(anode->_.assoc.table[hash]);
+
+    if ((p = *pp)) { // there is a table?
+        while (cell_is_elist(p)) {
+            if (assoc_key(p->_.cons.car) == key) { // exists already?
+                return 0;
+            }
+            p = p->_.cons.cdr;
+        }
+        // last item
+        if (assoc_key(p) == key) { // exists already
+            return 0;
+        }
+        // not found, make new entry
+        *pp = cell_elist(cell_keyweak(key, val), *pp);
+    } else {
+        // empty list, make new entry
+        anode->_.assoc.table[hash] = cell_keyweak(key, val);
     }
     return 1;
 }
@@ -85,6 +121,9 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
 static int compar_sym(const void *a, const void *b) {
     cell *aa = *((cell **)a);
     cell *bb = *((cell **)b);
+    // in case this is in the middle of a gc
+    if ((aa && aa->type==c_STOP) || (bb && bb->type==c_STOP)) return 0;
+
     // TODO what about non-symbolic keys
     assert(cell_is_symbol(assoc_key(aa)));
     assert(cell_is_symbol(assoc_key(aa)));
@@ -129,7 +168,7 @@ struct cell_s *assoc_next(struct assoc_i *ip) {
         result = ip->p;
         ip->p = NIL;
     }
-    assert(cell_is_keyval(result));
+    // result should be a c_KEYVAL, a c_KEYWEAK or c_STOP in gc
     return result;
 }
 
@@ -171,12 +210,12 @@ void assoc_drop(cell *anode) {
 
 // TODO inline
 cell *assoc_key(cell *cp) {
-    assert(cp && cp->type == c_KEYVAL);
+    assert(cp && (cp->type == c_KEYVAL || c_KEYWEAK));
     return cp->_.cons.car;
 }
 
 // TODO inline
 cell *assoc_val(cell *cp) {
-    assert(cp && cp->type == c_KEYVAL);
+    assert(cp && (cp->type == c_KEYVAL || c_KEYWEAK));
     return cp->_.cons.cdr;
 }

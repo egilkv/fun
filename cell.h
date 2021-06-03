@@ -18,8 +18,10 @@ enum cell_t {
    c_LABEL,     // car is label, car is expr
    c_PAIR,      // car is left, cdr is right part
    c_KEYVAL,    // car is key, cdr is value, for assocs
+   c_KEYWEAK,   // car is key, cdr is weak binding to value
    c_ELIST,     // car is first item, cdr is rest of elist, or last
    c_FREE,      // for freelist, car is next
+   c_STOP,      // for garbage collection sweep phase
    c_SYMBOL,
    c_STRING,
    c_NUMBER,
@@ -36,7 +38,8 @@ enum cell_t {
 
 struct cell_s {
     unsigned ref     : 32; // TODO will limit total # of cells; 64bit
-    unsigned seen    : 1;  // for garbage collect
+    unsigned mark    : 1;  // for garbage collect
+    unsigned pmark   : 1;  // for printing TODO needed?
     enum cell_t type : 5;
     union {
         struct {
@@ -103,6 +106,7 @@ cell *cell_elist(cell *car, cell *cdr);
 cell *cell_func(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
 cell *cell_keyval(cell *key, cell *val);
+cell *cell_keyweak(cell *key, cell *val);
 cell *cell_range(cell *car, cell *cdr);
 cell *cell_label(cell *car, cell *cdr);
 int cell_is_list(cell *cp);
@@ -130,7 +134,7 @@ cell **env_progp(cell *ep);
 cell *cell_lambda(cell *args, cell *body);
 cell *cell_closure(cell *lambda, cell *contenv);
 
-cell *cell_vector(index_t length);
+cell *cell_vector_nil(index_t length);
 int cell_is_vector(cell *cp);
 int vector_set(cell *vector, index_t index, cell *value);
 int vector_get(cell *node, index_t index, cell **valuep);
@@ -155,6 +159,8 @@ int cell_is_number(cell *cp);
 int cell_is_integer(cell *cp);
 
 cell *eval(cell *arg, cell *env); // defined in eval.c
+
+void cell_sweep(cell *node);
 
 #endif
 

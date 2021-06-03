@@ -10,8 +10,6 @@
 #include "err.h"
 #include "m_math.h"
 
-static cell *math_assoc = NIL;
-
 static cell *cmath_div(cell *a, cell *b) {
     integer_t ia;
     integer_t ib;
@@ -183,33 +181,31 @@ static cell *cmath_floor(cell *a) {
 #endif // HAVE_MATH
 
 cell *module_math() {
-    if (!math_assoc) {
-        math_assoc = cell_assoc();
+    // TODO consider cache
+    cell *a = cell_assoc();
 
-        // TODO these functions are impure
-        assoc_set(math_assoc, cell_symbol("abs"),   cell_cfun1(cmath_abs));
-        assoc_set(math_assoc, cell_symbol("div"),   cell_cfun2(cmath_div));
-        assoc_set(math_assoc, cell_symbol("e"),     cell_real(M_E));
-        assoc_set(math_assoc, cell_symbol("int"),   cell_cfun1(cmath_int));
-        assoc_set(math_assoc, cell_symbol("mod"),   cell_cfun2(cmath_mod));
-        assoc_set(math_assoc, cell_symbol("pi"),    cell_real(M_PI));
+    assoc_set(a, cell_symbol("abs"),    cell_cfun1(cmath_abs));
+    assoc_set(a, cell_symbol("div"),    cell_cfun2(cmath_div));
+    assoc_set(a, cell_symbol("e"),      cell_real(M_E));
+    assoc_set(a, cell_symbol("int"),    cell_cfun1(cmath_int));
+    assoc_set(a, cell_symbol("mod"),    cell_cfun2(cmath_mod));
+    assoc_set(a, cell_symbol("pi"),     cell_real(M_PI));
 #if HAVE_MATH
-        assoc_set(math_assoc, cell_symbol("acos"),  cell_cfun1(cmath_acos));
-        assoc_set(math_assoc, cell_symbol("asin"),  cell_cfun1(cmath_asin));
-        assoc_set(math_assoc, cell_symbol("atan"),  cell_cfun1(cmath_atan));
-        assoc_set(math_assoc, cell_symbol("atan2"), cell_cfun2(cmath_atan2));
-        assoc_set(math_assoc, cell_symbol("ceil"),  cell_cfun1(cmath_ceil));
-        assoc_set(math_assoc, cell_symbol("cos"),   cell_cfun1(cmath_cos));
-        assoc_set(math_assoc, cell_symbol("floor"), cell_cfun1(cmath_floor));
-        assoc_set(math_assoc, cell_symbol("log"),   cell_cfun1(cmath_log));
-        assoc_set(math_assoc, cell_symbol("log10"), cell_cfun1(cmath_log10));
-        assoc_set(math_assoc, cell_symbol("pow"),   cell_cfun2(cmath_pow));
-        assoc_set(math_assoc, cell_symbol("sin"),   cell_cfun1(cmath_sin));
-        assoc_set(math_assoc, cell_symbol("sqrt"),  cell_cfun1(cmath_sqrt));
-        assoc_set(math_assoc, cell_symbol("tan"),   cell_cfun1(cmath_tan));
+    assoc_set(a, cell_symbol("acos"),   cell_cfun1(cmath_acos));
+    assoc_set(a, cell_symbol("asin"),   cell_cfun1(cmath_asin));
+    assoc_set(a, cell_symbol("atan"),   cell_cfun1(cmath_atan));
+    assoc_set(a, cell_symbol("atan2"),  cell_cfun2(cmath_atan2));
+    assoc_set(a, cell_symbol("ceil"),   cell_cfun1(cmath_ceil));
+    assoc_set(a, cell_symbol("cos"),    cell_cfun1(cmath_cos));
+    assoc_set(a, cell_symbol("floor"),  cell_cfun1(cmath_floor));
+    assoc_set(a, cell_symbol("log"),    cell_cfun1(cmath_log));
+    assoc_set(a, cell_symbol("log10"),  cell_cfun1(cmath_log10));
+    assoc_set(a, cell_symbol("pow"),    cell_cfun2(cmath_pow));
+    assoc_set(a, cell_symbol("sin"),    cell_cfun1(cmath_sin));
+    assoc_set(a, cell_symbol("sqrt"),   cell_cfun1(cmath_sqrt));
+    assoc_set(a, cell_symbol("tan"),    cell_cfun1(cmath_tan));
 #endif // HAVE_MATH
-    }
-    // TODO static math_assoc owns one, hard to avoid
-    return cell_ref(math_assoc);
+
+    return a;
 }
 

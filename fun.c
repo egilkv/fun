@@ -22,11 +22,14 @@ int main(int argc, char * const argv[]) {
     cfun_init();
 
     opterr = 0;
-    while ((opt = getopt(argc, argv, "+:OPRS")) >= 0) switch (opt) {
-        case 'O':
+    while ((opt = getopt(argc, argv, "+:GOPRS")) >= 0) switch (opt) {
+        case 'G': // debug
+            opt_showgc = 1;
+            break;
+        case 'O': // debug
             opt_showoblist = 1;
             break;
-        case 'P':
+        case 'P': // debug
             opt_showparse = 1;
             break;
         case 'R':

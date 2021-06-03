@@ -16,8 +16,6 @@
 #include "parse.h"
 #include "opt.h"
 
-static cell *io_assoc = NIL;
-
 #define MULTILINE_VECTOR 0  // multiline vectors
 #define MULTILINE_ASSOC  1  // multiline assocs
 #define MAX_INDENT 40
@@ -58,19 +56,26 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     if (!ct) {
         fprintf(out, "[]"); // NIL
         return;
-    } else switch (ct->type) {
+    } 
+    if (ct->pmark) {
+        fprintf(out, " ...."); // TODO indicating pointer to self, somehow
+        return;
+    }
+    ct->pmark = 1; // for recursion detection
+
+    switch (ct->type) {
 
     case c_LIST:
         fprintf(out, "[ ");
         show_list(out, ct);
         fprintf(out, " ]");
-        return;
+        break;
 
     case c_ELIST: // debug only TODO show difference?
         fprintf(out, "[ ");
         show_elist(out, ct);
         fprintf(out, " ]");
-        return;
+        break;
 
     case c_VECTOR:
         {
@@ -93,7 +98,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             fprintf(out, more ? " ] ":"] ");
 #endif
         }
-        return;
+        break;
 
     case c_ASSOC:
         {
@@ -121,20 +126,26 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             fprintf(out, more ? " } ":"} ");
 #endif
         }
-        return;
+        break;
 
     case c_KEYVAL: // only in assocs
         cell_writei(out, assoc_key(ct), indent);
         fprintf(out, " : ");  // TODO remove blank
         cell_writei(out, assoc_val(ct), indent);
-        return;
+        break;
+
+    case c_KEYWEAK: // only in assocs
+        cell_writei(out, assoc_key(ct), indent);
+        fprintf(out, ": #weak: ");
+        cell_writei(out, assoc_val(ct), indent);
+        break;
 
     case c_FUNC:
         cell_writei(out, cell_car(ct), indent);
         fprintf(out, "(");
         show_list(out, cell_cdr(ct));
         fprintf(out, ")");
-        return;
+        break;
 
     case c_PAIR:
         fprintf(out, "(");
@@ -142,19 +153,19 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, " :: "); // TODO remove
         cell_writei(out, cell_cdr(ct), indent);
         fprintf(out, ")");
-        return;
+        break;
 
     case c_RANGE:
         if (cell_car(ct)) cell_writei(out, cell_car(ct), indent);
         fprintf(out, " .. ");
         if (cell_cdr(ct)) cell_writei(out, cell_cdr(ct), indent);
-        return;
+        break;
 
     case c_LABEL:
         cell_writei(out, cell_car(ct), indent);
         fprintf(out, ": ");
         cell_writei(out, cell_cdr(ct), indent);
-        return;
+        break;
 
     case c_NUMBER:
         switch (ct->_.n.divisor) {
@@ -172,7 +183,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             fprintf(out, "%lld/%lld", ct->_.n.dividend.ival, ct->_.n.divisor); // 64bit
             break;
         }
-        return;
+        break;
 
     case c_STRING:
         {
@@ -204,11 +215,11 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             }
             fprintf(out, "\"");
         }
-        return;
+        break;
 
     case c_SYMBOL:
         fprintf(out, "%s", ct->_.symbol.nam);
-        return;
+        break;
 
     case c_CLOSURE:
         fprintf(out, "#closure(\n%*sargs: ", indent+2,""); // TODO debug
@@ -218,7 +229,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "\n%*scont: ", indent+2,"");
         cell_writei(out, ct->_.cons.cdr, indent);
         fprintf(out, "\n%*s) ", indent,"");
-        return;
+        break;
 
     case c_CLOSURE0:
     case c_CLOSURE0T:
@@ -227,26 +238,26 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "\n%*sbody: ", indent+2,"");
         cell_writei(out, ct->_.cons.cdr, indent);
         fprintf(out, "\n%*s) ", indent,"");
-        return;
+        break;
 
     case c_CFUNQ:
         fprintf(out, "#cfunQ()");
-        return;
+        break;
     case c_CFUN0:
         fprintf(out, "#cfun0()");
-        return;
+        break;
     case c_CFUN1:
         fprintf(out, "#cfun1()");
-        return;
+        break;
     case c_CFUN2:
         fprintf(out, "#cfun2()");
-        return;
+        break;
     case c_CFUN3:
         fprintf(out, "#cfun3()");
-        return;
+        break;
     case c_CFUNN:
         fprintf(out, "#cfunN()");
-        return;
+        break;
 
     case c_ENV:
         fprintf(out, "#env(\n%*sprev: ", indent+4,""); // TODO debug
@@ -258,17 +269,21 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "\n%*scont: ", indent+4,"");
         cell_writei(out, ct->_.cons.cdr->_.cons.cdr, indent+6);
         fprintf(out, "\n%*s)", indent+2,"");
-        return;
+        break;
 
     case c_SPECIAL:
         fprintf(out, "#special_%s()", ct->_.special.magic);
-        return;
+        break;
+
+    case c_STOP:
+        fprintf(out, "#stop"); // only during garbage collection cleanup
+        break;
 
     case c_FREE: // shall not happen
         fprintf(out, "#free");
-        return;
+        break;
     }
-    assert(0);
+    ct->pmark = 0;
 }
 
 // does not consume cell
@@ -284,6 +299,12 @@ static cell *cfio_write(cell *args) {
     }
     assert(args == NIL);
     return cell_void();
+}
+
+static cell *cfio_writeln(cell *args) {
+    cell *v = cfio_write(args);
+    fprintf(stdout, "\n");
+    return v;
 }
 
 static cell *cfio_print(cell *args) {
@@ -332,18 +353,18 @@ static cell *cfio_getline() {
 }
 
 cell *module_io() {
-    if (!io_assoc) {
-        io_assoc = cell_assoc();
+    // TODO consider cache
+    cell *a = cell_assoc();
 
-        // TODO these functions are impure
-        // TODO file open/write/delete and slurp to read an entire file?
-        assoc_set(io_assoc, cell_symbol("print"),   cell_cfunN(cfio_print)); // scheme 'display'
-        assoc_set(io_assoc, cell_symbol("println"), cell_cfunN(cfio_println));
-        assoc_set(io_assoc, cell_symbol("write"),   cell_cfunN(cfio_write));
-        assoc_set(io_assoc, cell_symbol("read"),    cell_cfun0(cfio_read));
-        assoc_set(io_assoc, cell_symbol("getline"), cell_cfun0(cfio_getline));
-    }
-    // TODO static io_assoc owns one, hard to avoid
-    return cell_ref(io_assoc);
+    // TODO these functions are impure
+    // TODO file open/write/delete and slurp to read an entire file?
+    assoc_set(a, cell_symbol("print"),   cell_cfunN(cfio_print)); // scheme 'display'
+    assoc_set(a, cell_symbol("println"), cell_cfunN(cfio_println));
+    assoc_set(a, cell_symbol("write"),   cell_cfunN(cfio_write));
+    assoc_set(a, cell_symbol("writeln"), cell_cfunN(cfio_writeln));
+    assoc_set(a, cell_symbol("read"),    cell_cfun0(cfio_read));
+    assoc_set(a, cell_symbol("getline"), cell_cfun0(cfio_getline));
+
+    return a;
 }
 

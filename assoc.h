@@ -12,6 +12,7 @@ struct assoc_i {
 };
 
 int assoc_set(struct cell_s *anode, struct cell_s *key, struct cell_s *val);
+int assoc_set_weak(struct cell_s *anode, struct cell_s *key, struct cell_s *val);
 
 int assoc_get(struct cell_s *anode, struct cell_s *key, struct cell_s **valuep);
 
@@ -23,3 +24,4 @@ struct cell_s *assoc_key(struct cell_s *p);
 struct cell_s *assoc_val(struct cell_s *p);
 
 void assoc_drop(struct cell_s *anode);
+
