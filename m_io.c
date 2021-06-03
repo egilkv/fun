@@ -130,13 +130,13 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 
     case c_KEYVAL: // only in assocs
         cell_writei(out, assoc_key(ct), indent);
-        fprintf(out, " : ");  // TODO remove blank
+        fprintf(out, ": ");
         cell_writei(out, assoc_val(ct), indent);
         break;
 
     case c_KEYWEAK: // only in assocs
         cell_writei(out, assoc_key(ct), indent);
-        fprintf(out, ": #weak: ");
+        fprintf(out, ": <weak> ");
         cell_writei(out, assoc_val(ct), indent);
         break;
 
