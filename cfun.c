@@ -157,13 +157,34 @@ static cell *cfunQ_quote(cell *args, cell *env) {
 }
 
 static cell *cfunQ_lambda(cell *args, cell *env) {
-    cell *arglist;
+    cell *paramlist;
     cell *cp;
-    if (!list_pop(&args, &arglist)) {
-        return error_rt1("Missing function argument list", args);
+    if (!list_pop(&args, &paramlist)) {
+        return error_rt1("Missing function parameter list", args);
     }
+    // TODO consider moving to parser
+    // check for proper and for duplicate parameters
+    cp = paramlist;
+    while (cp) {
+        cell *param;
+        assert(cell_is_list(cp));
+        param = cell_car(cp);
+        if (cell_is_label(param)) {
+            param = param->_.cons.car;
+            // TODO evaluate default value
+        }
+        if (!cell_is_symbol(param)) {
+            // TODO what to do about this?
+            cell_unref(error_rt1("parameter not a symbol", cell_ref(param)));
+        } else if (exists_on_list(cell_cdr(cp), param)) {
+            // TODO what to do about this?
+            cell_unref(error_rt1("duplicate parameter name", cell_ref(param)));
+        }
+        cp = cell_cdr(cp);
+    }
+
     // all functions are continuations
-    cp = cell_lambda(arglist, args);
+    cp = cell_lambda(paramlist, args);
     if (env != NIL) {
         cp = cell_closure(cp, cell_ref(env));
     }

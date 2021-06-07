@@ -5,6 +5,7 @@ gtk = #use("gtk3");
 
 app = gtk.application_new("org.gtk.example");
 
+/*
 gtk.signal_connect(app, 'activate, (a){
     gtk.print("***callback***\n");
     window = gtk.application_window_new(a);
@@ -23,6 +24,22 @@ gtk.signal_connect(app, 'activate, (a){
 
     gtk.widget_show_all(window)
 });
+*/
+
+app = gtk.application_new("org.gtk.example",
+    connect:    ['activate, (a){
+        gtk.print("***callback***\n");
+        window = gtk.application_window(app,
+            title:      "Window",
+            dfl_size:   [200, 200],
+            add:        gtk.button_box_new('horizontal,
+                            add:        gtk.button_new("Hello World"),
+                            connect:    ['clicked, (w){ gtk.print("Hello World\n") }],
+                            connect:    ['clicked, (w){ gtk.widget_destroy(window) }]
+                        ),
+            show:       #t);
+        }]
+);
 
 gtk.application_run(app, #args);
 

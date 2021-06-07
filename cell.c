@@ -158,9 +158,9 @@ cell *cell_cdr(cell *cp) {
     return cp->_.cons.cdr;
 }
 
-cell *cell_lambda(cell *args, cell *body) {
+cell *cell_lambda(cell *params, cell *body) {
     cell *node = newnode(c_CLOSURE0);
-    node->_.cons.car = args;
+    node->_.cons.car = params;
     node->_.cons.cdr = body;
     return node;
 }

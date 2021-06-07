@@ -13,6 +13,8 @@ list(0..0)
 
 trace(a,b,c) should print a,b,c and return value of c
 
+Div and mod as operators
+
 2^;
 
 get_integer() -> get_anyinteger()

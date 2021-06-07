@@ -434,9 +434,12 @@ static item *gotbar(char c, item *it, lxfile *in) {
 static item *gotstop(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_NUMBER) {
-            return gotdigit(c, it, in);
+           it = gotdigit(c, it, in);
         } else if (it->type == it_STOP) {
             it->type = it_RANGE;
+            it = nextchar(it, in);
+        } else if (it->type == it_RANGE) {
+            it->type = it_ELLIP;
         } else {
             lxungetc(c, in);
         }

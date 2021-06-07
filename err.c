@@ -37,11 +37,12 @@ static const char *it_name[] = {
    "++",        // it_CAT,
    "^",         // it_CIRC,
    "~",         // it_TILDE,   // 25
+   "...",       // it_ELLIP,
    "(",         // it_LPAR,
    ")",         // it_RPAR,
    "[",         // it_LBRK,
-   "]",         // it_RBRK,
-   "{",         // it_LBRC,    // 30
+   "]",         // it_RBRK,    // 30
+   "{",         // it_LBRC,
    "}",         // it_RBRC,
    "number",    // it_NUMBER,
    "string",    // it_STRING,

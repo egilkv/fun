@@ -31,3 +31,5 @@ cell *cell_void();
 
 cell *cfun2_ref(cell *a, cell *b);
 
+int exists_on_list(cell *list, cell *item);
+

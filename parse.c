@@ -158,7 +158,7 @@ static cell *expr(precedence lv, lxfile *in) {
 
     case it_LPAR:
         // read as list
-        pt = getlist(it, it_COMMA, it_RPAR, l_BASE, in); // no colon allowed
+        pt = getlist(it, it_COMMA, it_RPAR, l_LABEL, in); // colon allowed
         it = lexical(in);
         if (cell_is_list(pt)) {
             // single item on list, not sure what it is
@@ -541,7 +541,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 
 
 //
-// parse list of function arguments or parameters
+//  parse lists of various types
 //
 static cell *getlist(item *op, token sep_token, token end_token, 
                      precedence blv, lxfile *in) {

@@ -30,7 +30,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     cell *nam;
     cell *val;
     assert(fun && (fun->type == c_CLOSURE0 || fun->type == c_CLOSURE0T));
-    cell *argnames = cell_ref(fun->_.cons.car);
+    cell *params = cell_ref(fun->_.cons.car);
     cell *newassoc = cell_assoc();
 
     if (fun->type == c_CLOSURE0T) {
@@ -44,7 +44,6 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     while (list_pop(&args, &val)) {
 
         if (cell_is_label(val)) {
-            cell *an = argnames;
             ++gotlabel;
             label_split(val, &nam, &val);
             if (!cell_is_symbol(nam)) {
@@ -52,13 +51,9 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
                 cell_unref(val);
                 continue;
             }
-            // check if label exists on parameter list
-            while (an) {
-                assert(cell_is_list(an));
-                if (cell_car(an) == nam) break; // found it
-                an = cell_cdr(an);
-            }
-            if (!an) {
+            // check if label actually exists on parameter list
+            // TODO takes much time
+            if (!exists_on_list(params, nam)) {
                 cell_unref(error_rt1("no such parameter label", nam));
                 cell_unref(val);
                 continue;
@@ -68,7 +63,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
             continue;
         } else {
             // match unlabeled argument to parameter list
-            if (!list_pop(&argnames, &nam)) {
+            if (!list_pop(&params, &nam)) {
                 arg0(cell_list(val, args)); // too many args?
                 break;
             }
@@ -90,21 +85,35 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
 	}
     }
     // check for any args with no value supplied for?
-    while (list_pop(&argnames, &nam)) {
+    while (list_pop(&params, &nam)) {
         // TODO if more than one, have one message
-        if (assoc_get(newassoc, nam, (cell **)0)) {
-            cell_unref(nam);
-        } else {
-            cell_unref(error_rt1("missing value for", cell_ref(nam)));
-            if (!assoc_set(newassoc, nam, cell_void())) {
-                assert(0);
+        if (cell_is_label(nam)) { // a default value is supplied?
+            label_split(nam, &nam, &val);
+            if (assoc_get(newassoc, nam, (cell **)0)) {
+                cell_unref(nam);
+                cell_unref(val);
+            } else {
+                // use default value
+                // TODO eval when?
+                if (!assoc_set(newassoc, nam, val)) {
+                    assert(0);
+                }
+            }
+        } else { // no default
+            if (assoc_get(newassoc, nam, (cell **)0)) {
+                cell_unref(nam);
+            } else {
+                cell_unref(error_rt1("missing value for", cell_ref(nam)));
+                if (!assoc_set(newassoc, nam, cell_void())) { // error
+                    assert(0);
+                }
             }
         }
     }
 
 #else
     // pick up arguments one by one and add to assoc
-    while (list_pop(&argnames, &nam)) {
+    while (list_pop(&params, &nam)) {
 	assert(cell_is_symbol(nam));
         if (!list_pop(&args, &val)) {
 	    // TODO if more than one, have one message

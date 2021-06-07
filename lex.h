@@ -31,11 +31,12 @@ enum it_ {
    it_CAT,
    it_CIRC,
    it_TILDE,   // 25
+   it_ELLIP,
    it_LPAR,
    it_RPAR,
    it_LBRK,
-   it_RBRK,
-   it_LBRC,    // 30
+   it_RBRK,    // 30
+   it_LBRC,
    it_RBRC,
    it_NUMBER,
    it_STRING,

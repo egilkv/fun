@@ -1,6 +1,7 @@
 /*  TAB-P
  *
  *  C binding helpers
+ *  and other useful things
  */
 
 #include <stdlib.h>
@@ -387,5 +388,16 @@ cell *cell_void() {
     return cell_ref(hash_void);
 }
 
-
-
+// check if item exists on list
+// refs nothing
+int exists_on_list(cell *list, cell *item) {
+    cell *param;
+    while (list) {
+        assert(cell_is_list(list));
+        param = cell_car(list);
+        if (cell_is_label(param)) param = param->_.cons.car;
+        if (param == item) return 1; // found it
+        list = cell_cdr(list);
+    }
+    return 0;
+}
