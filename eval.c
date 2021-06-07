@@ -26,6 +26,7 @@ static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *conten
 
 // assume fun, args and contenv are all reffed
 static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
+    int gotlabel = 0;
     cell *nam;
     cell *val;
     assert(fun && (fun->type == c_CLOSURE0 || fun->type == c_CLOSURE0T));
@@ -43,14 +44,28 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     while (list_pop(&args, &val)) {
 
         if (cell_is_label(val)) {
-            // TODO check if label exists on parameter list
+            cell *an = argnames;
+            ++gotlabel;
             label_split(val, &nam, &val);
             if (!cell_is_symbol(nam)) {
                 cell_unref(error_rt1("parameter label must be a symbol", nam));
                 cell_unref(val);
                 continue;
             }
-            // TODO from now on, ignore argnames...
+            // check if label exists on parameter list
+            while (an) {
+                assert(cell_is_list(an));
+                if (cell_car(an) == nam) break; // found it
+                an = cell_cdr(an);
+            }
+            if (!an) {
+                cell_unref(error_rt1("no such parameter label", nam));
+                cell_unref(val);
+                continue;
+            }
+        } else if (gotlabel) {
+            cell_unref(error_rt1("ignore unlabelled argument following labelled", val));
+            continue;
         } else {
             // match unlabeled argument to parameter list
             if (!list_pop(&argnames, &nam)) {
