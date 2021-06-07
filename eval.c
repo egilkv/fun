@@ -67,6 +67,9 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
                 arg0(cell_list(val, args)); // too many args?
                 break;
             }
+            if (cell_is_label(nam)) { // a default value is supplied?
+                label_split(nam, &nam, NILP);
+            }
             assert(cell_is_symbol(nam));
         }
 
@@ -89,7 +92,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
         // TODO if more than one, have one message
         if (cell_is_label(nam)) { // a default value is supplied?
             label_split(nam, &nam, &val);
-            if (assoc_get(newassoc, nam, (cell **)0)) {
+            if (assoc_get(newassoc, nam, NILP)) {
                 cell_unref(nam);
                 cell_unref(val);
             } else {
@@ -100,7 +103,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
                 }
             }
         } else { // no default
-            if (assoc_get(newassoc, nam, (cell **)0)) {
+            if (assoc_get(newassoc, nam, NILP)) {
                 cell_unref(nam);
             } else {
                 cell_unref(error_rt1("missing value for", cell_ref(nam)));

@@ -254,7 +254,7 @@ void range_split(cell *cp, cell **carp, cell **cdrp) {
 void label_split(cell *cp, cell **carp, cell **cdrp) {
     assert(cell_is_label(cp));
     *carp = cell_ref(cp->_.cons.car);
-    *cdrp = cell_ref(cp->_.cons.cdr);
+    if (cdrp) *cdrp = cell_ref(cp->_.cons.cdr);
     cell_unref(cp);
 }
 

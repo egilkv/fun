@@ -88,6 +88,7 @@ struct cell_s {
 typedef enum cell_t celltype;
 
 #define NIL ((cell *)0)
+#define NILP ((cell **)0)
 
 typedef struct cell_s cell;
 
