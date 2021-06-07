@@ -11,7 +11,7 @@
 #include "debug.h"
 
 static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *contenv) {
-#if 0 // TODO enable end recursion detection BUG: does not work
+#if 0 // TODO enable end call detection BUG: does not work
     if (*envp && env_prog(*envp) == NIL) {
 	// end recursion, reuse environment
         env_replace(*envp, newprog, newassoc, contenv);
@@ -35,7 +35,59 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     if (fun->type == c_CLOSURE0T) {
         debug_prints("\n*** "); // trace
     }
+#if 1 // TODO
+    // TODO     cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
+    // TODO check for duplicate params at func def
 
+    // pick up actual arguments one by one
+    while (list_pop(&args, &val)) {
+
+        if (cell_is_label(val)) {
+            // TODO check if label exists on parameter list
+            label_split(val, &nam, &val);
+            if (!cell_is_symbol(nam)) {
+                cell_unref(error_rt1("parameter label must be a symbol", nam));
+                cell_unref(val);
+                continue;
+            }
+            // TODO from now on, ignore argnames...
+        } else {
+            // match unlabeled argument to parameter list
+            if (!list_pop(&argnames, &nam)) {
+                arg0(cell_list(val, args)); // too many args?
+                break;
+            }
+            assert(cell_is_symbol(nam));
+        }
+
+        // TODO C recursion, should be avoided
+        val = eval(val, *envp);
+
+        if (fun->type == c_CLOSURE0T) {
+            debug_write(nam);
+            debug_prints(": ");
+            debug_write(val);
+        }
+	if (!assoc_set(newassoc, nam, val)) {
+	    cell_unref(val);
+	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
+            // TODO this should be checked earlier...
+	}
+    }
+    // check for any args with no value supplied for?
+    while (list_pop(&argnames, &nam)) {
+        // TODO if more than one, have one message
+        if (assoc_get(newassoc, nam, (cell **)0)) {
+            cell_unref(nam);
+        } else {
+            cell_unref(error_rt1("missing value for", cell_ref(nam)));
+            if (!assoc_set(newassoc, nam, cell_void())) {
+                assert(0);
+            }
+        }
+    }
+
+#else
     // pick up arguments one by one and add to assoc
     while (list_pop(&argnames, &nam)) {
 	assert(cell_is_symbol(nam));
@@ -57,10 +109,11 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
 	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
 	}
     }
+    arg0(args);
+#endif
     if (fun->type == c_CLOSURE0T) {
         // debug_prints("\n");
     }
-    arg0(args); // too many args?
     insert_prog(envp, cell_ref(fun->_.cons.cdr), newassoc, contenv);
     cell_unref(fun);
 }

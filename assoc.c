@@ -93,6 +93,7 @@ int assoc_set_weak(cell *anode, cell* key, cell* val) {
 }
 
 // neither key nor anode is consumed TODO evaluate
+// is valuep is NULL, do not ref value
 // false if not found
 int assoc_get(cell *anode, cell* key, cell **valuep) {
     assert(cell_is_assoc(anode));
@@ -103,13 +104,13 @@ int assoc_get(cell *anode, cell* key, cell **valuep) {
         if ((p = anode->_.assoc.table[hash])) {
             while (cell_is_elist(p)) {
                 if (assoc_key(p->_.cons.car) == key) { // found?
-                    *valuep = cell_ref(assoc_val(p->_.cons.car));
+                    if (valuep) *valuep = cell_ref(assoc_val(p->_.cons.car));
                     return 1;
                 }
                 p = p->_.cons.cdr;
             }
             if (assoc_key(p) == key) { // found?
-                *valuep = cell_ref(assoc_val(p));
+                if (valuep) *valuep = cell_ref(assoc_val(p));
                 return 1;
             }
 	}
