@@ -256,7 +256,7 @@ abc0(1000, c:300);
 
 // variadic functions:
 average = ( ... ) {
-    #apply(#plus, ...) / #length(...)
+    #apply(#plus, ...) / #count(...)
 };
 
 average(11, 12, 12);
@@ -274,3 +274,6 @@ add(1,2,3);
 #apply(#plus, 1, 2, [3, 4, 5]);
 
 35/3 * 1.0;
+
+g = (a, ...) { [a] ++ [99] ++ ... };
+g(2, a:3, 4);

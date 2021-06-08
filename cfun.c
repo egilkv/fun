@@ -829,7 +829,7 @@ static cell *cfunN_noteq(cell *args) {
     return result;
 }
 
-static cell *cfun1_length(cell *a) {
+static cell *cfun1_count(cell *a) {
 #if 0
     if (cell_is_assoc(a)) {
         // TODO length of assoc may be a thing
@@ -1114,6 +1114,7 @@ void cfun_init() {
                     oblistv("#apply",    cell_cfunQ(cfunQ_apply));
     hash_assoc    = oblistv("#assoc",    cell_cfunN(cfunN_assoc));
     hash_cat      = oblistv("#cat",      cell_cfunN(cfunN_cat));
+                    oblistv("#count",    cell_cfun1(cfun1_count));
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
                     oblistv("#exit",     cell_cfunN(cfunN_exit));
@@ -1123,7 +1124,6 @@ void cfun_init() {
     hash_if       = oblistv("#if",       cell_cfunQ(cfunQ_if));
                     oblistv("#include",  cell_cfun1(cfun1_include));
     hash_lambda   = oblistv("#lambda",   cell_cfunQ(cfunQ_lambda));
-                    oblistv("#length",   cell_cfun1(cfun1_length));
     hash_le       = oblistv("#le",       cell_cfunN(cfunN_le));
     hash_lt       = oblistv("#lt",       cell_cfunN(cfunN_lt));
     hash_list     = oblistv("#list",     cell_cfunN(cfunN_list));

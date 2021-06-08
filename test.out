@@ -160,7 +160,7 @@ func() ==> case 2 is ALICE and DELTA
 #cat(#list(1, 2, 3), #list(4, 5)) ==> [ 1, 2, 3, 4, 5 ]
 #include("qsort.fun") ==> #closure0(
   args: [ list ]
-  body: [ #defq(pivot, #if(#noteq(list, #list()), list(0))), #defq(q, #lambda([ list, first, last ], #if(#eq(list, #list()), #cat(qsort(first), #list(pivot), qsort(last)), #if(#lt(list(0), pivot), q(#ref(list, 1 .. ), #cat(list(0 .. 0), first), last), q(#ref(list, 1 .. ), first, #cat(list(0 .. 0), last)))))), #if(#le(#length(list), 1), list, q(#ref(list, 1 .. ), #list(), #list())) ]
+  body: [ #defq(pivot, #if(#noteq(list, #list()), list(0))), #defq(q, #lambda([ list, first, last ], #if(#eq(list, #list()), #cat(qsort(first), #list(pivot), qsort(last)), #if(#lt(list(0), pivot), q(#ref(list, 1 .. ), #cat(list(0 .. 0), first), last), q(#ref(list, 1 .. ), first, #cat(list(0 .. 0), last)))))), #if(#le(#count(list), 1), list, q(#ref(list, 1 .. ), #list(), #list())) ]
 ) 
 qsort(#list(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
 qsort(#list("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ]
@@ -292,9 +292,9 @@ abc0() ==> 810
 abc0(b: 200) ==> 8010
 abc0(1000) ==> 1800
 abc0(1000, c: 300) ==> 7200
-#defq(average, #lambda([ ... ], #quotient(#apply(#plus, ...), #length(...)))) ==> #closure0(
+#defq(average, #lambda([ ... ], #quotient(#apply(#plus, ...), #count(...)))) ==> #closure0(
   args: [ ... ]
-  body: [ #quotient(#apply(#plus, ...), #length(...)) ]
+  body: [ #quotient(#apply(#plus, ...), #count(...)) ]
 ) 
 average(11, 12, 12) ==> 35/3
 average(11, 12, 12.0) ==> 11.6666666666667
@@ -308,3 +308,8 @@ add(1, 2, 3) ==> 6
 #apply(#plus) ==> 0
 #apply(#plus, 1, 2, #list(3, 4, 5)) ==> 15
 #times(#quotient(35, 3), 1.0) ==> 11.6666666666667
+#defq(g, #lambda([ a, ... ], #cat(#list(a), #list(99), ...))) ==> #closure0(
+  args: [ a, ... ]
+  body: [ #cat(#list(a), #list(99), ...) ]
+) 
+g(2, a: 3, 4) ==> [ 2, 99, a: 3, 4 ]
