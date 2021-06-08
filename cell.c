@@ -282,7 +282,7 @@ cell *cell_number(number *np) {
     return node;
 }
 
-cell *cell_cfunQ(struct cell_s *(*fun)(cell *, cell *)) {
+cell *cell_cfunQ(struct cell_s *(*fun)(cell *, cell **)) {
     cell *node = newnode(c_CFUNQ);
     node->_.cfunq.def = fun;
     return node;

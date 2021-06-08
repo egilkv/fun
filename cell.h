@@ -68,7 +68,7 @@ struct cell_s {
             char_t *nam;
         } symbol;
         struct {
-            struct cell_s *(*def)(struct cell_s *, struct cell_s *); // 2nd arg is env
+            struct cell_s *(*def)(struct cell_s *, struct cell_s **); // 2nd arg is envp
         } cfunq;
         struct {
             struct cell_s *(*def)(void);
@@ -95,7 +95,7 @@ typedef struct cell_s cell;
 cell *cell_ref(cell *cp);
 void cell_unref(cell *cp);
 
-cell *cell_cfunQ(cell *(*fun)(cell *, cell *));
+cell *cell_cfunQ(cell *(*fun)(cell *, cell **));
 cell *cell_cfunN(cell *(*fun)(cell *));
 cell *cell_cfun0(cell *(*fun)(void));
 cell *cell_cfun1(cell *(*fun)(cell *));
@@ -159,7 +159,7 @@ cell *cell_number(number *np);
 int cell_is_number(cell *cp);
 int cell_is_integer(cell *cp);
 
-cell *eval(cell *arg, cell *env); // defined in eval.c
+cell *eval(cell *arg, cell **envp); // defined in eval.c
 
 void cell_sweep(cell *node);
 

@@ -160,7 +160,7 @@ static cell *ctime_mktime(cell *a) {
 }
 
 // measure time required for evaluating all arguments
-static cell *ctime_time(cell *args, cell *env) {
+static cell *ctime_time(cell *args, cell **envp) {
     cell *a;
     number secs;
     struct timeval tv;
@@ -170,7 +170,7 @@ static cell *ctime_time(cell *args, cell *env) {
 
     // evaluate all arguments
     while (list_pop(&args, &a)) {
-        cell_unref(eval(a, env));
+        cell_unref(eval(a, envp));
     }
 
     gettimeofday(&tv, (struct timezone *)0);

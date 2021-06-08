@@ -32,6 +32,7 @@ cell *chomp_lx(lxfile *lxf) {
     cell *ct;
 
     for (;;) {
+        cell *env;
         lxf->show_prompt = 1;
         ct = expression(lxf);
 	if (!ct) break; // eof
@@ -44,7 +45,8 @@ cell *chomp_lx(lxfile *lxf) {
                 printf(" ==> ");
 	    }
 	}
-        ct = eval(ct, NULL);
+        env = NIL;
+        ct = eval(ct, &env);
         if (lxf->f == stdin) {
             if (ct != hash_void) { // write result if not void
                 cell_write(stdout, ct);

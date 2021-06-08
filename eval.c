@@ -75,7 +75,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
 
         // TODO C recursion, should be avoided
         // TODO should this be moved up???
-        val = eval(val, *envp);
+        val = eval(val, envp);
 
         // special case for ellipsis, evaluate rest of list too
         if (nam == hash_ellip) {
@@ -86,7 +86,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
                 nextp = &((*nextp)->_.cons.cdr);
                 if (!list_pop(&args, &val)) break;
                 // TODO special case of evaluation for labels??
-                val = eval(val, *envp);
+                val = eval(val, envp);
             }
             val = result;
         }
@@ -142,9 +142,9 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
 }
 
 // evalute the one thing in arg
-cell *eval(cell *arg, cell *env) {
-    cell *end_env = env;
-    cell *end_prog = env ? env_prog(env) : NIL; // unreffed
+cell *eval(cell *arg, cell **envp) {
+    cell *end_env = *envp;
+    cell *end_prog = *envp ? env_prog(*envp) : NIL; // unreffed
     cell *result = NIL;
 
     for (;;) {
@@ -157,7 +157,7 @@ cell *eval(cell *arg, cell *env) {
 
 	case c_SYMBOL: // evaluate symbol
 	    {
-                cell *e = env;
+                cell *e = *envp;
 		for (;;) {
 		    if (!e) {
 			// global
@@ -180,15 +180,15 @@ cell *eval(cell *arg, cell *env) {
                 cell_unref(arg);
                 arg = NIL;
 
-		fun = eval(fun, env);
+                fun = eval(fun, envp);
 		// TODO may consider moving evaluation out of functions
 
 		switch (fun ? fun->type : c_LIST) {
 		case c_CFUNQ:
 		    {
-                        struct cell_s *(*def)(cell *, cell *) = fun->_.cfunq.def;
+                        struct cell_s *(*def)(cell *, cell **) = fun->_.cfunq.def;
 			cell_unref(fun);
-                        result = (*def)(args, env);
+                        result = (*def)(args, envp);
 		    }
 		    break;
 
@@ -206,7 +206,7 @@ cell *eval(cell *arg, cell *env) {
 			cell *(*def)(cell *) = fun->_.cfun1.def;
 			cell_unref(fun);
                         if (arg1(args, &result)) { // if error, result is void
-			    result = (*def)(eval(result, env));
+                            result = (*def)(eval(result, envp));
 			}
 		    }
 		    break;
@@ -217,7 +217,7 @@ cell *eval(cell *arg, cell *env) {
 			cell *b = NIL;
 			cell_unref(fun);
                         if (arg2(args, &result, &b)) { // if error, result is void
-			    result = (*def)(eval(result, env), eval(b, env));
+                            result = (*def)(eval(result, envp), eval(b, envp));
 			}
 		    }
 		    break;
@@ -229,7 +229,7 @@ cell *eval(cell *arg, cell *env) {
 			cell *c = NIL;
 			cell_unref(fun);
                         if (arg3(args, &result, &b, &c)) { // if error, result is void
-			    result = (*def)(eval(result, env), eval(b, env), eval(c, env));
+                            result = (*def)(eval(result, envp), eval(b, envp), eval(c, envp));
 			}
 		    }
 		    break;
@@ -241,7 +241,7 @@ cell *eval(cell *arg, cell *env) {
 			cell *e = NIL;
 			cell **pp = &e;
                         while (list_pop(&args, &result)) {
-			    *pp = cell_list(eval(result, env), NIL);
+                            *pp = cell_list(eval(result, envp), NIL);
 			    pp = &((*pp)->_.cons.cdr);
 			}
                         assert(args == NIL);
@@ -256,14 +256,14 @@ cell *eval(cell *arg, cell *env) {
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
 
-                        apply_closure(lambda, args, contenv, &env);
+                        apply_closure(lambda, args, contenv, envp);
                     }
 		    result = NIL; // TODO probably #void
 		    break; // continue executing
 
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    apply_closure(fun, args, NIL, &env);
+                    apply_closure(fun, args, NIL, envp);
 		    result = NIL; // TODO probably #void
 		    break; // continue executing
 
@@ -272,7 +272,7 @@ cell *eval(cell *arg, cell *env) {
                 case c_LIST:
                 case c_STRING:
                     if (arg1(args, &result)) { // if error, result is void
-                        result = cfun2_ref(fun, eval(result, env));
+                        result = cfun2_ref(fun, eval(result, envp));
                     }
 		    break;
 
@@ -290,10 +290,10 @@ cell *eval(cell *arg, cell *env) {
                 cell *b1, *b2;
                 range_split(arg, &b1, &b2);
                 if (b1) {
-                    b1 = eval(b1, env);
+                    b1 = eval(b1, envp);
                 }
                 if (b2) {
-                    b2 = eval(b2, env);
+                    b2 = eval(b2, envp);
                 }
                 result = cell_range(b1, b2);
             }
@@ -317,11 +317,11 @@ cell *eval(cell *arg, cell *env) {
 		    // a symbol stays as is
 		    break;
 		default:
-		    b1 = eval(b1, env); // evaluate in all other cases
+                    b1 = eval(b1, envp); // evaluate in all other cases
 		    break;
                 }
                 if (b2) {
-                    b2 = eval(b2, env);
+                    b2 = eval(b2, envp);
                 }
                 result = cell_label(b1, b2);
             }
@@ -337,19 +337,19 @@ cell *eval(cell *arg, cell *env) {
 
         // TODO can all be made more efficient
 	for (;;) {
-	    if (!env) {
+            if (!*envp) {
 		return result; // reached top level
 	    }
-            if (env == end_env && env_prog(env) == end_prog) {
+            if (*envp == end_env && env_prog(*envp) == end_prog) {
                 // arg fully done // TODO this is a hack, really...
                 return result;
 	    }
-            if (env_prog(env) == NIL) {
+            if (env_prog(*envp) == NIL) {
 		// reached end of current level
 		// drop one level of environment
-                cell *prevenv = cell_ref(env_prev(env));
-                cell_unref(env);
-		env = prevenv;
+                cell *prevenv = cell_ref(env_prev(*envp));
+                cell_unref(*envp);
+                *envp = prevenv;
 	    } else {
 		break;
 	    }
@@ -357,9 +357,9 @@ cell *eval(cell *arg, cell *env) {
 	// eval one more expression
 	cell_unref(result);
         // TODO make more efficient
-        if (!list_pop(env_progp(env), &arg)) {
+        if (!list_pop(env_progp(*envp), &arg)) {
             // assert(0);
-            return error_rt1("bad program", env_prog(env));
+            return error_rt1("bad program", env_prog(*envp));
         }
     }
     assert(0);

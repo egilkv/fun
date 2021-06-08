@@ -30,7 +30,7 @@
 
 static void cfun_exit(void);
 
-static cell *cfunQ_defq(cell *args, cell *env) {
+static cell *cfunQ_defq(cell *args, cell **envp) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
 	return a; // error
@@ -39,22 +39,22 @@ static cell *cfunQ_defq(cell *args, cell *env) {
         cell_unref(b);
         return error_rt1("not a symbol", a);
     }
-    b = eval(b, env);
-    if (env) {
+    b = eval(b, envp);
+    if (*envp) {
 #if HAVE_WEAK
-        if (b && b->type==c_CLOSURE && b->_.cons.cdr==env) {
+        if (b && b->type == c_CLOSURE && b->_.cons.cdr == *envp) {
             // continuation in its own environment
             // the assumption is that the environment will be dissolved first
             // if the closure is passed on externally, it will have an extra
             // ref, and live on
-            if (!assoc_set_weak(env_assoc(env), a, b)) {
+            if (!assoc_set_weak(env_assoc(*envp), a, b)) {
                 cell_unref(b);
                 cell_unref(error_rt1("cannot redefine immutable", a));
             }
         } else 
 #endif
         {
-            if (!assoc_set(env_assoc(env), a, cell_ref(b))) {
+            if (!assoc_set(env_assoc(*envp), a, cell_ref(b))) {
                 cell_unref(b);
                 cell_unref(error_rt1("cannot redefine immutable", a));
             }
@@ -67,7 +67,7 @@ static cell *cfunQ_defq(cell *args, cell *env) {
     return b;
 }
 
-static cell *cfunQ_apply(cell *args, cell *env) {
+static cell *cfunQ_apply(cell *args, cell **envp) {
     cell *func;
     cell *collectargs = NIL;
     cell **nextp = &collectargs;
@@ -77,9 +77,9 @@ static cell *cfunQ_apply(cell *args, cell *env) {
 	cell_unref(args);
         return error_rt0("missing function");
     }
-    func = eval(func, env);
+    func = eval(func, envp);
     while (list_pop(&args, &a)) {
-        a = eval(a, env);
+        a = eval(a, envp);
         if (!args) {
             // last argument is special
             *nextp = a;
@@ -90,15 +90,15 @@ static cell *cfunQ_apply(cell *args, cell *env) {
         nextp = &((*nextp)->_.cons.cdr);
     }
     // TODO can be made more efficient
-    return eval(cell_func(func, collectargs), env);
+    return eval(cell_func(func, collectargs), envp);
 }
 
-static cell *cfunQ_and(cell *args, cell *env) {
+static cell *cfunQ_and(cell *args, cell **envp) {
     int bool = 1;
     cell *a;
 
     while (list_pop(&args, &a)) {
-	a = eval(a, env);
+        a = eval(a, envp);
 	if (!get_boolean(a, &bool, args)) {
             return cell_void(); // error
 	}
@@ -110,12 +110,12 @@ static cell *cfunQ_and(cell *args, cell *env) {
     return cell_ref(bool ? hash_t : hash_f);
 }
 
-static cell *cfunQ_or(cell *args, cell *env) {
+static cell *cfunQ_or(cell *args, cell **envp) {
     int bool = 0;
     cell *a;
 
     while (list_pop(&args, &a)) {
-	a = eval(a, env);
+        a = eval(a, envp);
 	if (!get_boolean(a, &bool, args)) {
             return cell_void(); // error
 	}
@@ -135,7 +135,7 @@ static cell *cfun1_not(cell *a) {
     return bool ? cell_ref(hash_f) : cell_ref(hash_t);
 }
 
-static cell *cfunQ_if(cell *args, cell *env) {
+static cell *cfunQ_if(cell *args, cell **envp) {
     int bool;
     cell *a, *b, *c;
 
@@ -153,7 +153,7 @@ static cell *cfunQ_if(cell *args, cell *env) {
     } else {
 	c = cell_void(); // TODO can optimize
     }
-    a = eval(a, env);
+    a = eval(a, envp);
     if (!get_boolean(a, &bool, args)) {
         return cell_void(); // error
     }
@@ -165,24 +165,24 @@ static cell *cfunQ_if(cell *args, cell *env) {
 	a = c;
     }
 #if 1 // TODO enable...
-    if (env) {
+    if (*envp) {
 	// evaluate in-line
-	*env_progp(env) = cell_list(a, env_prog(env));
+        *env_progp(*envp) = cell_list(a, env_prog(*envp));
         return NIL;
     } else 
 #endif
     {
-        return eval(a, env);
+        return eval(a, envp);
     }
 }
 
-static cell *cfunQ_quote(cell *args, cell *env) {
+static cell *cfunQ_quote(cell *args, cell **envp) {
     cell *a;
     arg1(args, &a); // sets void if error
     return a;
 }
 
-static cell *cfunQ_lambda(cell *args, cell *env) {
+static cell *cfunQ_lambda(cell *args, cell **envp) {
     cell *paramlist;
     cell *cp;
     if (!list_pop(&args, &paramlist)) {
@@ -217,8 +217,8 @@ static cell *cfunQ_lambda(cell *args, cell *env) {
 
     // all functions are continuations
     cp = cell_lambda(paramlist, args);
-    if (env != NIL) {
-        cp = cell_closure(cp, cell_ref(env));
+    if (*envp != NIL) {
+        cp = cell_closure(cp, cell_ref(*envp));
     }
     return cp;
 }
@@ -835,10 +835,10 @@ static cell *cfun1_length(cell *a) {
     return cell_integer(length);
 }
 
-static cell *cfunQ_refq(cell *args, cell *env) {
+static cell *cfunQ_refq(cell *args, cell **envp) {
     cell *a, *b;
     if (arg2(args, &a, &b)) {
-	a = cfun2_ref(eval(a, env), b);
+        a = cfun2_ref(eval(a, envp), b);
     }
     return a;
 }
@@ -1003,7 +1003,7 @@ static cell *cfun1_trace(cell *a) {
 }
 
 // debugging, enable trace, return first (valid) argument
-static cell *cfunQ_traceon(cell *args, cell *env) {
+static cell *cfunQ_traceon(cell *args, cell **envp) {
     cell *result = cell_ref(hash_void);
     cell *arg;
     while (list_pop(&args, &arg)) {
@@ -1021,7 +1021,7 @@ static cell *cfunQ_traceon(cell *args, cell *env) {
 }
 
 // debugging, disable trace, return first (valid) argument
-static cell *cfunQ_traceoff(cell *args, cell *env) {
+static cell *cfunQ_traceoff(cell *args, cell **envp) {
     cell *result = cell_ref(hash_void);
     cell *arg;
     while (list_pop(&args, &arg)) {
