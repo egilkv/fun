@@ -229,6 +229,9 @@ static cell *cfunN_plus(cell *args) {
     cell *a;
     result.dividend.ival = 0;
     result.divisor = 1;
+    if (list_pop(&args, &a)) {
+        if (!get_number(a, &result, args)) return cell_void();
+    }
     while (list_pop(&args, &a)) {
         if (!get_number(a, &operand, args)) return cell_void();
 	if (sync_float(&result, &operand)) {
@@ -322,7 +325,9 @@ static cell *cfunN_times(cell *args) {
     cell *a;
     result.dividend.ival = 1;
     result.divisor = 1;
-    // TODO here and elsewhere, pop first argument first
+    if (list_pop(&args, &a)) {
+        if (!get_number(a, &result, args)) return cell_void();
+    }
     while (list_pop(&args, &a)) {
         if (!get_number(a, &operand, args)) return cell_void();
 	if (sync_float(&result, &operand)) {
@@ -359,7 +364,7 @@ static cell *cfunN_quotient(cell *args) {
     number operand;
     cell *a;
     if (!list_pop(&args, &a)) {
-        return error_rt1("at least one argument required", args);
+        return error_rt1("needs at least one argument", args);
     }
     // remark: in standard lisp (/ 5) is shorthand for 1/5
     if (!get_number(a, &result, args)) return cell_void(); // error
