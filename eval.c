@@ -36,7 +36,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     if (fun->type == c_CLOSURE0T) {
         debug_prints("\n*** "); // trace
     }
-#if 1 // TODO
+
     // TODO     cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
     // TODO check for duplicate params at func def
 
@@ -70,11 +70,26 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
             if (cell_is_label(nam)) { // a default value is supplied?
                 label_split(nam, &nam, NILP);
             }
-            assert(cell_is_symbol(nam));
+            assert(nam == hash_ellip || cell_is_symbol(nam));
         }
 
         // TODO C recursion, should be avoided
+        // TODO should this be moved up???
         val = eval(val, *envp);
+
+        // special case for ellipsis, evaluate rest of list too
+        if (nam == hash_ellip) {
+            cell *result = NIL;
+            cell **nextp = &result;
+            for (;;) {
+                *nextp = cell_list(val, NIL);
+                nextp = &((*nextp)->_.cons.cdr);
+                if (!list_pop(&args, &val)) break;
+                // TODO special case of evaluation for labels??
+                val = eval(val, *envp);
+            }
+            val = result;
+        }
 
         if (fun->type == c_CLOSURE0T) {
             debug_write(nam);
@@ -82,11 +97,12 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
             debug_write(val);
         }
 	if (!assoc_set(newassoc, nam, val)) {
+            // TODO checked earlier, so should not happen
 	    cell_unref(val);
 	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
-            // TODO this should be checked earlier...
 	}
     }
+
     // check for any args with no value supplied for?
     while (list_pop(&params, &nam)) {
         // TODO if more than one, have one message
@@ -105,6 +121,10 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
         } else { // no default
             if (assoc_get(newassoc, nam, NILP)) {
                 cell_unref(nam);
+            } else if (nam == hash_ellip) {
+                if (!assoc_set(newassoc, nam, NIL)) { // empty list
+                    assert(0);
+                }
             } else {
                 cell_unref(error_rt1("missing value for", cell_ref(nam)));
                 if (!assoc_set(newassoc, nam, cell_void())) { // error
@@ -114,30 +134,6 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
         }
     }
 
-#else
-    // pick up arguments one by one and add to assoc
-    while (list_pop(&params, &nam)) {
-	assert(cell_is_symbol(nam));
-        if (!list_pop(&args, &val)) {
-	    // TODO if more than one, have one message
-	    cell_unref(error_rt1("missing value for", cell_ref(nam)));
-            val = cell_void();
-	} else {
-	    // TODO C recursion, should be avoided
-	    val = eval(val, *envp);
-	}
-        if (fun->type == c_CLOSURE0T) {
-            debug_write(nam);
-            debug_prints(": ");
-            debug_write(val);
-        }
-	if (!assoc_set(newassoc, nam, val)) {
-	    cell_unref(val);
-	    cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
-	}
-    }
-    arg0(args);
-#endif
     if (fun->type == c_CLOSURE0T) {
         // debug_prints("\n");
     }

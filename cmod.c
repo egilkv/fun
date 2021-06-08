@@ -16,7 +16,8 @@
 cell *hash_f;
 cell *hash_t;
 cell *hash_void;
-cell *hash_undefined;
+cell *hash_undef;
+cell *hash_ellip;
 
 // function with 0 arguments
 void arg0(cell *args) {
@@ -288,6 +289,17 @@ cell *ref_index(cell *a, index_t index) {
             return error_rti("list index out of bounds", index);
         }
         return cell_ref(cell_car(a));
+
+    case c_LABEL:
+        switch (index) {
+        case 0:
+            return cell_ref(cell_car(a));
+        case 1:
+            return cell_ref(cell_cdr(a));
+        default:
+            break;
+        }
+        return error_rti("label index out of bounds", index);
 
     default:
         return error_rt1("cannot referrence", cell_ref(a));

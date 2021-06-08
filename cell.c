@@ -8,7 +8,7 @@
 
 #include "oblist.h"
 #include "node.h"
-#include "cmod.h" // hash_undefined
+#include "cmod.h" // hash_undef
 
 cell *cell_list(cell *car, cell *cdr) {
     cell *node = newnode(c_LIST);
@@ -338,7 +338,7 @@ cell *vector_resize(cell* node, index_t newlen) {
     if (node == NIL) { // oldlen is zero
         node = cell_vector_nil(newlen);
         for (i = 0; i < newlen; ++i) {
-            node->_.vector.table[i] = cell_ref(hash_undefined);
+            node->_.vector.table[i] = cell_ref(hash_undef);
         }
 
     } else {
@@ -365,7 +365,7 @@ cell *vector_resize(cell* node, index_t newlen) {
             assert(node->_.vector.table);
             node->_.vector.len = newlen;
             for (i = oldlen; i < newlen; ++i) {
-                node->_.vector.table[i] = cell_ref(hash_undefined);
+                node->_.vector.table[i] = cell_ref(hash_undef);
             }
         }
     }
@@ -380,12 +380,12 @@ int vector_set(cell *node, index_t index, cell *value) {
         cell_unref(value);
         return 0;
     }
-    if (node->_.vector.table[index] != hash_undefined) {
+    if (node->_.vector.table[index] != hash_undef) {
         // cannot redefine
         cell_unref(value);
         return 0;
     }
-    cell_unref(hash_undefined);
+    cell_unref(hash_undef);
     node->_.vector.table[index] = value;
     return 1;
 }
@@ -551,8 +551,8 @@ static void cell_free(cell *node) {
 cell *cell_oblist_item(char_t *asym) {
     cell *node = newnode(c_SYMBOL);
     // TODO should create error message is reffed
-    if (hash_undefined) {
-        node->_.symbol.val = cell_ref(hash_undefined);
+    if (hash_undef) {
+        node->_.symbol.val = cell_ref(hash_undef);
     }
     node->_.symbol.nam = asym; // allocated already
     return node;

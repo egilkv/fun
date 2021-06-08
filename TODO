@@ -1,4 +1,11 @@
 
+What about ... =
+
+what about f = (...) { }
+f (a: 3);
+
+
+
 Make garbage collection and verification, beginning with mark-sweep
 
 qsort fails.

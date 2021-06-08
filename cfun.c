@@ -173,7 +173,13 @@ static cell *cfunQ_lambda(cell *args, cell *env) {
             param = param->_.cons.car;
             // TODO evaluate default value
         }
-        if (!cell_is_symbol(param)) {
+        if (param == hash_ellip) {
+            // TODO what to do about this?
+            if (cell_cdr(cp)) {
+                cell_unref(error_rt1("ellipsis must be last parameter", cp));
+                cp = NIL;
+            }
+        } else if (!cell_is_symbol(param)) {
             // TODO what to do about this?
             cell_unref(error_rt1("parameter not a symbol", cell_ref(param)));
         } else if (exists_on_list(cell_cdr(cp), param)) {
@@ -889,11 +895,15 @@ static cell *cfun1_type(cell *a) {
             t = "boolean";
         } else if (a == hash_void) {
             t = "void";
-        } else if (a == hash_undefined) {
+        } else if (a == hash_undef) {
             t = "undefined";
         } else {
             t = "symbol";
         }
+        break;
+
+    case c_LABEL:
+        t = "label";
         break;
 
     case c_CLOSURE:
@@ -913,8 +923,7 @@ static cell *cfun1_type(cell *a) {
         break;
 
     case c_ELIST: // internal use only
-    case c_PAIR:
-    case c_LABEL: // cannot be seen in the flesh
+    case c_PAIR:  // cannot be seen in the flesh
     case c_ENV:
     case c_SPECIAL:
     case c_STOP:
@@ -1066,12 +1075,14 @@ void cfun_init() {
     hash_f       = oblistv("#f",       NIL);
     hash_t       = oblistv("#t",       NIL);
     hash_void    = oblistv("#void",    NIL);
-    hash_undefined = oblistv("#undefined", NIL); // TODO should it be visible?
-    // values are themselves
+    hash_undef   = oblistv("#undefined", NIL); // TODO should it be visible?
+    hash_ellip   = oblistv("...",      cell_ref(hash_void));
+
+    // these values are themselves
     oblist_set(hash_f,         cell_ref(hash_f));
     oblist_set(hash_t,         cell_ref(hash_t));
     oblist_set(hash_void,      cell_ref(hash_void));
-    oblist_set(hash_undefined, cell_ref(hash_undefined));
+    oblist_set(hash_undef,     cell_ref(hash_undef));
 
     atexit(cfun_exit);
 }
@@ -1081,5 +1092,5 @@ static void cfun_exit(void) {
     oblist_set(hash_f, NIL);
     oblist_set(hash_t, NIL);
     oblist_set(hash_void, NIL);
-    oblist_set(hash_undefined, NIL);
+    oblist_set(hash_undef, NIL);
 }

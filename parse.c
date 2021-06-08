@@ -121,6 +121,11 @@ static cell *expr(precedence lv, lxfile *in) {
         dropitem(it);
         return binary(pt, lv, in);
 
+    case it_ELLIP:
+        pt = cell_ref(hash_ellip);
+        dropitem(it);
+        return binary(pt, lv, in);
+
     case it_NOT: // unary only
         dropitem(it);
         pt = expr(l_UNARY, in);
@@ -529,6 +534,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
     case it_NUMBER:
     case it_STRING:
     case it_SYMBOL:
+    case it_ELLIP:
         break;
     default:
 	error_pat(lxfile_info(in), "ASSERT operator", op->type); // TODO

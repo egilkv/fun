@@ -8,7 +8,8 @@
 extern cell *hash_f;
 extern cell *hash_t;
 extern cell *hash_void;
-extern cell *hash_undefined;
+extern cell *hash_undef;
+extern cell *hash_ellip;
 
 void arg0(cell *args);
 int arg1(cell *args, cell **ap);
