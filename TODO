@@ -1,14 +1,13 @@
 
 What about ... =
 
+Variadic functions:
 what about f = (...) { }
 f (a: 3);
 
+Have special symbol that means myself, i.e. own function, e.g. #self
 
-
-Make garbage collection and verification, beginning with mark-sweep
-
-qsort fails.
+Improve garbage collection and verification, beginning with mark-sweep
 
 Self referrences should default to weak refs.
 How to make weak bindings for local closures.

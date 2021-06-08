@@ -254,4 +254,21 @@ abc0(b:200);
 abc0(1000);
 abc0(1000, c:300);
 
+// variadic functions:
+average = ( ... ) {
+    #apply(#plus, ...) / #length(...)
+};
 
+average(11, 12, 12);
+average(11, 12, 12.0);
+
+add = ( ... ) {
+    ... == [] ? 0 : ...[0] + #apply(add, ...[1..])
+};
+
+add();
+add(1);
+add(1,2,3);
+
+#apply(#plus);
+#apply(#plus, 1, 2, [3, 4, 5]);

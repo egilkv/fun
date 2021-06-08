@@ -292,3 +292,18 @@ abc0() ==> 810
 abc0(b: 200) ==> 8010
 abc0(1000) ==> 1800
 abc0(1000, c: 300) ==> 7200
+#defq(average, #lambda([ ... ], #quotient(#apply(#plus, ...), #length(...)))) ==> #closure0(
+  args: [ ... ]
+  body: [ #quotient(#apply(#plus, ...), #length(...)) ]
+) 
+average(11, 12, 12) ==> 35/3
+average(11, 12, 12.0) ==> 11.6666666666667
+#defq(add, #lambda([ ... ], #if(#eq(..., #list()), 0, #plus(#ref(..., 0), #apply(add, #ref(..., 1 .. )))))) ==> #closure0(
+  args: [ ... ]
+  body: [ #if(#eq(..., #list()), 0, #plus(#ref(..., 0), #apply(add, #ref(..., 1 .. )))) ]
+) 
+add() ==> 0
+add(1) ==> 1
+add(1, 2, 3) ==> 6
+#apply(#plus) ==> 0
+#apply(#plus, 1, 2, #list(3, 4, 5)) ==> 15

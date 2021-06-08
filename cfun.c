@@ -67,6 +67,32 @@ static cell *cfunQ_defq(cell *args, cell *env) {
     return b;
 }
 
+static cell *cfunQ_apply(cell *args, cell *env) {
+    cell *func;
+    cell *collectargs = NIL;
+    cell **nextp = &collectargs;
+    cell *a;
+
+    if (!list_pop(&args, &func)) {
+	cell_unref(args);
+        return error_rt0("missing function");
+    }
+    func = eval(func, env);
+    while (list_pop(&args, &a)) {
+        a = eval(a, env);
+        if (!args) {
+            // last argument is special
+            *nextp = a;
+            break;
+        }
+        // collect arguments on a list
+        *nextp = cell_list(a, NIL);
+        nextp = &((*nextp)->_.cons.cdr);
+    }
+    // TODO can be made more efficient
+    return eval(cell_func(func, collectargs), env);
+}
+
 static cell *cfunQ_and(cell *args, cell *env) {
     int bool = 1;
     cell *a;
@@ -1039,6 +1065,7 @@ void cfun_init() {
     // TODO hash_and etc are unrefferenced, and depends on oblist
     //      to keep symbols in play
     hash_and      = oblistv("#and",      cell_cfunQ(cfunQ_and));
+                    oblistv("#apply",    cell_cfunQ(cfunQ_apply));
     hash_assoc    = oblistv("#assoc",    cell_cfunN(cfunN_assoc));
     hash_cat      = oblistv("#cat",      cell_cfunN(cfunN_cat));
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));

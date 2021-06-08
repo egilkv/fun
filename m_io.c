@@ -296,6 +296,7 @@ static cell *cfio_write(cell *args) {
     while (list_pop(&args, &a)) {
         cell_write(stdout, a);
 	cell_unref(a);
+        if (args) fprintf(stdout, ", ");
     }
     assert(args == NIL);
     return cell_void();
@@ -316,10 +317,14 @@ static cell *cfio_print(cell *args) {
             break;
         case c_NUMBER:
         case c_SYMBOL:
+        case c_LIST: // TODO sure?
+        case c_VECTOR: // TODO sure?
+        case c_ASSOC: // TODO sure?
             cell_write(stdout, a);
             break;
         default:
             // TODO error message??
+            fprintf(stdout, "?");
             break;
         }
         cell_unref(a);
