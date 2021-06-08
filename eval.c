@@ -26,6 +26,18 @@ static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *conten
     }
 }
 
+// deal with variadic function argument
+static cell *pick_variadic(cell *val1, cell **argsp, cell **envp) {
+    cell *result = NIL;
+    cell **nextp = &result;
+    do {
+        val1 = eval(val1, envp);
+        *nextp = cell_list(val1, NIL);
+        nextp = &((*nextp)->_.cons.cdr);
+    } while (list_pop(argsp, &val1));
+    return result;
+}
+
 // assume fun, args and contenv are all reffed
 static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
     int gotlabel = 0;
@@ -39,13 +51,17 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
         debug_prints("\n*** "); // trace
     }
 
-    // TODO     cell_unref(error_rt1("duplicate parameter name, value ignored", nam));
-    // TODO check for duplicate params at func def
-
     // pick up actual arguments one by one
     while (list_pop(&args, &val)) {
 
-        if (cell_is_label(val)) {
+        if (cell_is_list(params) && cell_car(params) == hash_ellip) {
+	    // special case for ellipsis, evaluate rest and place on list
+            val = pick_variadic(val, &args, envp);
+            cell_unref(params);
+	    params = NIL;
+            nam = cell_ref(hash_ellip);
+
+	} else if (cell_is_label(val)) {
             ++gotlabel;
             label_split(val, &nam, &val);
             if (!cell_is_symbol(nam)) {
@@ -53,6 +69,7 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
                 cell_unref(val);
                 continue;
             }
+	    // TODO disallow ellipsis here
             // check if label actually exists on parameter list
             // TODO takes much time
             if (!exists_on_list(params, nam)) {
@@ -60,9 +77,21 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
                 cell_unref(val);
                 continue;
             }
+	    // TODO C recursion, should be avoided
+	    val = eval(val, envp);
+
         } else if (gotlabel) {
-            cell_unref(error_rt1("ignore unlabelled argument following labelled", val));
-            continue;
+            if (exists_on_list(params, hash_ellip)) {
+		// variadic function mixed with labels
+                val = pick_variadic(val, &args, envp);
+                cell_unref(params);
+                params = NIL;
+                nam = cell_ref(hash_ellip);
+            } else {
+                // TODO this can be implemented, but should it?
+                cell_unref(error_rt1("ignore unlabelled argument following labelled", val));
+                continue;
+            }
         } else {
             // match unlabeled argument to parameter list
             if (!list_pop(&params, &nam)) {
@@ -72,25 +101,10 @@ static void apply_closure(cell *fun, cell* args, cell *contenv, cell **envp) {
             if (cell_is_label(nam)) { // a default value is supplied?
                 label_split(nam, &nam, NILP);
             }
-            assert(nam == hash_ellip || cell_is_symbol(nam));
-        }
+	    assert(cell_is_symbol(nam));
 
-        // TODO C recursion, should be avoided
-        // TODO should this be moved up???
-        val = eval(val, envp);
-
-        // special case for ellipsis, evaluate rest of list too
-        if (nam == hash_ellip) {
-            cell *result = NIL;
-            cell **nextp = &result;
-            for (;;) {
-                *nextp = cell_list(val, NIL);
-                nextp = &((*nextp)->_.cons.cdr);
-                if (!list_pop(&args, &val)) break;
-                // TODO special case of evaluation for labels??
-                val = eval(val, envp);
-            }
-            val = result;
+	    // TODO C recursion, should be avoided
+	    val = eval(val, envp);
         }
 
         if (fun->type == c_CLOSURE0T) {

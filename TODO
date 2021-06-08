@@ -7,6 +7,8 @@ Variadic functions:
 what about f = (...) { }
 f (a: 3);
 
+Variadic function cannot be mixed with labels?
+
 Have special symbol that means myself, i.e. own function, e.g. #self
 
 Improve garbage collection and verification, beginning with mark-sweep
@@ -225,4 +227,15 @@ Can we index a range? Is it meaningful
 
 Implement lazy sequences etc
 
-In clojure, 'recur' is to call itself. We should have something alike.
+In clojure, 'recur' is to call itself. We should have something alike. E.g. #self
+
+Proposal: 
+	1..100[0] ==> 1 
+	1..100[1..] ==> 2..100
+	100.100[1..] ==> []
+
+For variadic functions, Python uses:
+	function variadic_function($a, $b, ...$other) {
+		return $other;
+	}
+	var_dump(variadic_function(1, 2, 3, 4, 5));
