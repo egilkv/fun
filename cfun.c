@@ -1044,6 +1044,42 @@ static cell *cfun0_gc() {
     return cell_integer(nodes);
 }
 
+// get from OS environment
+static cell *cfun1_getenv(cell *a) {
+    extern char **environ;
+    char **pp = environ;
+    char const *lookfor = NULL;
+
+    switch (a ? a->type : c_LIST) {
+    case c_STRING:
+        lookfor = a->_.string.ptr;
+        break;
+    case c_SYMBOL:
+        lookfor = a->_.symbol.nam;
+        break;
+    default:
+        return error_rt1("neither symbol nor string", a);
+    }
+    if (lookfor) {
+        int len = strlen(lookfor);
+        while (*pp) {
+            if (memcmp(lookfor, *pp, len) == 0) {
+                char const *s = *pp + len;
+                if (memcmp(s, "\tDEFAULT", 8) == 0) s += 8; // TODO: sure?
+                if (*s == '=') {
+                    s = strdup(s+1);
+                    cell_unref(a);
+                    return cell_astring((char_t *)s, strlen(s));
+                }
+            }
+            ++pp;
+        }
+    }
+    cell_unref(a);
+    return cell_ref(hash_void);
+
+}
+
 // set #args
 // invoked from main()
 void cfun_args(int argc, char * const argv[]) {
@@ -1072,6 +1108,7 @@ void cfun_init() {
     hash_defq     = oblistv("#defq",     cell_cfunQ(cfunQ_defq));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
                     oblistv("#exit",     cell_cfunN(cfunN_exit));
+                    oblistv("#getenv",   cell_cfun1(cfun1_getenv));
     hash_ge       = oblistv("#ge",       cell_cfunN(cfunN_ge));
     hash_gt       = oblistv("#gt",       cell_cfunN(cfunN_gt));
     hash_if       = oblistv("#if",       cell_cfunQ(cfunQ_if));
