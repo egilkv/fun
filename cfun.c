@@ -322,6 +322,7 @@ static cell *cfunN_times(cell *args) {
     cell *a;
     result.dividend.ival = 1;
     result.divisor = 1;
+    // TODO here and elsewhere, pop first argument first
     while (list_pop(&args, &a)) {
         if (!get_number(a, &operand, args)) return cell_void();
 	if (sync_float(&result, &operand)) {
@@ -334,16 +335,19 @@ static cell *cfunN_times(cell *args) {
             if (__builtin_smulll_overflow(result.dividend.ival,
                                           operand.dividend.ival,
                                           &(result.dividend.ival))
+             || __builtin_smulll_overflow(result.divisor,
+                                          operand.divisor,
+                                          &(result.divisor))
              || !normalize_q(&result)) {
 		return err_overflow(args);
             }
 #else
             // no overflow detection
+            result.dividend.ival *= operand.dividend.ival;
             result.divisor *= operand.divisor;
             normalize_q(&result);
 #endif
         }
-        // TODO overflow etc
     }
     assert(args == NIL);
     return cell_number(&result);
