@@ -1045,6 +1045,7 @@ static cell *cfun0_gc() {
 }
 
 // set #args
+// invoked from main()
 void cfun_args(int argc, char * const argv[]) {
     cell *vector = NIL;
     assert(hash_args == NIL); // should not be invoked twice

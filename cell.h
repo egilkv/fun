@@ -125,7 +125,6 @@ void range_split(cell *cp, cell **carp, cell **cdrp);
 void label_split(cell *cp, cell **carp, cell **cdrp);
 
 cell *cell_env(cell *prev, cell *prog, cell *assoc, cell *contenv);
-void env_replace(cell *ep, cell *newprog, cell *newassoc, cell *newcontenv);
 cell *env_prev(cell *ep);
 cell *env_cont_env(cell *ep);
 cell *env_assoc(cell *ep);

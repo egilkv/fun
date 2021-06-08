@@ -11,11 +11,13 @@
 #include "debug.h"
 
 static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *contenv) {
-#if 0 // TODO enable end call detection BUG: does not work
+#if 0 // TODO does not work since we may still have stuff up our C stack that needs the assoc
     if (*envp && env_prog(*envp) == NIL) {
-	// end recursion, reuse environment
-        env_replace(*envp, newprog, newassoc, contenv);
-    } else 
+        // tail call, we can drop current environment
+        cell *newenv = cell_env(cell_ref(env_prev(*envp)), newprog, newassoc, contenv);
+        cell_unref(*envp);
+	*envp = newenv;
+    } else
 #endif
     {
 	// add one level to environment
