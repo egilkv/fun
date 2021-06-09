@@ -11,6 +11,7 @@
 #include "parse.h"
 #include "cfun.h"
 #include "number.h"
+#include "eval.h"
 #include "err.h"
 #include "m_io.h" // cell_write
 #include "compile.h"

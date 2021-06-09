@@ -1,5 +1,6 @@
 /*  TAB-P
  *
+ *  eval and helpers
  *  TODO should evaluation happen in functions? perhaps
  */
 
@@ -7,6 +8,8 @@
 #include <stdlib.h>
 
 #include "cmod.h"
+#include "eval.h"
+#include "oblist.h"
 #include "err.h"
 #include "debug.h"
 
@@ -380,4 +383,22 @@ cell *eval(cell *arg, cell **envp) {
     }
     assert(0);
     return NIL;
+}
+
+cell *defq(cell *nam, cell *val, cell **envp) {
+    if (!cell_is_symbol(nam)) {
+        cell_unref(val);
+        return error_rt1("not a symbol", nam);
+    }
+    if (*envp) {
+        if (!assoc_set(env_assoc(*envp), nam, cell_ref(val))) {
+            cell_unref(val);
+            cell_unref(error_rt1("cannot redefine immutable", nam));
+        }
+    } else {
+	// TODO mutable
+        oblist_set(nam, cell_ref(val));
+        cell_unref(nam);
+    }
+    return val;
 }

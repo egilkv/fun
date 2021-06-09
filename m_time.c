@@ -16,6 +16,7 @@
 #include "m_time.h"
 #include "cmod.h"
 #include "number.h"
+#include "eval.h"
 #include "err.h"
 
  // seconds since epoch, with sub second accuracy

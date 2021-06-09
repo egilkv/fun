@@ -4,7 +4,7 @@
 
 #ifndef CELL_H
 
-#define HAVE_COMPILER 0
+#define HAVE_COMPILER 1
 
 #include "assoc.h"
 #include "type.h"
@@ -43,7 +43,8 @@ enum cell_t {
    c_DOCALL2,   // car is closure or function, pop 2 args, push result
    c_DOCALL3,   // car is closure or function, pop 3 args, push result
    c_DOCOND,	// pop, car if true, cdr else
-   c_DONOOP		// cdr is next
+   c_DODEFQ,    // car is name, pop and push value
+   c_DONOOP     // cdr is next
 #endif
 } ;
 
@@ -168,8 +169,6 @@ int cell_is_special(cell *cp, const char *magic);
 cell *cell_number(number *np);
 int cell_is_number(cell *cp);
 int cell_is_integer(cell *cp);
-
-cell *eval(cell *arg, cell **envp); // defined in eval.c
 
 void cell_sweep(cell *node);
 

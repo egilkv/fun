@@ -13,6 +13,7 @@
 #include <gtk/gtk.h>
 
 #include "cmod.h"
+#include "eval.h"
 #include "number.h"
 #include "err.h"
 

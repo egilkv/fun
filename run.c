@@ -6,6 +6,8 @@
 #include <assert.h>
 
 #include "cell.h"
+#include "eval.h"
+#include "cmod.h" // get_boolean
 #include "err.h"
 
 #if HAVE_COMPILER
@@ -183,7 +185,41 @@ cell *run(cell *prog) {
         break;
 
     case c_DOCOND:        // pop, car if true, cdr else
-        // TODO implement
+        {
+            cell *cond;
+            int bool;
+            if (!list_pop(&stack, &cond)) {
+                assert(0);
+            }
+            if (!get_boolean(cond, &bool, NIL)) {
+                bool = 1; // TODO assuming true, is this sensible?
+            }
+            if (bool) {
+                next = cell_ref(prog->_.cons.car);
+            } else {
+                next = cell_ref(prog->_.cons.cdr);
+            }
+            cell_unref(prog);
+            prog = next;
+        }
+        break;
+
+    case c_DODEFQ:        // car is name, pop value, push result
+        {
+            cell *name = cell_ref(prog->_.cons.car);
+            cell *arg;
+            cell *result;
+            if (!list_pop(&stack, &arg)) {
+                assert(0);
+            }
+            result = defq(name, arg, &env);
+            stack = cell_list(result, stack);
+        }
+        next = cell_ref(prog->_.cons.cdr);
+        cell_unref(prog);
+        prog = next;
+        break;
+
     default:
         cell_unref(error_rt1("not a program", prog));
         prog = NIL;

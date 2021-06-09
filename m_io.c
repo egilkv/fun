@@ -181,6 +181,13 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
 
+    case c_DODEFQ:
+        fprintf(out, "#dodefq(");
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
     case c_DONOOP:
         fprintf(out, "#donoop() -> ");
         cell_writei(out, ct->_.cons.cdr, indent);

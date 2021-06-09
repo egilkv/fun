@@ -3,8 +3,6 @@
  *  TODO should evaluation happen in functions? perhaps
  */
 
-#define HAVE_WEAK 0
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +12,7 @@
 #include "cfun.h"
 #include "oblist.h"
 #include "number.h"
+#include "eval.h"
 #include "err.h"
 #include "parse.h" // chomp_file
 #include "debug.h"
@@ -33,38 +32,10 @@ static void cfun_exit(void);
 static cell *cfunQ_defq(cell *args, cell **envp) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
-	return a; // error
-    }
-    if (!cell_is_symbol(a)) {
-        cell_unref(b);
-        return error_rt1("not a symbol", a);
+        return cell_ref(cell_void()); // error
     }
     b = eval(b, envp);
-    if (*envp) {
-#if HAVE_WEAK
-        if (b && b->type == c_CLOSURE && b->_.cons.cdr == *envp) {
-            // continuation in its own environment
-            // the assumption is that the environment will be dissolved first
-            // if the closure is passed on externally, it will have an extra
-            // ref, and live on
-            if (!assoc_set_weak(env_assoc(*envp), a, b)) {
-                cell_unref(b);
-                cell_unref(error_rt1("cannot redefine immutable", a));
-            }
-        } else 
-#endif
-        {
-            if (!assoc_set(env_assoc(*envp), a, cell_ref(b))) {
-                cell_unref(b);
-                cell_unref(error_rt1("cannot redefine immutable", a));
-            }
-        }
-    } else {
-	// TODO mutable
-	oblist_set(a, cell_ref(b));
-	cell_unref(a);
-    }
-    return b;
+    return defq(a, b, envp);
 }
 
 static cell *cfunQ_apply(cell *args, cell **envp) {
@@ -971,6 +942,7 @@ static cell *cfun1_type(cell *a) {
     case c_DOCALL2:
     case c_DOCALL3:
     case c_DOCOND:
+    case c_DODEFQ:
     case c_DONOOP:
 #endif
         t = "internal"; // TODO should not happen

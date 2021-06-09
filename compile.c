@@ -74,6 +74,21 @@ static int compile1_cond(cell *args, cell ***nextpp) {
 }
 
 // return 1 if something was pushed, 0 otherwise
+static int compile1_defq(cell *args, cell ***nextpp) {
+    cell *nam;
+    cell *val;
+
+    if (!arg2(args, &nam, &val)) {
+        return 0; // error
+    }
+    if (!compile1(val, nextpp)) {
+        compile1(cell_ref(hash_void), nextpp); // dummy replacement
+    }
+    add2prog(c_DODEFQ, nam, nextpp);
+    return 1;
+}
+
+// return 1 if something was pushed, 0 otherwise
 static int compile1(cell *prog, cell ***nextpp) {
 
     switch (prog ? prog->type : c_LIST) {
@@ -90,6 +105,10 @@ static int compile1(cell *prog, cell ***nextpp) {
                 }
                 add2prog(c_DOQPUSH, thing, nextpp);
                 return 1;
+
+            } else if (fun == hash_defq) { // #defq is special case
+                cell_unref(fun);
+                return compile1_defq(args, nextpp);
 
             } else if (fun == hash_if) { // #if is special case
                 cell_unref(fun);
