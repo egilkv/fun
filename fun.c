@@ -11,6 +11,7 @@
 #include "parse.h"
 #include "oblist.h"
 #include "cfun.h"
+#include "qfun.h"
 #include "m_io.h"
 #include "err.h"
 
@@ -20,6 +21,7 @@ int main(int argc, char * const argv[]) {
 
     oblist_init();
     cfun_init();
+    qfun_init();
 
     opterr = 0;
     while ((opt = getopt(argc, argv, "+:CGOPRS")) >= 0) switch (opt) {

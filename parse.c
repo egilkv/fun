@@ -10,6 +10,7 @@
 
 #include "parse.h"
 #include "cfun.h"
+#include "qfun.h"
 #include "number.h"
 #include "eval.h"
 #include "err.h"

@@ -4,7 +4,7 @@
 
 #ifndef CELL_H
 
-#define HAVE_COMPILER 1
+#define HAVE_COMPILER 0
 
 #include "assoc.h"
 #include "type.h"

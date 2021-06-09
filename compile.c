@@ -7,7 +7,9 @@
 
 #include "cell.h"
 #include "node.h"
-#include "cfun.h"
+#include "cmod.h"
+// #include "cfun.h"
+#include "qfun.h"
 #include "err.h"
 
 #if HAVE_COMPILER
