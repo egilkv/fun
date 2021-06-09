@@ -169,7 +169,7 @@ struct cell_s *assoc_next(struct assoc_i *ip) {
         result = ip->p;
         ip->p = NIL;
     }
-    // result should be a c_KEYVAL, a c_KEYWEAK or c_STOP in gc
+    // result should be a c_KEYVAL or c_STOP in gc
     return result;
 }
 
@@ -211,12 +211,12 @@ void assoc_drop(cell *anode) {
 
 // TODO inline
 cell *assoc_key(cell *cp) {
-    assert(cp && (cp->type == c_KEYVAL || c_KEYWEAK));
+    assert(cp && (cp->type == c_KEYVAL));
     return cp->_.cons.car;
 }
 
 // TODO inline
 cell *assoc_val(cell *cp) {
-    assert(cp && (cp->type == c_KEYVAL || c_KEYWEAK));
+    assert(cp && (cp->type == c_KEYVAL));
     return cp->_.cons.cdr;
 }

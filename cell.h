@@ -4,6 +4,8 @@
 
 #ifndef CELL_H
 
+#define HAVE_COMPILER 0
+
 #include "assoc.h"
 #include "type.h"
 
@@ -18,7 +20,6 @@ enum cell_t {
    c_LABEL,     // car is label, car is expr
    c_PAIR,      // car is left, cdr is right part
    c_KEYVAL,    // car is key, cdr is value, for assocs
-   c_KEYWEAK,   // car is key, cdr is weak binding to value
    c_ELIST,     // car is first item, cdr is rest of elist, or last
    c_FREE,      // for freelist, car is next
    c_STOP,      // for garbage collection sweep phase
@@ -34,13 +35,23 @@ enum cell_t {
    c_CFUN2,
    c_CFUN3,
    c_CFUNN
+#if HAVE_COMPILER
+  ,c_DOQPUSH,   // push car, cdr is next
+   c_DOEPUSH,   // eval and push car, cdr is next
+   c_DOCALL0,   // car is closure or function, pop 0 args, push result
+   c_DOCALL1,   // car is closure or function, pop 1 arg, push result
+   c_DOCALL2,   // car is closure or function, pop 2 args, push result
+   c_DOCALL3,   // car is closure or function, pop 3 args, push result
+   c_DOCOND,	// pop, car if true, cdr else
+   c_DONOOP		// cdr is next
+#endif
 } ;
 
 struct cell_s {
     unsigned ref     : 32; // TODO will limit total # of cells; 64bit
     unsigned mark    : 1;  // for garbage collect
     unsigned pmark   : 1;  // for printing TODO needed?
-    enum cell_t type : 5;
+    enum cell_t type : 6;
     union {
         struct {
             struct cell_s *car;

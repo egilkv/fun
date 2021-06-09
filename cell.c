@@ -95,7 +95,7 @@ int cell_is_pair(cell *cp) {
 }
 
 int cell_is_keyval(cell *cp) {
-    return cp && (cp->type == c_KEYVAL || cp->type == c_KEYWEAK);
+    return cp && (cp->type == c_KEYVAL);
 }
 
 int cell_is_range(cell *cp) {
@@ -418,12 +418,18 @@ void cell_sweep(cell *node) {
     case c_CLOSURE:
     case c_CLOSURE0:
     case c_CLOSURE0T:
+#if HAVE_COMPILER
+    case c_DOQPUSH:
+    case c_DOEPUSH:
+    case c_DOCALL0:
+    case c_DOCALL1:
+    case c_DOCALL2:
+    case c_DOCALL3:
+    case c_DOCOND:
+    case c_DONOOP:
+#endif
         cell_sweep(node->_.cons.car);
         cell_sweep(node->_.cons.cdr);
-        break;
-    case c_KEYWEAK:
-        cell_sweep(node->_.cons.car); 
-        cell_sweep(node->_.cons.cdr); // cdr is weak binding
         break;
 
     case c_ENV: // TODO
@@ -480,12 +486,18 @@ static void cell_free(cell *node) {
     case c_CLOSURE:
     case c_CLOSURE0:
     case c_CLOSURE0T:
+#if HAVE_COMPILER
+    case c_DOQPUSH:
+    case c_DOEPUSH:
+    case c_DOCALL0:
+    case c_DOCALL1:
+    case c_DOCALL2:
+    case c_DOCALL3:
+    case c_DOCOND:
+    case c_DONOOP:
+#endif
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
-        break;
-    case c_KEYWEAK:
-        cell_unref(node->_.cons.car);
-        // cdr is weak binding, no ref
         break;
     case c_ENV: // TODO
         cell_unref(node->_.cons.car);

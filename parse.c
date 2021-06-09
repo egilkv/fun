@@ -13,6 +13,8 @@
 #include "number.h"
 #include "err.h"
 #include "m_io.h" // cell_write
+#include "compile.h"
+#include "run.h"
 
 #include "oblist.h"
 
@@ -32,7 +34,6 @@ cell *chomp_lx(lxfile *lxf) {
     cell *ct;
 
     for (;;) {
-        cell *env;
         lxf->show_prompt = 1;
         ct = expression(lxf);
 	if (!ct) break; // eof
@@ -40,13 +41,26 @@ cell *chomp_lx(lxfile *lxf) {
         cell_unref(result);
         result = NIL; // to avoid the ref
         if (lxf->f == stdin) {
-            if (lxf->show_parse) {
+            if (lxf->show_parse & 1) {
                 cell_write(stdout, ct);
                 printf(" ==> ");
 	    }
 	}
-        env = NIL;
-        ct = eval(ct, &env);
+#if HAVE_COMPILER
+        ct = compile(ct);
+        if (lxf->f == stdin) {
+            if (lxf->show_parse & 2) {
+                cell_write(stdout, ct);
+                printf("\n ==> ");
+	    }
+	}
+        ct = run(ct);
+#else
+        {
+            cell *env = NIL;
+            ct = eval(ct, &env);
+        }
+#endif
         if (lxf->f == stdin) {
             if (ct != hash_void) { // write result if not void
                 cell_write(stdout, ct);

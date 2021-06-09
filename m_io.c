@@ -134,12 +134,6 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, assoc_val(ct), indent);
         break;
 
-    case c_KEYWEAK: // only in assocs
-        cell_writei(out, assoc_key(ct), indent);
-        fprintf(out, ": <weak> ");
-        cell_writei(out, assoc_val(ct), indent);
-        break;
-
     case c_FUNC:
         cell_writei(out, cell_car(ct), indent);
         fprintf(out, "(");
@@ -154,6 +148,44 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, cell_cdr(ct), indent);
         fprintf(out, ")");
         break;
+
+#if HAVE_COMPILER
+    case c_DOQPUSH:
+        fprintf(out, "#doqpush(");
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
+    case c_DOEPUSH:
+        fprintf(out, "#doepush(");
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
+    case c_DOCALL0:
+    case c_DOCALL1:
+    case c_DOCALL2:
+    case c_DOCALL3:
+        fprintf(out, "#docall%d(", ct->type - c_DOCALL0);
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
+    case c_DOCOND:
+        fprintf(out, "#docond(#t-> ");
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") #f-> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
+    case c_DONOOP:
+        fprintf(out, "#donoop() -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+#endif
 
     case c_RANGE:
         if (cell_car(ct)) cell_writei(out, cell_car(ct), indent);

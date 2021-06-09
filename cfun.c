@@ -963,7 +963,16 @@ static cell *cfun1_type(cell *a) {
     case c_SPECIAL:
     case c_STOP:
     case c_KEYVAL:
-    case c_KEYWEAK:
+#if HAVE_COMPILER
+    case c_DOQPUSH:
+    case c_DOEPUSH:
+    case c_DOCALL0:
+    case c_DOCALL1:
+    case c_DOCALL2:
+    case c_DOCALL3:
+    case c_DOCOND:
+    case c_DONOOP:
+#endif
         t = "internal"; // TODO should not happen
         break;
     case c_FREE:

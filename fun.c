@@ -22,7 +22,10 @@ int main(int argc, char * const argv[]) {
     cfun_init();
 
     opterr = 0;
-    while ((opt = getopt(argc, argv, "+:GOPRS")) >= 0) switch (opt) {
+    while ((opt = getopt(argc, argv, "+:CGOPRS")) >= 0) switch (opt) {
+        case 'C': // debug
+            opt_showcode = 1;
+            break;
         case 'G': // debug
             opt_showgc = 1;
             break;
@@ -57,7 +60,7 @@ int main(int argc, char * const argv[]) {
         // interactive mode
         lxfile infile;
         lxfile_init(&infile, stdin);
-        infile.show_parse = opt_showparse;
+        infile.show_parse = (opt_showparse ? 1:0) | (opt_showcode ? 2:0);
         if (infile.is_terminal) {
             fprintf(stdout, "Have fun");
         }
