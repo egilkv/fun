@@ -777,6 +777,9 @@ static cell *cfun1_type(cell *a) {
     case c_DOCALL3:
     case c_DOCOND:
     case c_DODEFQ:
+    case c_DOREFQ:
+    case c_DOLAMB:
+    case c_DOPOP:
     case c_DONOOP:
 #endif
         t = "internal"; // TODO should not happen

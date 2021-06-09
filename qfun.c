@@ -19,6 +19,8 @@
 #include "parse.h" // chomp_file
 #include "debug.h"
 
+#if !HAVE_COMPILER
+
 static cell *cfunQ_defq(cell *args, cell **envp) {
     cell *a, *b;
     if (!arg2(args, &a, &b)) {
@@ -139,7 +141,7 @@ static cell *cfunQ_lambda(cell *args, cell **envp) {
     cell *paramlist;
     cell *cp;
     if (!list_pop(&args, &paramlist)) {
-        return error_rt1("Missing function parameter list", args);
+        return error_rt1("missing function parameter list", args);
     }
     // TODO consider moving to parser
     // check for proper and for duplicate parameters
@@ -183,6 +185,7 @@ static cell *cfunQ_refq(cell *args, cell **envp) {
     }
     return a;
 }
+#endif // !HAVE_COMPILER
 
 // debugging, enable trace, return first (valid) argument
 static cell *cfunQ_traceon(cell *args, cell **envp) {
@@ -220,6 +223,7 @@ static cell *cfunQ_traceoff(cell *args, cell **envp) {
     return result;
 }
 
+#if !HAVE_COMPILER
 void qfun_init() {
     // TODO hash_and etc are unrefferenced, and depends on oblist
     //      to keep symbols in play
@@ -236,3 +240,43 @@ void qfun_init() {
                     oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
 }
 
+#else // !HAVE_COMPILER
+
+static void qfun_exit(void);
+
+void qfun_init() {
+    // these are mere placeholders
+    hash_and      = oblistv("#and",      NIL);
+    hash_defq     = oblistv("#defq",     NIL);
+    hash_if       = oblistv("#if",       NIL);
+    hash_lambda   = oblistv("#lambda",   NIL);
+    hash_or       = oblistv("#or",       NIL);
+    hash_quote    = oblistv("#quote",    NIL);
+    hash_refq     = oblistv("#refq",     NIL);
+
+                    oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
+                    oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
+
+    // values should be themselves
+    oblist_set(hash_and,       cell_ref(hash_and));
+    oblist_set(hash_defq,      cell_ref(hash_defq));
+    oblist_set(hash_if,        cell_ref(hash_if));
+    oblist_set(hash_lambda,    cell_ref(hash_lambda));
+    oblist_set(hash_or,        cell_ref(hash_or));
+    oblist_set(hash_quote,     cell_ref(hash_quote));
+    oblist_set(hash_refq,      cell_ref(hash_refq));
+
+    atexit(qfun_exit);
+}
+
+static void qfun_exit(void) {
+    // loose circular definitions
+    oblist_set(hash_and,       NIL);
+    oblist_set(hash_defq,      NIL);
+    oblist_set(hash_if,        NIL);
+    oblist_set(hash_lambda,    NIL);
+    oblist_set(hash_or,        NIL);
+    oblist_set(hash_quote,     NIL);
+    oblist_set(hash_refq,      NIL);
+}
+#endif

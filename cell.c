@@ -427,6 +427,9 @@ void cell_sweep(cell *node) {
     case c_DOCALL3:
     case c_DOCOND:
     case c_DODEFQ:
+    case c_DOREFQ:
+    case c_DOLAMB:
+    case c_DOPOP:
     case c_DONOOP:
 #endif
         cell_sweep(node->_.cons.car);
@@ -496,6 +499,9 @@ static void cell_free(cell *node) {
     case c_DOCALL3:
     case c_DOCOND:
     case c_DODEFQ:
+    case c_DOREFQ:
+    case c_DOLAMB:
+    case c_DOPOP:
     case c_DONOOP:
 #endif
         cell_unref(node->_.cons.car);

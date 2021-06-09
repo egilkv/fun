@@ -214,9 +214,13 @@ static void do_callback(GtkApplication* gp, gpointer data) {
  // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
  // printf("\n***callback***\n");
 
+#if !HAVE_COMPILER
     // TODO this function is in principle async
     // TODO should be continuation
     eval(cell_ref((cell *)data), NULL);
+#else
+    cell_unref(error_rt1("sorry, not implemented, ignoring", cell_ref((cell *)data))); // TODO fix
+#endif
 }
 
 static cell *cgtk_signal_connect(cell *app, cell *hook, cell *callback) {

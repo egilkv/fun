@@ -13,6 +13,8 @@
 #include "err.h"
 #include "debug.h"
 
+#if !HAVE_COMPILER
+
 static void insert_prog(cell **envp, cell *newprog, cell* newassoc, cell *contenv) {
 #if 0 // TODO does not work since we may still have stuff up our C stack that needs the assoc
     if (*envp && env_prog(*envp) == NIL) {
@@ -384,21 +386,4 @@ cell *eval(cell *arg, cell **envp) {
     assert(0);
     return NIL;
 }
-
-cell *defq(cell *nam, cell *val, cell **envp) {
-    if (!cell_is_symbol(nam)) {
-        cell_unref(val);
-        return error_rt1("not a symbol", nam);
-    }
-    if (*envp) {
-        if (!assoc_set(env_assoc(*envp), nam, cell_ref(val))) {
-            cell_unref(val);
-            cell_unref(error_rt1("cannot redefine immutable", nam));
-        }
-    } else {
-	// TODO mutable
-        oblist_set(nam, cell_ref(val));
-        cell_unref(nam);
-    }
-    return val;
-}
+#endif // !HAVE_COMPILER

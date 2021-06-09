@@ -3,6 +3,6 @@
  *
  */
 
+#if !HAVE_COMPILER
 cell *eval(cell *arg, cell **envp);
-cell *defq(cell *nam, cell *val, cell **envp);
-
+#endif

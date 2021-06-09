@@ -34,7 +34,7 @@ aa.one;
 aa.two;
 aa.three;
 // aa.ix;
-aa ++ { four : "FOUR" }; // modified assoc, add keyt if same
+aa ++ { four : "FOUR" }; // modified assoc, add key
 aa ++ { two : "TWO" }; // modified assoc, modify key
 [ 3 : 99, 0 : "test" ]; // 1 and 2 are undefined
 

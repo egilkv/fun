@@ -162,17 +162,21 @@ static cell *ctime_mktime(cell *a) {
 
 // measure time required for evaluating all arguments
 static cell *ctime_time(cell *args, cell **envp) {
-    cell *a;
     number secs;
     struct timeval tv;
     gettimeofday(&tv, (struct timezone *)0);
     secs.dividend.fval = tv.tv_sec + tv.tv_usec / 1000000.0;
     secs.divisor = 0;
 
+#if !HAVE_COMPILER
     // evaluate all arguments
+    cell *a;
     while (list_pop(&args, &a)) {
         cell_unref(eval(a, envp));
     }
+#else
+    cell_unref(error_rt1("sorry, not implemented, ignoring", args)); // TODO fix
+#endif
 
     gettimeofday(&tv, (struct timezone *)0);
     secs.dividend.fval = (tv.tv_sec + tv.tv_usec / 1000000.0) - secs.dividend.fval;

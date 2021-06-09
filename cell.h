@@ -4,7 +4,7 @@
 
 #ifndef CELL_H
 
-#define HAVE_COMPILER 0
+#define HAVE_COMPILER 1
 
 #include "assoc.h"
 #include "type.h"
@@ -33,17 +33,20 @@ enum cell_t {
    c_CFUN0,
    c_CFUN1,
    c_CFUN2,
-   c_CFUN3,
    c_CFUNN
 #if HAVE_COMPILER
   ,c_DOQPUSH,   // push car, cdr is next
    c_DOEPUSH,   // eval and push car, cdr is next
-   c_DOCALL0,   // car is closure or function, pop 0 args, push result
-   c_DOCALL1,   // car is closure or function, pop 1 arg, push result
-   c_DOCALL2,   // car is closure or function, pop 2 args, push result
-   c_DOCALL3,   // car is closure or function, pop 3 args, push result
+   c_DOCALL0,   // car is known function, pop 0 args, push result
+   c_DOCALL1,   // car is known function, pop 1 arg, push result
+   c_DOCALL2,   // car is known function, pop 2 args, push result
+   c_DOCALL3,   // car is known function, pop 3 args, push result
+   c_DOCALLN,   // car is number of args, pop func and N args, push result
    c_DOCOND,	// pop, car if true, cdr else
-   c_DODEFQ,    // car is name, pop and push value
+   c_DODEFQ,    // car is name, pop and push value, cdr is next
+   c_DOREFQ,    // car is name, pop assoc, push value, cdr is next
+   c_DOLAMB,    // car is cell_lambda, cdr is next
+   c_DOPOP,     // cdr is next
    c_DONOOP     // cdr is next
 #endif
 } ;
@@ -91,9 +94,6 @@ struct cell_s {
         struct {
             struct cell_s *(*def)(struct cell_s *, struct cell_s *);
         } cfun2;
-        struct {
-            struct cell_s *(*def)(struct cell_s *, struct cell_s *, struct cell_s *);
-        } cfun3;
     } _;
 } ;
 
@@ -112,7 +112,6 @@ cell *cell_cfunN(cell *(*fun)(cell *));
 cell *cell_cfun0(cell *(*fun)(void));
 cell *cell_cfun1(cell *(*fun)(cell *));
 cell *cell_cfun2(cell *(*fun)(cell *, cell *));
-cell *cell_cfun3(cell *(*fun)(cell *, cell *, cell *));
 
 cell *cell_list(cell *car, cell *cdr);
 cell *cell_elist(cell *car, cell *cdr);
