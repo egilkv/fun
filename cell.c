@@ -299,12 +299,6 @@ cell *cell_cfun2(struct cell_s *(*fun)(cell *, cell *)) {
     return node;
 }
 
-cell *cell_cfun3(struct cell_s *(*fun)(cell *, cell *, cell *)) {
-    cell *node = newnode(c_CFUN3);
-    node->_.cfun3.def = fun;
-    return node;
-}
-
 cell *cell_vector_nil(index_t length) {
     cell *node = NIL; // result is NIL if length==0
     if (length > 0) { // if length==0 table is NULL
@@ -424,7 +418,6 @@ void cell_sweep(cell *node) {
     case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
-    case c_DOCALL3:
     case c_DOCOND:
     case c_DODEFQ:
     case c_DOREFQ:
@@ -435,7 +428,11 @@ void cell_sweep(cell *node) {
         cell_sweep(node->_.cons.car);
         cell_sweep(node->_.cons.cdr);
         break;
-
+#if HAVE_COMPILER
+    case c_DOCALLN:
+        cell_sweep(node->_.calln.cdr);
+        break;
+#endif
     case c_ENV: // TODO
         cell_sweep(node->_.cons.car);
         cell_sweep(node->_.cons.cdr);
@@ -466,7 +463,6 @@ void cell_sweep(cell *node) {
     case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
-    case c_CFUN3:
     case c_CFUNN:
     case c_SPECIAL:
     case c_STOP:
@@ -496,7 +492,6 @@ static void cell_free(cell *node) {
     case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
-    case c_DOCALL3:
     case c_DOCOND:
     case c_DODEFQ:
     case c_DOREFQ:
@@ -507,6 +502,11 @@ static void cell_free(cell *node) {
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
         break;
+#if HAVE_COMPILER
+    case c_DOCALLN:
+        cell_unref(node->_.calln.cdr);
+        break;
+#endif
     case c_ENV: // TODO
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
@@ -525,7 +525,6 @@ static void cell_free(cell *node) {
     case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
-    case c_CFUN3:
     case c_CFUNN:
         break;
     case c_VECTOR:

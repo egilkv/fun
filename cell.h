@@ -40,7 +40,6 @@ enum cell_t {
    c_DOCALL0,   // car is known function, pop 0 args, push result
    c_DOCALL1,   // car is known function, pop 1 arg, push result
    c_DOCALL2,   // car is known function, pop 2 args, push result
-   c_DOCALL3,   // car is known function, pop 3 args, push result
    c_DOCALLN,   // car is number of args, pop func and N args, push result
    c_DOCOND,	// pop, car if true, cdr else
    c_DODEFQ,    // car is name, pop and push value, cdr is next
@@ -94,6 +93,10 @@ struct cell_s {
         struct {
             struct cell_s *(*def)(struct cell_s *, struct cell_s *);
         } cfun2;
+        struct {
+            integer_t narg;
+            struct cell_s *cdr;
+        } calln;
     } _;
 } ;
 

@@ -275,25 +275,34 @@ static int compile1(cell *prog, cell ***nextpp) {
                 case 2:
                     t = c_DOCALL2;
                     break;
-                default: // TODO very wrong...
-                case 3:
-                    t = c_DOCALL3;
+                default:
+                    t = c_DOCALLN;
                     break;
                 }
-
-		// see if known internal symbol
-		// TODO when compiler does local variables at compile time, can optimize much more
-		if (cell_is_symbol(fun) && fun->_.symbol.nam && fun->_.symbol.nam[0]=='#') {
-		    // built in known global
-		    def = cell_ref(fun->_.symbol.val);
-		    cell_unref(fun);
-		} else {
-		    // compile, pushing on stack
-		    if (!compile1(fun, nextpp)) {
-			add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
-		    }
-		}
-		add2prog(t, def, nextpp);
+                if (t == c_DOCALLN) {
+                    cell *node;
+                    // compile, pushing on stack
+                    if (!compile1(fun, nextpp)) {
+                        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
+                    }
+                    node = add2prog(t, def, nextpp);
+                    node->_.calln.narg = n;
+                    assert(*nextpp == &(node->_.calln.cdr)); // TODO assumption
+                } else {
+                    // see if known internal symbol
+                    // TODO when compiler does local variables at compile time, can optimize much more
+                    if (cell_is_symbol(fun) && fun->_.symbol.nam && fun->_.symbol.nam[0]=='#') {
+                        // built in known global
+                        def = cell_ref(fun->_.symbol.val);
+                        cell_unref(fun);
+                    } else {
+                        // compile, pushing on stack
+                        if (!compile1(fun, nextpp)) {
+                            add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
+                        }
+                    }
+                    add2prog(t, def, nextpp);
+                }
 
                 return 1;
             }

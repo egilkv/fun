@@ -390,68 +390,56 @@ cell *run(cell *prog) {
             }
             break;
 
-        case c_DOCALL3:   // car is closure or function, pop 3 args, push result
+        case c_DOCALLN:   // car is Nargs, pop function, pop N args, push result
             {
-                cell *fun = prog->_.cons.car;
+                integer_t narg = prog->_.calln.narg;
                 cell *result;
-                cell *arg1, *arg2, *arg3;
-                if (fun == NIL) { // function evaluated on stack?
-                    if (!list_pop(&stack, &fun)) {
+                cell *fun = NIL;
+                cell *args = NIL;
+                cell **pp = &args;
+                // function evaluated on stack
+                if (!list_pop(&stack, &fun)) {
+                    assert(0);
+                }
+                while (narg-- > 0) {
+                    cell *a;
+                    if (!list_pop(&stack, &a)) {
                         assert(0);
                     }
-                } else {
-                    fun = cell_ref(fun); // known function
-                }
-                if (!list_pop(&stack, &arg1)) {
-                    assert(0);
-                }
-                if (!list_pop(&stack, &arg2)) {
-                    assert(0);
-                }
-                if (!list_pop(&stack, &arg3)) {
-                    assert(0);
+                    *pp = cell_list(a, NIL);
+                    pp = &((*pp)->_.cons.cdr);
                 }
                 switch (fun ? fun->type : c_LIST) {
-                case c_CFUN3:
-                    {
-                        cell *(*def)(cell *, cell *, cell *) = fun->_.cfun3.def;
-                        cell_unref(fun);
-                        result = (*def)(arg1, arg2, arg3);
-                    }
-                builtin3:
-                    stack = cell_list(result, stack);
-                    next = cell_ref(prog->_.cons.cdr);
-                    cell_unref(prog);
-                    prog = next;
-                    break;
-
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
                         cell_unref(fun);
-                        result = (*def)(cell_list(arg1,cell_list(arg2,cell_list(arg3,NIL))));
+                        result = (*def)(args);
                     }
-                    goto builtin3;
+                builtinN:
+                    stack = cell_list(result, stack);
+                    next = cell_ref(prog->_.calln.cdr);
+                    cell_unref(prog);
+                    prog = next;
+                    break;
 
                 case c_CLOSURE:
                     {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        apply_run(lambda, cell_list(arg1,cell_list(arg2,cell_list(arg3,NIL))), contenv, &prog, &env);
+                        apply_run(lambda, args, contenv, &prog, &env);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    apply_run(fun, cell_list(arg1,cell_list(arg2,cell_list(arg3,NIL))), NIL, &prog, &env);
+                    apply_run(fun, args, NIL, &prog, &env);
                     break;
 
                 default:
-                    cell_unref(arg1);
-                    cell_unref(arg2);
-                    cell_unref(arg3);
-                    result = error_rt1("not a function with 3 args", fun);
-                    goto builtin3;
+                    cell_unref(args);
+                    result = error_rt1("not a function with N args", fun);
+                    goto builtinN;
                 }
             }
             break;

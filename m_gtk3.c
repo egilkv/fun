@@ -129,12 +129,18 @@ static cell *cgtk_grid_new() {
     return cell_special(magic_gtk_wid, (void *)grid);
 }
 
-static cell *cgtk_grid_attach(cell *grid, cell *widget, cell *coord) {
+static cell *cgtk_grid_attach(cell *args) {
+    cell *grid;
+    cell *widget;
+    cell *coord;
     GtkWidget *gp;
     GtkWidget *wp;
     integer_t co[4] = { 0, 0, 1, 1 }; // x0, y0, xn, yn
     int n;
 
+    if (!arg3(args, &grid, &widget, &coord)) {
+        return cell_void(); // error
+    }
     if (!peek_wid_s(grid, &gp, widget)) {
 	cell_unref(coord);
 	return grid; // error
@@ -223,13 +229,19 @@ static void do_callback(GtkApplication* gp, gpointer data) {
 #endif
 }
 
-static cell *cgtk_signal_connect(cell *app, cell *hook, cell *callback) {
+static cell *cgtk_signal_connect(cell *args) {
+    cell *app;
+    cell *hook;
+    cell *callback;
     // TODO also works for widgets, any instance
     // TODO signal names are separated by either - or _
 
     //GtkApplication *gp;
     gpointer *gp;
     char_t *signal;
+    if (!arg3(args, &app, &hook, &callback)) {
+        return cell_void(); // error
+    }
     if (!peek_special(app, (const char *)0, (void **)&gp, "not a gtk entity", callback)) {
         cell_unref(hook); // TODO
     } else if (get_symbol(hook, &signal, callback)) {
@@ -270,9 +282,18 @@ static cell *cgtk_window_set_title(cell *widget, cell *title) {
     return widget;
 }
 
-static cell *cgtk_window_set_default_size(cell *widget, cell *width, cell *height) {
+static cell *cgtk_window_set_default_size(cell *args) {
+    cell *widget;
+    cell *width;
+    cell *height;
     GtkWidget *wp;
     integer_t w, h;
+    // TODO also works for widgets, any instance
+    // TODO signal names are separated by either - or _
+
+    if (!arg3(args, &widget, &width, &height)) {
+        return cell_void(); // error
+    }
     if (!peek_wid_s(widget, &wp, width)) {
         cell_unref(height);
     } else if (get_integer(width, &w, height)
@@ -317,14 +338,14 @@ cell *module_gtk() {
     assoc_set(a, cell_symbol("container_add"),          cell_cfun2(cgtk_container_add));
     assoc_set(a, cell_symbol("container_set_border_width"), cell_cfun2(cgtk_container_set_border_width));
     assoc_set(a, cell_symbol("grid_new"),               cell_cfun0(cgtk_grid_new));
-    assoc_set(a, cell_symbol("grid_attach"),            cell_cfun3(cgtk_grid_attach));
+    assoc_set(a, cell_symbol("grid_attach"),            cell_cfunN(cgtk_grid_attach));
     assoc_set(a, cell_symbol("init"),                   cell_cfun1(cgtk_init));
     assoc_set(a, cell_symbol("main"),                   cell_cfun0(cgtk_main));
     assoc_set(a, cell_symbol("print"),                  cell_cfunN(cgtk_print));
-    assoc_set(a, cell_symbol("signal_connect"),         cell_cfun3(cgtk_signal_connect));
+    assoc_set(a, cell_symbol("signal_connect"),         cell_cfunN(cgtk_signal_connect));
     assoc_set(a, cell_symbol("widget_destroy"),         cell_cfun1(cgtk_widget_destroy));
     assoc_set(a, cell_symbol("window_set_title"),       cell_cfun2(cgtk_window_set_title));
-    assoc_set(a, cell_symbol("window_set_default_size"), cell_cfun3(cgtk_window_set_default_size));
+    assoc_set(a, cell_symbol("window_set_default_size"), cell_cfunN(cgtk_window_set_default_size));
     assoc_set(a, cell_symbol("widget_show_all"),        cell_cfun1(cgtk_widget_show_all));
 
     return a;

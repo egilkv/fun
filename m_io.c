@@ -167,11 +167,15 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
-    case c_DOCALL3:
         fprintf(out, "#docall%d(", ct->type - c_DOCALL0);
         cell_writei(out, ct->_.cons.car, indent);
         fprintf(out, ") -> ");
         cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
+    case c_DOCALLN:
+        fprintf(out, "#docall%lld() ", ct->_.calln.narg);
+        cell_writei(out, ct->_.calln.cdr, indent);
         break;
 
     case c_DOCOND:
@@ -309,9 +313,6 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         break;
     case c_CFUN2:
         fprintf(out, "#cfun2()");
-        break;
-    case c_CFUN3:
-        fprintf(out, "#cfun3()");
         break;
     case c_CFUNN:
         fprintf(out, "#cfunN()");

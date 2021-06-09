@@ -757,7 +757,6 @@ static cell *cfun1_type(cell *a) {
     case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
-    case c_CFUN3:
     case c_CFUNN:
         t = "function"; // happens only for built in functions
         break;
@@ -774,7 +773,7 @@ static cell *cfun1_type(cell *a) {
     case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
-    case c_DOCALL3:
+    case c_DOCALLN:
     case c_DOCOND:
     case c_DODEFQ:
     case c_DOREFQ:
