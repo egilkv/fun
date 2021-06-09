@@ -778,6 +778,7 @@ static cell *cfun1_type(cell *a) {
     case c_DODEFQ:
     case c_DOREFQ:
     case c_DOLAMB:
+    case c_DOLABL:
     case c_DOPOP:
     case c_DONOOP:
 #endif

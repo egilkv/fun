@@ -14,10 +14,10 @@ enum cell_t {
    c_FUNC,      // from parse: car is function, cdr is args
    c_ENV,       // car is pair, cdr is pair
    c_CLOSURE,   // car is c_CLOSURE0, cdr is continuation env
-   c_CLOSURE0,  // car is parameters, cdr is the body, nil cont env, aka lambda
+   c_CLOSURE0,  // car is parameters, cdr is the body, NIL cont env, aka lambda
    c_CLOSURE0T, // same as c_CLOSURE0, but tracing is enabled
-   c_RANGE,     // car is lower, car is upper bound; both may be nil
-   c_LABEL,     // car is label, car is expr
+   c_RANGE,     // car is lower, car is upper bound; both may be NIL
+   c_LABEL,     // car is label, cdr is expr
    c_PAIR,      // car is left, cdr is right part
    c_KEYVAL,    // car is key, cdr is value, for assocs
    c_ELIST,     // car is first item, cdr is rest of elist, or last
@@ -45,6 +45,7 @@ enum cell_t {
    c_DODEFQ,    // car is name, pop and push value, cdr is next
    c_DOREFQ,    // car is name, pop assoc, push value, cdr is next
    c_DOLAMB,    // car is cell_lambda, cdr is next
+   c_DOLABL,    // car is label, pop expr, push value, cdr is next
    c_DOPOP,     // cdr is next
    c_DONOOP     // cdr is next
 #endif

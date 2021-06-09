@@ -1,18 +1,20 @@
 
 Compile todo:
 	range does not work
-	Support lambdas with > 3 arguments!
 	Support apply
 	stack imbalance after "cannot be evaluated"
 
+Fails in refcount when #apply is undefined
+  average = ( ... ) {
+    #apply(#plus, ...) / #count(...)
+    };
+  average(11, 12, 12);
 
 Parsing of code {} within {} is pretty broken, see qsort-new.fun
 
 Variadic function cannot be mixed with labels?
 
 Have special symbol that means myself, i.e. own function, e.g. #self
-
-Improve garbage collection and verification, beginning with mark-sweep
 
 Self referrences should default to weak refs.
 How to make weak bindings for local closures.
@@ -32,7 +34,7 @@ What about ... = Also ... cannot be used as labels
 
 get_integer() -> get_anyinteger()
 
-<something> is also a thing to consider
+<something> is also a syntax to consider
 
 If ++ is catenation, then +- could be replacements for vectors and assocs
 Then -- could be to remove whatever...

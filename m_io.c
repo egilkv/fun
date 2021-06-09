@@ -206,6 +206,13 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
 
+    case c_DOLABL:
+        fprintf(out, "#dolabl(");
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
     case c_DOPOP:
         fprintf(out, "#dopop() -> ");
         cell_writei(out, ct->_.cons.cdr, indent);

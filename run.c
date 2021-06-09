@@ -14,27 +14,37 @@
 #if HAVE_COMPILER
 
 // evalute a symbol
-cell *eval_symbol(cell *arg, cell **envp) {
+cell *eval_item(cell *arg, cell **envp) {
     cell *result = NIL;
-    cell *e;
 
-    if (!cell_is_symbol(arg)) {
-        return error_rt1("cannot be evaluated", arg);
-    }
-    e = *envp;
-    for (;;) {
-        if (!e) {
-            // global
-            result = cell_ref(arg->_.symbol.val);
-            break;
+    if (arg == NIL) {
+        return NIL;
+    } else switch (arg->type) {
+    case c_SYMBOL:
+        {
+            cell *e = *envp;
+            for (;;) {
+                if (!e) { // global?
+                    result = cell_ref(arg->_.symbol.val);
+                    break;
+                }
+                if (assoc_get(env_assoc(e), arg, &result)) {
+                    break;
+                }
+                e = env_cont_env(e);
+            }
         }
-        if (assoc_get(env_assoc(e), arg, &result)) {
-            break;
-        }
-        e = env_cont_env(e);
+        cell_unref(arg);
+        return result;
+
+    case c_STRING:
+    case c_NUMBER:
+        // TODO what evaluates to itself?
+        return arg;
+
+    default:
+        return error_rt1("cannot evaluate", arg);
     }
-    cell_unref(arg);
-    return result;
 }
 
 static void apply_run(cell *lambda, cell *args, cell *contenv, cell **progp, cell **envp) {
@@ -209,7 +219,7 @@ cell *run(cell *prog) {
 
         case c_DOEPUSH:   // eval and push car, cdr is next
             next = cell_ref(prog->_.cons.car);
-            next = eval_symbol(next, &env);
+            next = eval_item(next, &env);
             stack = cell_list(next, stack);
 
             next = cell_ref(prog->_.cons.cdr);
@@ -506,6 +516,22 @@ cell *run(cell *prog) {
                 }
                 // cell_unref(error_rt1("and now what?", cp));
                 stack = cell_list(cp, stack);
+            }
+            next = cell_ref(prog->_.cons.cdr);
+            cell_unref(prog);
+            prog = next;
+            break;
+
+        case c_DOLABL:    // car is label, pop value, push result, cdr is next
+            {
+                cell *label = cell_ref(prog->_.cons.car);
+                cell *val;
+                cell *result;
+                if (!list_pop(&stack, &val)) {
+                    assert(0);
+                }
+                result = cell_label(label, val);
+                stack = cell_list(result, stack);
             }
             next = cell_ref(prog->_.cons.cdr);
             cell_unref(prog);

@@ -312,6 +312,19 @@ static int compile1(cell *prog, cell ***nextpp) {
         add2prog(c_DOEPUSH, prog, nextpp);
         return 1;
 
+    case c_LABEL: // car is label, cdr is expr
+        {
+            cell *nam;
+            cell *val;
+            label_split(prog, &nam, &val);
+            // TODO assume nam is quoted: cell_is_symbol(nam) cell_is_number(nam)
+            add2prog(c_DOEPUSH, val, nextpp);
+            add2prog(c_DOLABL, nam, nextpp);
+        }
+        return 1;
+
+    case c_RANGE: // car is lower, car is upper bound; both may be NIL
+        // TODO should compile properly
     case c_STRING:
     case c_NUMBER:
         add2prog(c_DOQPUSH, prog, nextpp);
