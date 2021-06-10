@@ -122,8 +122,9 @@ static cell *cgtk_container_set_border_width(cell *widget, cell *wid) {
     return widget;
 }
 
-static cell *cgtk_grid_new() {
+static cell *cgtk_grid_new(cell *args) {
     GtkWidget *grid;
+    arg0(args);
     grid = gtk_grid_new();
     // TODO errors?
     return cell_special(magic_gtk_wid, (void *)grid);
@@ -165,7 +166,8 @@ static cell *cgtk_init(cell *arglist) {
     return cell_void();
 }
 
-static cell *cgtk_main() {
+static cell *cgtk_main(cell *args) {
+    arg0(args);
     gtk_main();
     return cell_void();
 }
@@ -337,10 +339,10 @@ cell *module_gtk() {
     assoc_set(a, cell_symbol("button_box_new"),         cell_cfunN(cgtk_button_box_new));
     assoc_set(a, cell_symbol("container_add"),          cell_cfun2(cgtk_container_add));
     assoc_set(a, cell_symbol("container_set_border_width"), cell_cfun2(cgtk_container_set_border_width));
-    assoc_set(a, cell_symbol("grid_new"),               cell_cfun0(cgtk_grid_new));
+    assoc_set(a, cell_symbol("grid_new"),               cell_cfunN(cgtk_grid_new));
     assoc_set(a, cell_symbol("grid_attach"),            cell_cfunN(cgtk_grid_attach));
     assoc_set(a, cell_symbol("init"),                   cell_cfun1(cgtk_init));
-    assoc_set(a, cell_symbol("main"),                   cell_cfun0(cgtk_main));
+    assoc_set(a, cell_symbol("main"),                   cell_cfunN(cgtk_main));
     assoc_set(a, cell_symbol("print"),                  cell_cfunN(cgtk_print));
     assoc_set(a, cell_symbol("signal_connect"),         cell_cfunN(cgtk_signal_connect));
     assoc_set(a, cell_symbol("widget_destroy"),         cell_cfun1(cgtk_widget_destroy));

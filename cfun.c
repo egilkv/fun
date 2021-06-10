@@ -754,7 +754,6 @@ static cell *cfun1_type(cell *a) {
 
     case c_FUNC:
     case c_CFUNQ:
-    case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:
@@ -770,7 +769,6 @@ static cell *cfun1_type(cell *a) {
 #if HAVE_COMPILER
     case c_DOQPUSH:
     case c_DOEPUSH:
-    case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCALLN:
@@ -830,8 +828,10 @@ static cell *cfun1_trace(cell *a) {
 }
 
 // debugging, run garbage collection
-static cell *cfun0_gc() {
-    integer_t nodes = oblist_sweep();
+static cell *cfunN_gc(cell *args) {
+    integer_t nodes;
+    arg0(args);
+    nodes = oblist_sweep();
     return cell_integer(nodes);
 }
 
@@ -914,7 +914,7 @@ void cfun_init() {
                     oblistv("#type",     cell_cfun1(cfun1_type));
 		    oblistv("#use",      cell_cfun1(cfun1_use));
 
-                    oblistv("#gc",       cell_cfun0(cfun0_gc)); // debugging
+                    oblistv("#gc",       cell_cfunN(cfunN_gc)); // debugging
                     oblistv("#trace",    cell_cfun1(cfun1_trace)); // debugging
 
     // values

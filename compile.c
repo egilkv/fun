@@ -266,9 +266,6 @@ static int compile1(cell *prog, cell ***nextpp) {
                 enum cell_t t;
 
                 switch (n) {
-                case 0:
-                    t = c_DOCALL0;
-                    break;
                 case 1:
                     t = c_DOCALL1;
                     break;

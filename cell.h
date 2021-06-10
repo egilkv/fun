@@ -30,14 +30,12 @@ enum cell_t {
    c_ASSOC,
    c_SPECIAL,
    c_CFUNQ,
-   c_CFUN0,
    c_CFUN1,
    c_CFUN2,
    c_CFUNN
 #if HAVE_COMPILER
   ,c_DOQPUSH,   // push car, cdr is next
    c_DOEPUSH,   // eval and push car, cdr is next
-   c_DOCALL0,   // car is known function, pop 0 args, push result
    c_DOCALL1,   // car is known function, pop 1 arg, push result
    c_DOCALL2,   // car is known function, pop 2 args, push result
    c_DOCALLN,   // car is number of args, pop func and N args, push result
@@ -86,9 +84,6 @@ struct cell_s {
             struct cell_s *(*def)(struct cell_s *, struct cell_s **); // 2nd arg is envp
         } cfunq;
         struct {
-            struct cell_s *(*def)(void);
-        } cfun0;
-        struct {
             struct cell_s *(*def)(struct cell_s *);
         } cfun1;
         struct {
@@ -113,7 +108,6 @@ void cell_unref(cell *cp);
 
 cell *cell_cfunQ(cell *(*fun)(cell *, cell **));
 cell *cell_cfunN(cell *(*fun)(cell *));
-cell *cell_cfun0(cell *(*fun)(void));
 cell *cell_cfun1(cell *(*fun)(cell *));
 cell *cell_cfun2(cell *(*fun)(cell *, cell *));
 

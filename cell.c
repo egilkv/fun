@@ -281,12 +281,6 @@ cell *cell_cfunN(struct cell_s *(*fun)(cell *)) {
     return node;
 }
 
-cell *cell_cfun0(struct cell_s *(*fun)(void)) {
-    cell *node = newnode(c_CFUN0);
-    node->_.cfun0.def = fun;
-    return node;
-}
-
 cell *cell_cfun1(struct cell_s *(*fun)(cell *)) {
     cell *node = newnode(c_CFUN1);
     node->_.cfun1.def = fun;
@@ -415,7 +409,6 @@ void cell_sweep(cell *node) {
 #if HAVE_COMPILER
     case c_DOQPUSH:
     case c_DOEPUSH:
-    case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCOND:
@@ -461,7 +454,6 @@ void cell_sweep(cell *node) {
     case c_STRING:
     case c_NUMBER:
     case c_CFUNQ:
-    case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:
@@ -490,7 +482,6 @@ static void cell_free(cell *node) {
 #if HAVE_COMPILER
     case c_DOQPUSH:
     case c_DOEPUSH:
-    case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCOND:
@@ -524,7 +515,6 @@ static void cell_free(cell *node) {
     case c_NUMBER:
         break;
     case c_CFUNQ:
-    case c_CFUN0:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:

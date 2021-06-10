@@ -227,59 +227,6 @@ cell *run(cell *prog) {
             prog = next;
             break;
 
-        case c_DOCALL0:   // car is closure or function, pop 0 args, push result
-            {
-                cell *fun = prog->_.cons.car;
-                cell *result;
-                if (fun == NIL) { // function evaluated on stack?
-                    if (!list_pop(&stack, &fun)) {
-                        assert(0);
-                    }
-                } else {
-                    fun = cell_ref(fun); // known function
-                }
-                switch (fun ? fun->type : c_LIST) {
-                case c_CFUN0:
-                    {
-                        cell *(*def)(void) = fun->_.cfun0.def;
-                        cell_unref(fun);
-                        result = (*def)();
-                    }
-                builtin0:
-                    stack = cell_list(result, stack);
-                    next = cell_ref(prog->_.cons.cdr);
-                    cell_unref(prog);
-                    prog = next;
-                    break;
-
-                case c_CFUNN:
-                    {
-                        cell *(*def)(cell *) = fun->_.cfun1.def;
-                        cell_unref(fun);
-                        result = (*def)(NIL);
-                    }
-                    goto builtin0;
-
-                case c_CLOSURE:
-                    {
-                        cell *lambda = cell_ref(fun->_.cons.car);
-                        cell *contenv = cell_ref(fun->_.cons.cdr);
-                        cell_unref(fun);
-                        apply_run(lambda, NIL, contenv, &prog, &env);
-                    }
-                    break;
-                case c_CLOSURE0:
-                case c_CLOSURE0T:
-                    apply_run(fun, NIL, NIL, &prog, &env);
-                    break;
-
-                default:
-                    result = error_rt1("not a function with 0 args", fun);
-                    goto builtin0;
-                }
-            }
-            break;
-
         case c_DOCALL1:   // car is closure or function, pop 1 arg, push result
             {
                 cell *fun = prog->_.cons.car;

@@ -20,9 +20,10 @@
 #include "err.h"
 
  // seconds since epoch, with sub second accuracy
-static cell *ctime_seconds() {
+static cell *ctime_seconds(cell *args) {
     number seconds;
     struct timeval tv;
+    arg0(args);
     gettimeofday(&tv, (struct timezone *)0);
     seconds.dividend.fval = tv.tv_sec + tv.tv_usec / 1000000.0;
     seconds.divisor = 0;
@@ -222,7 +223,7 @@ cell *module_time() {
     // TODO consider having a cache for this
     cell *a = cell_assoc();
 
-    assoc_set(a, cell_symbol("seconds"),   cell_cfun0(ctime_seconds));
+    assoc_set(a, cell_symbol("seconds"),   cell_cfunN(ctime_seconds));
     assoc_set(a, cell_symbol("sleep"),     cell_cfun1(ctime_sleep));
     assoc_set(a, cell_symbol("localtime"), cell_cfun1(ctime_localtime));
     assoc_set(a, cell_symbol("mktime"),    cell_cfun1(ctime_mktime));

@@ -164,10 +164,9 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
 
-    case c_DOCALL0:
     case c_DOCALL1:
     case c_DOCALL2:
-        fprintf(out, "#docall%d(", ct->type - c_DOCALL0);
+        fprintf(out, "#docall%d(", ct->type == c_DOCALL1 ? 1:2);
         cell_writei(out, ct->_.cons.car, indent);
         fprintf(out, ") -> ");
         cell_writei(out, ct->_.cons.cdr, indent);
@@ -312,9 +311,6 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_CFUNQ:
         fprintf(out, "#cfunQ()");
         break;
-    case c_CFUN0:
-        fprintf(out, "#cfun0()");
-        break;
     case c_CFUN1:
         fprintf(out, "#cfun1()");
         break;
@@ -405,18 +401,21 @@ static cell *cfio_println(cell *args) {
     return v;
 }
 
-static cell *cfio_read() {
+static cell *cfio_read(cell *args) {
     // TODO how to deal with error messages
     // TODO threading
     // TODO should probably continue previous lxfile
     lxfile infile;
+    arg0(args);
     lxfile_init(&infile, stdin);
     return expression(&infile);
 }
 
-static cell *cfio_getline() {
+static cell *cfio_getline(cell *args) {
     ssize_t len = 0;
-    char *line = lex_getline(stdin, &len);
+    char *line;
+    arg0(args);
+    line = lex_getline(stdin, &len);
     if (!line || len < 0) {
         return cell_void();
     }
@@ -433,8 +432,8 @@ cell *module_io() {
     assoc_set(a, cell_symbol("println"), cell_cfunN(cfio_println));
     assoc_set(a, cell_symbol("write"),   cell_cfunN(cfio_write));
     assoc_set(a, cell_symbol("writeln"), cell_cfunN(cfio_writeln));
-    assoc_set(a, cell_symbol("read"),    cell_cfun0(cfio_read));
-    assoc_set(a, cell_symbol("getline"), cell_cfun0(cfio_getline));
+    assoc_set(a, cell_symbol("read"),    cell_cfunN(cfio_read));
+    assoc_set(a, cell_symbol("getline"), cell_cfunN(cfio_getline));
 
     return a;
 }
