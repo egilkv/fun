@@ -6,6 +6,7 @@
 #include <assert.h>
 
 #include "cell.h"
+#include "run.h"
 #include "eval.h" // defq
 #include "cmod.h" // get_boolean
 #include "err.h"
@@ -14,7 +15,7 @@
 #if HAVE_COMPILER
 
 // evalute a symbol
-cell *eval_item(cell *arg, cell **envp) {
+static cell *run_eval(cell *arg, cell **envp) {
     cell *result = NIL;
 
     if (arg == NIL) {
@@ -47,7 +48,7 @@ cell *eval_item(cell *arg, cell **envp) {
     }
 }
 
-static void apply_run(cell *lambda, cell *args, cell *contenv, cell **progp, cell **envp) {
+static void run_apply(cell *lambda, cell *args, cell *contenv, cell **progp, cell **envp) {
     int gotlabel = 0;
     cell *nam;
     cell *val;
@@ -65,6 +66,7 @@ static void apply_run(cell *lambda, cell *args, cell *contenv, cell **progp, cel
         if (cell_is_list(params) && cell_car(params) == hash_ellip) {
             // special case for ellipsis, place rest on list
             val = cell_list(val, args);
+            args = NIL;
             cell_unref(params);
 	    params = NIL;
             nam = cell_ref(hash_ellip);
@@ -219,7 +221,7 @@ cell *run(cell *prog) {
 
         case c_DOEPUSH:   // eval and push car, cdr is next
             next = cell_ref(prog->_.cons.car);
-            next = eval_item(next, &env);
+            next = run_eval(next, &env);
             stack = cell_list(next, stack);
 
             next = cell_ref(prog->_.cons.cdr);
@@ -269,12 +271,12 @@ cell *run(cell *prog) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        apply_run(lambda, cell_list(arg,NIL), contenv, &prog, &env);
+                        run_apply(lambda, cell_list(arg,NIL), contenv, &prog, &env);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    apply_run(fun, cell_list(arg,NIL), NIL, &prog, &env);
+                    run_apply(fun, cell_list(arg,NIL), NIL, &prog, &env);
                     break;
 
                 default:
@@ -330,12 +332,12 @@ cell *run(cell *prog) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        apply_run(lambda, cell_list(arg1,cell_list(arg2,NIL)), contenv, &prog, &env);
+                        run_apply(lambda, cell_list(arg1,cell_list(arg2,NIL)), contenv, &prog, &env);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    apply_run(fun, cell_list(arg1,cell_list(arg2,NIL)), NIL, &prog, &env);
+                    run_apply(fun, cell_list(arg1,cell_list(arg2,NIL)), NIL, &prog, &env);
                     break;
 
                 default:
@@ -385,12 +387,12 @@ cell *run(cell *prog) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        apply_run(lambda, args, contenv, &prog, &env);
+                        run_apply(lambda, args, contenv, &prog, &env);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    apply_run(fun, args, NIL, &prog, &env);
+                    run_apply(fun, args, NIL, &prog, &env);
                     break;
 
                 default:

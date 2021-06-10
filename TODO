@@ -3,11 +3,6 @@ Compile todo:
 	range does not work
 	Support apply
 	stack imbalance after "cannot be evaluated"
-	Fails in refcount when #apply is undefined
-	  average = ( ... ) {
-	     #apply(#plus, ...) / #count(...)
-	 };
-	 average(11, 12, 12);
 
 Parsing of code {} within {} is pretty broken, see qsort-new.fun
 
