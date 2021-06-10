@@ -471,15 +471,37 @@ cell *run(cell *prog) {
             prog = next;
             break;
 
-        case c_DOLABEL:   // car is label, pop value, push result, cdr is next
+        case c_DOLABEL:   // pop expr, car is label or NIL for pop, push value, cdr is next
             {
                 cell *label = cell_ref(prog->_.cons.car);
                 cell *val;
                 cell *result;
+                if (label == NIL && !list_pop(&stack, &label)) {
+                    assert(0);
+                }
                 if (!list_pop(&stack, &val)) {
                     assert(0);
                 }
                 result = cell_label(label, val);
+                stack = cell_list(result, stack);
+            }
+            next = cell_ref(prog->_.cons.cdr);
+            cell_unref(prog);
+            prog = next;
+            break;
+
+        case c_DORANGE:   // pop lower, pop upper, push result, cdr is next
+            {
+                cell *lower;
+                cell *upper;
+                cell *result;
+                if (!list_pop(&stack, &lower)) {
+                    assert(0);
+                }
+                if (!list_pop(&stack, &upper)) {
+                    assert(0);
+                }
+                result = cell_range(lower, upper);
                 stack = cell_list(result, stack);
             }
             next = cell_ref(prog->_.cons.cdr);

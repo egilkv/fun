@@ -57,7 +57,7 @@ ft(50, 5) ==> 55
 #defq(f, #defq(g, 9)) ==> 9
 #plus(g, f, 12) ==> 30
 #minus(#plus(g, f, 12), 30) ==> 0
-#bitxor(2, #quotient(50, 2)) ==> error; not a function: #undefined
+#bitxor(2, #quotient(50, 2)) ==> error; not a function with 2 args: #undefined
 undefined ==> #undefined
 #defq(io, #use("io")) ==> { 
   getline: #cfunN(),
@@ -290,8 +290,9 @@ average(11, 12, 12.0) ==> 11.6666666666667
 add() ==> 0
 add(1) ==> 1
 add(1, 2, 3) ==> 6
-#apply(#plus) ==> 0
-#apply(#plus, 1, 2, #list(3, 4, 5)) ==> 15
+#apply(#plus) ==> error; missing tail arguments: []
+#apply(#plus, 1, 2, #list(3, 4, 5)) ==> error; excess argument(s) ignored: [ 2, #list(3, 4, 5) ]
+error; apply argument not a list: 1
 #times(#quotient(35, 3), 1.0) ==> 11.6666666666667
 #defq(g, #lambda([ a, ... ], #cat(#list(a), #list(99), ...))) ==> #closure0(
   args: [ a, ... ]

@@ -416,6 +416,7 @@ void cell_sweep(cell *node) {
     case c_DOREFQ:
     case c_DOLAMB:
     case c_DOLABEL:
+    case c_DORANGE:
     case c_DOAPPLY:
     case c_DOPOP:
     case c_DONOOP:
@@ -490,6 +491,7 @@ static void cell_free(cell *node) {
     case c_DOREFQ:
     case c_DOLAMB:
     case c_DOLABEL:
+    case c_DORANGE:
     case c_DOAPPLY:
     case c_DOPOP:
     case c_DONOOP:

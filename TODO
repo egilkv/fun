@@ -1,7 +1,5 @@
 
 Compile todo:
-	range does not work
-	Support apply
 	stack imbalance after "cannot be evaluated"
 
 Parsing of code {} within {} is pretty broken, see qsort-new.fun

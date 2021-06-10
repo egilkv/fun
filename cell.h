@@ -43,7 +43,8 @@ enum cell_t {
    c_DODEFQ,    // car is name, pop and push value, cdr is next
    c_DOREFQ,    // car is name, pop assoc, push value, cdr is next
    c_DOLAMB,    // car is cell_lambda, cdr is next
-   c_DOLABEL,   // car is label, pop expr, push value, cdr is next
+   c_DOLABEL,   // pop expr, car is label or NIL for pop, push value, cdr is next
+   c_DORANGE,   // pop lower, pop upper, push result, cdr is next
    c_DOAPPLY,   // pop fun, pop tailarg, push result, cdr is next
    c_DOPOP,     // cdr is next
    c_DONOOP     // cdr is next

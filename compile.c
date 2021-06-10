@@ -16,6 +16,7 @@
 #if HAVE_COMPILER
 
 static int compile1(cell *prog, cell ***nextpp);
+static void compile1void(cell *prog, cell ***nextpp);
 static cell *compile_list(cell *prog);
 
 // return unreffed node if needed
@@ -48,10 +49,7 @@ static int compile1_if(cell *args, cell ***nextpp) {
         cell_unref(error_rt0("missing condition for if"));
         return 0; // empty #if
     }
-    if (!compile1(cond, nextpp)) {
-        cell_unref(args);
-        return 0; // bad #if condition, assume error message has been issued
-    }
+    compile1void(cond, nextpp);
     if (!list_pop(&args, &iftrue)) {
         cell_unref(error_rt0("missing value if true for if"));
         return 1;
@@ -65,14 +63,10 @@ static int compile1_if(cell *args, cell ***nextpp) {
         cell **condp = *nextpp;
         cell *noop;
         add2prog(c_DOCOND, NIL, nextpp); // have NIL dummy for iftrue
-        if (!compile1(iffalse, nextpp)) {
-            compile1(cell_ref(hash_void), nextpp); // dummy replacement
-        }
+        compile1void(iffalse, nextpp);
         condp = &((*condp)->_.cons.car); // iftrue path
         assert(*condp == NIL);
-        if (!compile1(iftrue, &condp)) {
-            compile1(cell_ref(hash_void), &condp); // dummy replacement
-        }
+        compile1void(iftrue, &condp);
         noop = add2prog(c_DONOOP, NIL, nextpp); // TODO can be improved
         *condp = cell_ref(noop); // join up
     }
@@ -86,11 +80,8 @@ static int compile1_and(cell *args, cell ***nextpp) {
     cell **pushfp = &pushf;
 
     while (list_pop(&args, &test)) {
-        if (!compile1(test, nextpp)) {
-            compile1(cell_ref(hash_void), nextpp); // dummy replacement
-        }
-        if (args == NIL) {
-            // last item does not need to be read
+        compile1void(test, nextpp);
+        if (args == NIL) { // last item does not need to be read
             break;
         }
         // more items, so need a "push false"
@@ -119,11 +110,8 @@ static int compile1_or(cell *args, cell ***nextpp) {
     cell **pushtp = &pusht;
 
     while (list_pop(&args, &test)) {
-        if (!compile1(test, nextpp)) {
-            compile1(cell_ref(hash_void), nextpp); // dummy replacement
-        }
-        if (args == NIL) {
-            // last item does not need to be read
+        compile1void(test, nextpp);
+        if (args == NIL) { // last item does not need to be read
             break;
         }
         // more items, so need a "push true"
@@ -149,9 +137,7 @@ static int compile1_defq(cell *args, cell ***nextpp) {
     if (!arg2(args, &nam, &val)) {
         return 0; // error
     }
-    if (!compile1(val, nextpp)) {
-        compile1(cell_ref(hash_void), nextpp); // dummy replacement
-    }
+    compile1void(val, nextpp);
     add2prog(c_DODEFQ, nam, nextpp);
     return 1;
 }
@@ -164,9 +150,7 @@ static int compile1_refq(cell *args, cell ***nextpp) {
     if (!arg2(args, &val, &nam)) {
         return 0; // error
     }
-    if (!compile1(val, nextpp)) {
-        compile1(cell_ref(hash_void), nextpp); // dummy replacement
-    }
+    compile1void(val, nextpp);
     add2prog(c_DOREFQ, nam, nextpp);
     return 1;
 }
@@ -233,14 +217,17 @@ static int compile1_apply(cell *args, cell ***nextpp) {
     }
     arg0(args);
 
-    if (!compile1(tailargs, nextpp)) {
-        return 0;
-    }
-    if (!compile1(fun, nextpp)) {
-        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
-    }
+    compile1void(tailargs, nextpp);
+    compile1void(fun, nextpp);
     add2prog(c_DOAPPLY, NIL, nextpp);
     return 1;
+}
+
+// compile, substituting void value on error
+static void compile1void(cell *prog, cell ***nextpp) {
+    if (!compile1(prog, nextpp)) {
+        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
+    }
 }
 
 // return 1 if something was pushed, 0 otherwise
@@ -341,17 +328,39 @@ static int compile1(cell *prog, cell ***nextpp) {
 
     case c_LABEL: // car is label, cdr is expr
         {
-            cell *nam;
+            cell *label;
             cell *val;
-            label_split(prog, &nam, &val);
-            // TODO assume nam is quoted: cell_is_symbol(nam) cell_is_number(nam)
-            add2prog(c_DOEPUSH, val, nextpp);
-            add2prog(c_DOLABEL, nam, nextpp);
+            label_split(prog, &label, &val);
+            compile1void(val, nextpp);
+            if (cell_is_symbol(label) || cell_is_number(label)) {
+                add2prog(c_DOLABEL, label, nextpp);
+            } else {
+                compile1void(label, nextpp);
+                add2prog(c_DOLABEL, NIL, nextpp);
+            }
         }
         return 1;
 
-    case c_RANGE: // car is lower, car is upper bound; both may be NIL
-        // TODO should compile properly
+    case c_RANGE: // car is lower, cdr is upper bound; both may be NIL
+        {
+            cell *lower;
+            cell *upper;
+            range_split(prog, &lower, &upper);
+            // TODO assume nam is quoted: cell_is_symbol(nam) cell_is_number(nam)
+            if (upper == NIL) {
+                add2prog(c_DOQPUSH, NIL, nextpp); // TODO can optimize..
+            } else {
+                compile1void(upper, nextpp);
+            }
+            if (lower == NIL) {
+                add2prog(c_DOQPUSH, NIL, nextpp);
+            } else {
+                compile1void(lower, nextpp);
+            }
+            add2prog(c_DORANGE, NIL, nextpp);
+        }
+        return 1;
+
     case c_STRING:
     case c_NUMBER:
         add2prog(c_DOQPUSH, prog, nextpp);

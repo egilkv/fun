@@ -214,6 +214,12 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
 
+    case c_DORANGE:
+        fprintf(out, "#dorange(");
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
     case c_DOAPPLY:
         fprintf(out, "#doapply(");
         fprintf(out, ") -> ");
