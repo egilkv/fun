@@ -62,10 +62,10 @@ ft(50, 5) ==> 55
 #bitxor(2, #quotient(50, 2)) ==> error; not a function: #undefined
 undefined ==> #undefined
 #defq(io, #use("io")) ==> { 
-  getline: #cfun0(),
+  getline: #cfunN(),
   print: #cfunN(),
   println: #cfunN(),
-  read: #cfun0(),
+  read: #cfunN(),
   write: #cfunN(),
   writeln: #cfunN()
 } 
@@ -160,7 +160,7 @@ func() ==> case 2 is ALICE and DELTA
 #cat(#list(1, 2, 3), #list(4, 5)) ==> [ 1, 2, 3, 4, 5 ]
 #include("qsort.fun") ==> #closure0(
   args: [ list ]
-  body: [ #defq(pivot, #if(#noteq(list, #list()), list(0))), #defq(q, #lambda([ list, first, last ], #if(#eq(list, #list()), #cat(qsort(first), #list(pivot), qsort(last)), #if(#lt(list(0), pivot), q(#ref(list, 1 .. ), #cat(list(0 .. 0), first), last), q(#ref(list, 1 .. ), first, #cat(list(0 .. 0), last)))))), #if(#le(#count(list), 1), list, q(#ref(list, 1 .. ), #list(), #list())) ]
+  body: [ #defq(pivot, #if(#noteq(list, #list()), #ref(list, 0))), #defq(q, #lambda([ list, first, last ], #if(#eq(list, #list()), #cat(qsort(first), #list(pivot), qsort(last)), #if(#lt(#ref(list, 0), pivot), q(#ref(list, 1 .. ), #cat(#ref(list, 0 .. 0), first), last), q(#ref(list, 1 .. ), first, #cat(#ref(list, 0 .. 0), last)))))), #if(#le(#count(list), 1), list, q(#ref(list, 1 .. ), #list(), #list())) ]
 ) 
 qsort(#list(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
 qsort(#list("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ]
@@ -225,7 +225,7 @@ hello_er("world!") ==> Hello world!
 #defq(time, #use("time")) ==> { 
   localtime: #cfun1(),
   mktime: #cfun1(),
-  seconds: #cfun0(),
+  seconds: #cfunN(),
   sleep: #cfun1(),
   time: #cfunQ(),
   utctime: #cfun1()
