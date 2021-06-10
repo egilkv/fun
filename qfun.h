@@ -3,6 +3,7 @@
  */
 
 cell *hash_and;
+cell *hash_apply;
 cell *hash_defq;
 cell *hash_if;
 cell *hash_lambda;

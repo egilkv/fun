@@ -18,7 +18,9 @@
 
 #define MULTILINE_VECTOR 0  // multiline vectors
 #define MULTILINE_ASSOC  1  // multiline assocs
-#define MAX_INDENT 40
+#define MAX_INDENT      40
+
+#define SHOW_PROG        0  // show prog of closures and environments
 
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
@@ -205,9 +207,15 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
 
-    case c_DOLABL:
-        fprintf(out, "#dolabl(");
+    case c_DOLABEL:
+        fprintf(out, "#dolabel(");
         cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
+    case c_DOAPPLY:
+        fprintf(out, "#doapply(");
         fprintf(out, ") -> ");
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
@@ -292,8 +300,10 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_CLOSURE:
         fprintf(out, "#closure(\n%*sargs: ", indent+2,""); // TODO debug
         cell_writei(out, ct->_.cons.car->_.cons.car, indent+4);
-        fprintf(out, "\n%*sbody: ", indent+2,"");
+#if SHOW_PROG
+        fprintf(out, "\n%*sprog: ", indent+2,"");
         cell_writei(out, ct->_.cons.car->_.cons.cdr, indent);
+#endif
         fprintf(out, "\n%*scont: ", indent+2,"");
         cell_writei(out, ct->_.cons.cdr, indent);
         fprintf(out, "\n%*s) ", indent,"");
@@ -303,8 +313,10 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_CLOSURE0T:
         fprintf(out, "#closure0(\n%*sargs: ", indent+2,""); // TODO debug
         cell_writei(out, ct->_.cons.car, indent+4);
-        fprintf(out, "\n%*sbody: ", indent+2,"");
+#if SHOW_PROG
+        fprintf(out, "\n%*sprog: ", indent+2,"");
         cell_writei(out, ct->_.cons.cdr, indent);
+#endif
         fprintf(out, "\n%*s) ", indent,"");
         break;
 
@@ -324,8 +336,10 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
     case c_ENV:
         fprintf(out, "#env(\n%*sprev: ", indent+4,""); // TODO debug
         cell_writei(out, ct->_.cons.car->_.cons.car, indent+6);
+#if SHOW_PROG
         fprintf(out, "\n%*sprog: ", indent+4,"");
         cell_writei(out, ct->_.cons.car->_.cons.cdr, indent+6);
+#endif
         fprintf(out, "\n%*sassoc: ", indent+4,"");
         cell_writei(out, ct->_.cons.cdr->_.cons.car, indent+6);
         fprintf(out, "\n%*scont: ", indent+4,"");

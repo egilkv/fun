@@ -471,7 +471,7 @@ cell *run(cell *prog) {
             prog = next;
             break;
 
-        case c_DOLABL:    // car is label, pop value, push result, cdr is next
+        case c_DOLABEL:   // car is label, pop value, push result, cdr is next
             {
                 cell *label = cell_ref(prog->_.cons.car);
                 cell *val;
@@ -485,6 +485,87 @@ cell *run(cell *prog) {
             next = cell_ref(prog->_.cons.cdr);
             cell_unref(prog);
             prog = next;
+            break;
+
+        case c_DOAPPLY:   // pop tailarg, pop func, push result, cdr is next
+            {
+                cell *fun;
+                cell *tailarg;
+                cell *result;
+                if (!list_pop(&stack, &fun)) {
+                    assert(0);
+                }
+                if (!list_pop(&stack, &tailarg)) {
+                    assert(0);
+                }
+                if (tailarg != NIL && !cell_is_list(tailarg)) {
+                    cell_unref(fun);
+                    result = error_rt1("apply argument not a list", tailarg);
+                    goto builtinX;
+                }
+                switch (fun ? fun->type : c_LIST) {
+                case c_CFUN1:
+                    {
+                        cell *arg;
+                        cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell_unref(fun);
+                        if (!list_pop(&tailarg, &arg)) {
+                            arg = cell_ref(cell_void()); // error
+                        }
+                        arg0(tailarg);
+                        result = (*def)(arg);
+                    }
+                builtinX:
+                    stack = cell_list(result, stack);
+                    next = cell_ref(prog->_.cons.cdr);
+                    cell_unref(prog);
+                    prog = next;
+                    break;
+
+                case c_CFUN2:
+                    {
+                        cell *arg1;
+                        cell *arg2;
+                        cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
+                        cell_unref(fun);
+                        if (!list_pop(&tailarg, &arg1)) {
+                            arg1 = cell_ref(cell_void()); // error
+                            arg2 = cell_ref(cell_void()); // error
+                        } else if (!list_pop(&tailarg, &arg2)) {
+                            arg2 = cell_ref(cell_void()); // error
+                        }
+                        arg0(tailarg);
+                        result = (*def)(arg1, arg2);
+                    }
+                    goto builtinX;
+
+                case c_CFUNN:
+                    {
+                        cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell_unref(fun);
+                        result = (*def)(tailarg);
+                    }
+                    goto builtinX;
+
+                case c_CLOSURE:
+                    {
+                        cell *lambda = cell_ref(fun->_.cons.car);
+                        cell *contenv = cell_ref(fun->_.cons.cdr);
+                        cell_unref(fun);
+                        run_apply(lambda, tailarg, contenv, &prog, &env);
+                    }
+                    break;
+                case c_CLOSURE0:
+                case c_CLOSURE0T:
+                    run_apply(fun, tailarg, NIL, &prog, &env);
+                    break;
+
+                default:
+                    cell_unref(tailarg);
+                    result = error_rt1("not a function", fun);
+                    goto builtinX;
+                }
+            }
             break;
 
         case c_DOPOP:     // cdr is next

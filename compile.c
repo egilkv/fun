@@ -178,7 +178,7 @@ static int compile1_lambda(cell *args, cell ***nextpp) {
     cell *cp;
     if (!list_pop(&args, &paramlist)) {
         cell_unref(error_rt1("Missing function parameter list", args));
-        return 0;
+            return 0;
     }
     // TODO consider moving to parser
     // check for proper and for duplicate parameters
@@ -214,6 +214,32 @@ static int compile1_lambda(cell *args, cell ***nextpp) {
 
     // closure dealt with at runtime
     add2prog(c_DOLAMB, cp, nextpp);
+    return 1;
+}
+
+// return 1 if something was pushed, 0 otherwise
+static int compile1_apply(cell *args, cell ***nextpp) {
+    cell *fun;
+    cell *tailargs;
+    if (!list_pop(&args, &fun)) {
+        cell_unref(error_rt1("missing function", args));
+        return 0;
+    }
+    // TODO can have intermediate args, or perhaps even zero args?
+    if (!list_pop(&args, &tailargs)) {
+        cell_unref(fun);
+        cell_unref(error_rt1("missing tail arguments", args));
+        return 0;
+    }
+    arg0(args);
+
+    if (!compile1(tailargs, nextpp)) {
+        return 0;
+    }
+    if (!compile1(fun, nextpp)) {
+        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
+    }
+    add2prog(c_DOAPPLY, NIL, nextpp);
     return 1;
 }
 
@@ -259,6 +285,10 @@ static int compile1(cell *prog, cell ***nextpp) {
             } else if (fun == hash_lambda) { // #lambda is special case
                 cell_unref(fun);
                 return compile1_lambda(args, nextpp);
+
+            } else if (fun == hash_apply) { // #apply is special case
+                cell_unref(fun);
+                return compile1_apply(args, nextpp);
 
             } else {
 		cell *def = NIL;
@@ -316,7 +346,7 @@ static int compile1(cell *prog, cell ***nextpp) {
             label_split(prog, &nam, &val);
             // TODO assume nam is quoted: cell_is_symbol(nam) cell_is_number(nam)
             add2prog(c_DOEPUSH, val, nextpp);
-            add2prog(c_DOLABL, nam, nextpp);
+            add2prog(c_DOLABEL, nam, nextpp);
         }
         return 1;
 

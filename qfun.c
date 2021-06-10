@@ -247,6 +247,7 @@ static void qfun_exit(void);
 void qfun_init() {
     // these are mere placeholders
     hash_and      = oblistv("#and",      NIL);
+    hash_apply    = oblistv("#apply",    NIL);
     hash_defq     = oblistv("#defq",     NIL);
     hash_if       = oblistv("#if",       NIL);
     hash_lambda   = oblistv("#lambda",   NIL);
@@ -259,6 +260,7 @@ void qfun_init() {
 
     // values should be themselves
     oblist_set(hash_and,       cell_ref(hash_and));
+    oblist_set(hash_apply,     cell_ref(hash_apply));
     oblist_set(hash_defq,      cell_ref(hash_defq));
     oblist_set(hash_if,        cell_ref(hash_if));
     oblist_set(hash_lambda,    cell_ref(hash_lambda));
@@ -272,6 +274,7 @@ void qfun_init() {
 static void qfun_exit(void) {
     // loose circular definitions
     oblist_set(hash_and,       NIL);
+    oblist_set(hash_apply,     NIL);
     oblist_set(hash_defq,      NIL);
     oblist_set(hash_if,        NIL);
     oblist_set(hash_lambda,    NIL);
