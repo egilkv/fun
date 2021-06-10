@@ -163,7 +163,7 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, cell **progp, cel
     // save current program pointer in environment
     {
         cell *next = cell_ref((*progp)->_.cons.cdr);
-#if 0
+#if 1 // TODO tail call enable
         if (*envp != NIL && next == NIL) {
             // tail end call, can drop previous environment
             cell *newenv = cell_env(cell_ref(env_prev(*envp)), NIL, newassoc, contenv);
