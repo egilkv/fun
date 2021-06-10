@@ -7,12 +7,10 @@
 #if(c, a, b) ==> 1
 #defq(factorial, #lambda([ n ], #if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))))) ==> #closure0(
   args: [ n ]
-  body: [ #if(#lt(n, 2), 1, #times(n, factorial(#minus(n, 1)))) ]
 ) 
 factorial(10) ==> 3628800
 #defq(ft, #lambda([ a, b ], #defq(c, a), #defq(d, b), #plus(c, d))) ==> #closure0(
   args: [ a, b ]
-  body: [ #defq(c, a), #defq(d, b), #plus(c, d) ]
 ) 
 ft(50, 5) ==> 55
 #defq(v, #list(7, 8, "hello")) ==> [ 7, 8, "hello" ]
@@ -73,13 +71,11 @@ undefined ==> #undefined
 #defq(text2, "DELTA") ==> "DELTA"
 #defq(invoke, #lambda([ fn ], #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2)) ==> #closure0(
   args: [ fn ]
-  body: [ #defq(text1, "BOB"), #defq(text2, "CAROLINE"), fn(), text2 ]
 ) 
 invoke(#lambda([], #refq(io, println)("case 1 is ", text1, " and ", text2))) ==> case 1 is ECHO and DELTA
 "CAROLINE"
 #defq(func, #lambda([], #defq(text1, "ALICE"), invoke(#lambda([], #refq(io, println)("case 2 is ", text1, " and ", text2))))) ==> #closure0(
   args: []
-  body: [ #defq(text1, "ALICE"), invoke(#lambda([], #refq(io, println)("case 2 is ", text1, " and ", text2))) ]
 ) 
 func() ==> case 2 is ALICE and DELTA
 "CAROLINE"
@@ -160,7 +156,6 @@ func() ==> case 2 is ALICE and DELTA
 #cat(#list(1, 2, 3), #list(4, 5)) ==> [ 1, 2, 3, 4, 5 ]
 #include("qsort.fun") ==> #closure0(
   args: [ list ]
-  body: [ #defq(pivot, #if(#noteq(list, #list()), #ref(list, 0))), #defq(q, #lambda([ list, first, last ], #if(#eq(list, #list()), #cat(qsort(first), #list(pivot), qsort(last)), #if(#lt(#ref(list, 0), pivot), q(#ref(list, 1 .. ), #cat(#ref(list, 0 .. 0), first), last), q(#ref(list, 1 .. ), first, #cat(#ref(list, 0 .. 0), last)))))), #if(#le(#count(list), 1), list, q(#ref(list, 1 .. ), #list(), #list())) ]
 ) 
 qsort(#list(5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
 qsort(#list("the", "quick", "brown", "fox", "jumps", "over", "a", "lazy", "dog")) ==> [ "a", "brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the" ]
@@ -196,14 +191,11 @@ qsort(#list(0: 5, 2, 7, 6, 3, 9, 12, 99, 1)) ==> [ 1, 2, 3, 5, 6, 7, 9, 12, 99 ]
 [ 0: 1.23, 2.34, #undefined, 3.14 ] 
 #defq(messenger_builder, #lambda([ greeting ], #lambda([ who ], #refq(io, println)(greeting, " ", who)))) ==> #closure0(
   args: [ greeting ]
-  body: [ #lambda([ who ], #refq(io, println)(greeting, " ", who)) ]
 ) 
 #defq(hello_er, messenger_builder("Hello")) ==> #closure(
   args: [ who ]
-  body: [ #refq(io, println)(greeting, " ", who) ]
   cont: #env(
     prev: []
-    prog: []
     assoc: { 
         greeting: "Hello"
       } 
@@ -255,12 +247,10 @@ hello_er("world!") ==> Hello world!
 #refq(time, mktime)(lt) ==> 1622447459
 #defq(abc, #lambda([ a, b, c ], #plus(a, #times(b, #plus(c, 10))))) ==> #closure0(
   args: [ a, b, c ]
-  body: [ #plus(a, #times(b, #plus(c, 10))) ]
 ) 
 #defq(aba, #lambda([ a, b, a ], #plus(a, #times(b, #plus(a, 5))))) ==> error; duplicate parameter name: a
 #closure0(
   args: [ a, b, a ]
-  body: [ #plus(a, #times(b, #plus(a, 5))) ]
 ) 
 abc(1, 2, 3) ==> 27
 abc(c: 3, b: 2, a: 1) ==> 27
@@ -276,17 +266,14 @@ error; not a number: #void
 error; not a number: #void
 #defq(abc0, #lambda([ a: 10, b: 20, c: 30 ], #plus(a, #times(b, #plus(c, 10))))) ==> #closure0(
   args: [ a: 10, b: 20, c: 30 ]
-  body: [ #plus(a, #times(b, #plus(c, 10))) ]
 ) 
 #defq(aba0, #lambda([ a: 10, b: 20, a: 30 ], #plus(a, #times(b, #plus(a, 10))))) ==> error; duplicate parameter name: a
 #closure0(
   args: [ a: 10, b: 20, a: 30 ]
-  body: [ #plus(a, #times(b, #plus(a, 10))) ]
 ) 
 #defq(ab0, #lambda([ a, b, 30 ], #plus(a, #times(b, #plus(a, 10))))) ==> error; parameter not a symbol: 30
 #closure0(
   args: [ a, b, 30 ]
-  body: [ #plus(a, #times(b, #plus(a, 10))) ]
 ) 
 abc0() ==> 810
 abc0(b: 200) ==> 8010
@@ -294,13 +281,11 @@ abc0(1000) ==> 1800
 abc0(1000, c: 300) ==> 7200
 #defq(average, #lambda([ ... ], #quotient(#apply(#plus, ...), #count(...)))) ==> #closure0(
   args: [ ... ]
-  body: [ #quotient(#apply(#plus, ...), #count(...)) ]
 ) 
 average(11, 12, 12) ==> 35/3
 average(11, 12, 12.0) ==> 11.6666666666667
 #defq(add, #lambda([ ... ], #if(#eq(..., #list()), 0, #plus(#ref(..., 0), #apply(add, #ref(..., 1 .. )))))) ==> #closure0(
   args: [ ... ]
-  body: [ #if(#eq(..., #list()), 0, #plus(#ref(..., 0), #apply(add, #ref(..., 1 .. )))) ]
 ) 
 add() ==> 0
 add(1) ==> 1
@@ -310,6 +295,5 @@ add(1, 2, 3) ==> 6
 #times(#quotient(35, 3), 1.0) ==> 11.6666666666667
 #defq(g, #lambda([ a, ... ], #cat(#list(a), #list(99), ...))) ==> #closure0(
   args: [ a, ... ]
-  body: [ #cat(#list(a), #list(99), ...) ]
 ) 
 g(2, a: 3, 4) ==> [ 2, 99, a: 3, 4 ]
