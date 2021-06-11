@@ -66,11 +66,12 @@ void qfun_init() {
     hash_or       = oblistv("#or",       NIL);
     hash_quote    = oblistv("#quote",    NIL);
     hash_refq     = oblistv("#refq",     NIL);
+    hash_prev     = oblistv("#previous", NIL);
 
                     oblistv("#traceoff", cell_cfunN(cfunQ_traceoff)); // debugging TODO args must be quoted
                     oblistv("#traceon",  cell_cfunN(cfunQ_traceon)); // debugging  TODO args must be quoted
 
-    // values should be themselves
+    // these values should be themselves
     oblist_set(hash_and,       cell_ref(hash_and));
     oblist_set(hash_apply,     cell_ref(hash_apply));
     oblist_set(hash_defq,      cell_ref(hash_defq));

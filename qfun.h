@@ -11,4 +11,6 @@ cell *hash_or;
 cell *hash_quote;
 cell *hash_refq;
 
+cell *hash_prev;
+
 void qfun_init();

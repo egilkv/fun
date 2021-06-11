@@ -12,9 +12,9 @@
 #include "qfun.h"
 #include "err.h"
 
-static int compile1(cell *prog, cell ***nextpp);
-static void compile1void(cell *prog, cell ***nextpp);
-static cell *compile_list(cell *prog);
+static int compile1(cell *prog, cell ***nextpp, cell *locals);
+static void compile1void(cell *prog, cell ***nextpp, cell *locals);
+static cell *compile_prog(cell *prog, cell *locals);
 
 // return unreffed node if needed
 static cell *add2prog(enum cell_t type, cell *car, cell ***nextpp) {
@@ -27,18 +27,18 @@ static cell *add2prog(enum cell_t type, cell *car, cell ***nextpp) {
 }
 
 // compile and push arguments last to first, return count
-static int compile_args(cell *args, cell ***nextpp) {
+static int compile_args(cell *args, cell ***nextpp, cell *locals) {
     int n = 0;
     cell *arg;
     if (list_pop(&args, &arg)) {
-        n = compile_args(args, nextpp);
-        n += compile1(arg, nextpp);
+        n = compile_args(args, nextpp, locals);
+        n += compile1(arg, nextpp, locals);
     }
     return n;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_if(cell *args, cell ***nextpp) {
+static int compile1_if(cell *args, cell ***nextpp, cell *locals) {
     cell *cond;
     cell *iftrue;
     cell *iffalse;
@@ -46,7 +46,7 @@ static int compile1_if(cell *args, cell ***nextpp) {
         cell_unref(error_rt0("missing condition for if"));
         return 0; // empty #if
     }
-    compile1void(cond, nextpp);
+    compile1void(cond, nextpp, locals);
     if (!list_pop(&args, &iftrue)) {
         cell_unref(error_rt0("missing value if true for if"));
         return 1;
@@ -60,10 +60,10 @@ static int compile1_if(cell *args, cell ***nextpp) {
         cell **condp = *nextpp;
         cell *noop;
         add2prog(c_DOCOND, NIL, nextpp); // have NIL dummy for iftrue
-        compile1void(iffalse, nextpp);
+        compile1void(iffalse, nextpp, locals);
         condp = &((*condp)->_.cons.car); // iftrue path
         assert(*condp == NIL);
-        compile1void(iftrue, &condp);
+        compile1void(iftrue, &condp, locals);
         noop = add2prog(c_DONOOP, NIL, nextpp); // TODO can be improved
         *condp = cell_ref(noop); // join up
     }
@@ -71,13 +71,13 @@ static int compile1_if(cell *args, cell ***nextpp) {
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_and(cell *args, cell ***nextpp) {
+static int compile1_and(cell *args, cell ***nextpp, cell *locals) {
     cell *test;
     cell *pushf = NIL;
     cell **pushfp = &pushf;
 
     while (list_pop(&args, &test)) {
-        compile1void(test, nextpp);
+        compile1void(test, nextpp, locals);
         if (args == NIL) { // last item does not need to be read
             break;
         }
@@ -101,13 +101,13 @@ static int compile1_and(cell *args, cell ***nextpp) {
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_or(cell *args, cell ***nextpp) {
+static int compile1_or(cell *args, cell ***nextpp, cell *locals) {
     cell *test;
     cell *pusht = NIL;
     cell **pushtp = &pusht;
 
     while (list_pop(&args, &test)) {
-        compile1void(test, nextpp);
+        compile1void(test, nextpp, locals);
         if (args == NIL) { // last item does not need to be read
             break;
         }
@@ -127,33 +127,63 @@ static int compile1_or(cell *args, cell ***nextpp) {
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_defq(cell *args, cell ***nextpp) {
+static int compile1_defq(cell *args, cell ***nextpp, cell *locals) {
     cell *nam;
     cell *val;
 
     if (!arg2(args, &nam, &val)) {
         return 0; // error
     }
-    compile1void(val, nextpp);
+
+    if (locals) {
+        if (!assoc_set(locals, cell_ref(nam), cell_ref(val))) {
+            cell_unref(error_rt1("cannot redefine local value", nam));
+            cell_unref(val);
+            return 0;
+        }
+    } else {
+        // TODO do what if define is global?
+    }
+
+    compile1void(val, nextpp, locals);
     add2prog(c_DODEFQ, nam, nextpp);
+
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_refq(cell *args, cell ***nextpp) {
+static int compile1_refq(cell *args, cell ***nextpp, cell *locals) {
     cell *nam;
     cell *val;
 
     if (!arg2(args, &val, &nam)) {
         return 0; // error
     }
-    compile1void(val, nextpp);
+
+    // TODO look up in locals
+    while (locals) {
+        cell *val;
+        if (assoc_get(locals, nam, &val)) {
+            // TODO: can optimize away if pure value
+            cell_unref(val);
+        }
+        // look for levels above
+        if (!assoc_get(locals, hash_prev, &val)) {
+            assert(0); // should always be there
+        }
+        locals = val;
+        cell_unref(val); // still held by assoc
+    }
+    // TODO do what if ref is global?
+
+    compile1void(val, nextpp, locals);
     add2prog(c_DOREFQ, nam, nextpp);
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_lambda(cell *args, cell ***nextpp) {
+static int compile1_lambda(cell *args, cell ***nextpp, cell *locals) {
+    cell *oldlocals = locals;
     cell *prog;
     cell *paramlist;
     cell *cp;
@@ -161,6 +191,11 @@ static int compile1_lambda(cell *args, cell ***nextpp) {
         cell_unref(error_rt1("Missing function parameter list", args));
             return 0;
     }
+
+    // assign a new set of locals
+    locals = cell_assoc();
+    assoc_set(locals, cell_ref(hash_prev), cell_ref(oldlocals));
+
     // TODO consider moving to parser
     // check for proper and for duplicate parameters
     cp = paramlist;
@@ -181,25 +216,31 @@ static int compile1_lambda(cell *args, cell ***nextpp) {
         } else if (!cell_is_symbol(param)) {
             // TODO what to do about this?
             cell_unref(error_rt1("parameter not a symbol", cell_ref(param)));
-        } else if (exists_on_list(cell_cdr(cp), param)) {
+        } else if (!assoc_set(locals, cell_ref(param), NIL)) { // TODO smarter value than NIL
             // TODO what to do about this?
-            cell_unref(error_rt1("duplicate parameter name", cell_ref(param)));
+            cell_unref(error_rt1("duplicate parameter name", param));
         }
+
         cp = cell_cdr(cp);
     }
 
     // now compile the function body
-    prog = compile_list(args);
+    prog = compile_prog(args, locals);
 
     cp = cell_lambda(paramlist, prog);
 
     // closure dealt with at runtime
     add2prog(c_DOLAMB, cp, nextpp);
+
+    // drop locals
+    cell_unref(locals);
+    locals = oldlocals;
+
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_apply(cell *args, cell ***nextpp) {
+static int compile1_apply(cell *args, cell ***nextpp, cell *locals) {
     cell *fun;
     cell *tailargs;
     if (!list_pop(&args, &fun)) {
@@ -214,24 +255,24 @@ static int compile1_apply(cell *args, cell ***nextpp) {
     }
     arg0(args);
 
-    compile1void(tailargs, nextpp);
-    compile1void(fun, nextpp);
+    compile1void(tailargs, nextpp, locals);
+    compile1void(fun, nextpp, locals);
     add2prog(c_DOAPPLY, NIL, nextpp);
     return 1;
 }
 
 // compile, substituting void value on error
-static void compile1void(cell *prog, cell ***nextpp) {
-    if (!compile1(prog, nextpp)) {
+static void compile1void(cell *prog, cell ***nextpp, cell *locals) {
+    if (!compile1(prog, nextpp, locals)) {
         add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
     }
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1(cell *prog, cell ***nextpp) {
+static int compile1(cell *prog, cell ***nextpp, cell *locals) {
 
     switch (prog ? prog->type : c_LIST) {
-    case c_FUNC:
+    case c_FUNC: // function call
         {
             cell *fun = cell_ref(prog->_.cons.car); // TODO make split function for this?
             cell *args = cell_ref(prog->_.cons.cdr);
@@ -250,35 +291,35 @@ static int compile1(cell *prog, cell ***nextpp) {
 
             } else if (fun == hash_defq) { // #defq is special case
                 cell_unref(fun);
-                return compile1_defq(args, nextpp);
+                return compile1_defq(args, nextpp, locals);
 
             } else if (fun == hash_refq) { // #refq is special case
                 cell_unref(fun);
-                return compile1_refq(args, nextpp);
+                return compile1_refq(args, nextpp, locals);
 
             } else if (fun == hash_if) { // #if is special case
                 cell_unref(fun);
-                return compile1_if(args, nextpp);
+                return compile1_if(args, nextpp, locals);
 
             } else if (fun == hash_and) { // #and is special case
                 cell_unref(fun);
-                return compile1_and(args, nextpp);
+                return compile1_and(args, nextpp, locals);
 
             } else if (fun == hash_or) { // #or is special case
                 cell_unref(fun);
-                return compile1_or(args, nextpp);
+                return compile1_or(args, nextpp, locals);
 
             } else if (fun == hash_lambda) { // #lambda is special case
                 cell_unref(fun);
-                return compile1_lambda(args, nextpp);
+                return compile1_lambda(args, nextpp, locals);
 
             } else if (fun == hash_apply) { // #apply is special case
                 cell_unref(fun);
-                return compile1_apply(args, nextpp);
+                return compile1_apply(args, nextpp, locals);
 
             } else {
 		cell *def = NIL;
-                int n = compile_args(args, nextpp);
+                int n = compile_args(args, nextpp, locals);
                 enum cell_t t;
 
                 switch (n) {
@@ -295,7 +336,7 @@ static int compile1(cell *prog, cell ***nextpp) {
                 if (t == c_DOCALLN) {
                     cell *node;
                     // compile, pushing on stack
-                    if (!compile1(fun, nextpp)) {
+                    if (!compile1(fun, nextpp, locals)) {
                         add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
                     }
                     node = add2prog(t, def, nextpp);
@@ -311,7 +352,7 @@ static int compile1(cell *prog, cell ***nextpp) {
                         cell_unref(fun);
                     } else {
                         // compile, pushing on stack
-                        if (!compile1(fun, nextpp)) {
+                        if (!compile1(fun, nextpp, locals)) {
                             add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
                         }
                     }
@@ -331,11 +372,11 @@ static int compile1(cell *prog, cell ***nextpp) {
             cell *label;
             cell *val;
             label_split(prog, &label, &val);
-            compile1void(val, nextpp);
+            compile1void(val, nextpp, locals);
             if (cell_is_symbol(label) || cell_is_number(label)) {
                 add2prog(c_DOLABEL, label, nextpp);
             } else {
-                compile1void(label, nextpp);
+                compile1void(label, nextpp, locals);
                 add2prog(c_DOLABEL, NIL, nextpp);
             }
         }
@@ -350,12 +391,12 @@ static int compile1(cell *prog, cell ***nextpp) {
             if (upper == NIL) {
                 add2prog(c_DOQPUSH, NIL, nextpp); // TODO can optimize..
             } else {
-                compile1void(upper, nextpp);
+                compile1void(upper, nextpp, locals);
             }
             if (lower == NIL) {
                 add2prog(c_DOQPUSH, NIL, nextpp);
             } else {
-                compile1void(lower, nextpp);
+                compile1void(lower, nextpp, locals);
             }
             add2prog(c_DORANGE, NIL, nextpp);
         }
@@ -376,7 +417,8 @@ static int compile1(cell *prog, cell ***nextpp) {
     }
 }
 
-static cell *compile_list(cell *prog) {
+// compile list of expressions
+static cell *compile_prog(cell *prog, cell *locals) {
     cell *item;
     int stacklevel = 0;
     cell *result = NIL;
@@ -386,7 +428,7 @@ static cell *compile_list(cell *prog) {
             add2prog(c_DOPOP, NIL, &nextp); // TODO inefficient
             --stacklevel;
         }
-        if (compile1(item, &nextp)) ++stacklevel;
+        if (compile1(item, &nextp, locals)) ++stacklevel;
     }
     // TODO what about stacklevel?
     return result; 
@@ -397,7 +439,7 @@ static cell *compile_list(cell *prog) {
 cell *compile(cell *prog) {
     cell *result = NIL;
     cell **nextp = &result;
-    compile1(prog, &nextp);
+    compile1(prog, &nextp, NIL);
     return result; 
 }
 
