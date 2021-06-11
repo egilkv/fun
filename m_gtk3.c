@@ -217,9 +217,9 @@ static cell *cgtk_print(cell *args) {
 
 // TODO this is most probably a separate thread
 static void do_callback(GtkApplication* gp, gpointer data) {
-    assert(cell_is_func((cell *)data));
-    assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app)
-        || cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_wid));
+ // assert(cell_is_func((cell *)data));
+ // assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app)
+ //     || cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_wid));
  // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
  // printf("\n***callback***\n");
 
@@ -227,7 +227,7 @@ static void do_callback(GtkApplication* gp, gpointer data) {
     // cell_unref(error_rt1("sorry, not implemented, ignoring", cell_ref((cell *)data))); // TODO fix
     // TODO move compile earlier..
 
-    run_async(compile(cell_ref((cell *)data)));
+    run_async(cell_ref((cell *)data));
 }
 
 static cell *cgtk_signal_connect(cell *args) {
@@ -248,14 +248,14 @@ static cell *cgtk_signal_connect(cell *args) {
     } else if (get_symbol(hook, &signal, callback)) {
         if (app->_.special.magic != magic_gtk_app
          && app->_.special.magic != magic_gtk_wid) {
-            cell_unref(error_rt1("not a ht widget or application", cell_ref(app)));
+            cell_unref(error_rt1("not a widget nor application", cell_ref(app)));
             return app;
         } else {
-
             // connect where data is the function with one argument, the app
-            g_signal_connect(gp, signal, G_CALLBACK(do_callback),
-                             cell_func(callback, cell_list(app, NIL)));
-            // cell_unref(callback); // TODO when to unref callback ???
+            cell *callbackprog = compile(cell_func(callback, cell_list(app, NIL)));
+
+            g_signal_connect(gp, signal, G_CALLBACK(do_callback), callbackprog);
+            // cell_unref(callbackprog); // TODO when to unref callbackprog ???
         }
     }
     return app;

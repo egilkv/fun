@@ -23,7 +23,7 @@ gtk.signal_connect(app, 'activate, (a){
 
     button = gtk.button_new("Quit");
     // TODO needs continuation
-    gtk.signal_connect(button1, 'clicked, (w){ gtk.widget_destroy(window) });
+    gtk.signal_connect(button, 'clicked, (w){ gtk.widget_destroy(window) });
     gtk.grid_attach(grid, button, [0, 1, 2, 1]);
 
     gtk.widget_show_all(window)
