@@ -155,7 +155,7 @@ static cell *expr(precedence lv, lxfile *in) {
         dropitem(it);
         pt = expr(l_UNARY, in);
         if (!pt) return badeof();
-        pt = cell_func(cell_symbol("#bitnot"), cell_list(pt, NIL));
+        pt = cell_func(cell_symbol("#bitnot"), cell_list(pt, NIL)); // TODO remove
         return binary(pt, lv, in);
 
     case it_MINUS: // unary and binary
@@ -392,13 +392,13 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_CAT,  cell_ref(hash_cat), op, lv, in);
 
     case it_AMP:
-        return binary_l2rN(left, l_AMP,  cell_symbol("#bitand"), op, lv, in);
+        return binary_l2rN(left, l_AMP,  cell_symbol("#bitand"), op, lv, in); // TODO remove
 
     case it_BAR:
-        return binary_l2rN(left, l_BAR,  cell_symbol("#bitor"), op, lv, in);
+        return binary_l2rN(left, l_BAR,  cell_symbol("#bitor"), op, lv, in); // TODO remove
 
     case it_CIRC:
-        return binary_l2rN(left, l_BAR,  cell_symbol("#bitxor"), op, lv, in); // TODO l_BAR?
+        return binary_l2rN(left, l_BAR,  cell_symbol("#bitxor"), op, lv, in); // TODO remove l_BAR?
 
     case it_AND:
         return binary_l2rN(left, l_AND,  cell_ref(hash_and), op, lv, in);

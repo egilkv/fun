@@ -3,7 +3,6 @@
 
 gtk = #use("gtk3");
 
-/*
 app = gtk.application_new("org.gtk.example");
 
 gtk.signal_connect(app, 'activate, (a){
@@ -29,8 +28,8 @@ gtk.signal_connect(app, 'activate, (a){
 
     gtk.widget_show_all(window)
 });
-*/
 
+/*
 app = gtk.application_new("org.gtk.example",
     connect:    ['activate, (a){
 	window = gtk.application_window(a,
@@ -56,5 +55,6 @@ app = gtk.application_new("org.gtk.example",
 	    show:       #t);
 	}]
 );
+*/
 
 gtk.application_run(app, #args);

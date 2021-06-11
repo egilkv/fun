@@ -6,7 +6,16 @@ Parsing of code {} within {} is pretty broken, see qsort-new.fun
 
 Variadic function cannot be mixed with labels?
 
+What about ... = Also ... cannot be used as labels
+For variadic functions, Python uses this, which is better
+	function variadic_function($a, $b, ...$other) {
+		return $other;
+	}
+	var_dump(variadic_function(1, 2, 3, 4, 5));
+Variadic functions: fn = (a b & c) where c contains a list of the resto of the params
+
 Have special symbol that means myself, i.e. own function, e.g. #self
+In clojure, 'recur' is to call itself. We should have something alike. E.g. #self
 
 Self referrences should default to weak refs.
 How to make weak bindings for local closures.
@@ -18,13 +27,16 @@ list(0..0)
 
 trace(a,b,c) should print a,b,c and return value of c
 
-Div and mod as operators
-
-What about ... = Also ... cannot be used as labels
+Div and mod as operators, e.g. /% and %
 
 2^;
 
 get_integer() -> get_anyinteger()
+
+Suggest |-operator for replacements, so somewhat related to &.
+
+Compiler should resolve all local variables. And optimize whether an environment is 
+requried at all for a function.
 
 <something> is also a syntax to consider
 
@@ -32,11 +44,12 @@ If ++ is catenation, then +- could be replacements for vectors and assocs
 Then -- could be to remove whatever...
 (The ++ operator can update values in assocs? Probably | is better! What about vectors?
 How to deal with duplicate keys on ++)
+Alternative is & for catenation | for replacements, perhaps ~ for removals;
 
 Array indexing can also be done by (), as a function arg. Maybe skip [] altogether.
 b = [1, 2, 3];
 b(1);
-Consider: Second argument is default value if lookup fail (for assocs at least)
+Consider: Second argument is default value if lookup fail (for assocs and lists)
 Consider: NIL as first argument
 
 Clojure stores state in ATOMs, uses swap! function with current value as arg,
@@ -60,9 +73,7 @@ Enable in-line for #if
 
 GTK example-2 button 1 quits. Why?
 
-Returning io in m_gtk, is that really smart
-
-1/2 + 1/3;
+Returning arg in m_gtk, is that really smart?
 
 Clojure:
 Quotient is that called a ratio? Assoc is that a map
@@ -73,23 +84,18 @@ Catenate is called conjoin
 
 Modules. Namespaces?
 
-How to assign defaults to variables.
-Variadic functions: fn = (a b & c) where c contains a list of the resto of the params
-
 These are the same:
 #apply(f, [1, 2, 3, 4])
 #apply(f, 1, 2, [3, 4])
 #apply(f, 1, 2, 3, 4, [])
 f(1, 2, 3, 4)
 
-Problem: Should the thing ahead of : be evaluated?
+When should the thing ahead of : be evaluated?
 name: "Alice"
 (name): "Alice"
 10: "Tenth"
 10-1: "Ninth"
 (10-1): "Ninth"     Is maybe a compromise??
-
-Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
 Haskell uses : as cons operator, TBD
 
@@ -101,18 +107,12 @@ Quote should be on both sides? Practical?
 
 OK? [] should continue parsing...
 
-Functions within assocs must be able to refer to their own assoc
-
-Suggest |-operator for replacements, so somewhat related to &.
+Functions within assocs must be able to refer to their own assoc?
 
 Lists and assocs can also be used for functions. Skip [] operator?
 
 [] is NIL, maybe also {} ??
 Delay creation of assoc list?
-
-Invocations of eval still uses C stack, so still not proper end recursion
-
-DO not have pair as a data type using :. Instead, : is a label data type (left side quoted).
 
 Possibly implement semicolon as operator like C comma operator
 Needs some refinement for sure
@@ -170,7 +170,7 @@ Go interfaces - specifies only functions
 In error messages,
 should prettyprint instead, so instead of #(#defq, a, b) say a = b
 
-Readline tab completion could perhaps understand "io." and more of syntax
+Readline tab completion could perhaps understand "io." and filenames and more of syntax
 
 Speed up env_progp-based loop etc
 
@@ -189,9 +189,7 @@ Funtional programming vz imperative.
 Assocs are called Maps in Erlang.
 Symbols can be called atoms
 
-Maybe #length() should be some sort of operator? Hash something? #(array)
-
-Ellipsis (range) is 3 dots instead of 2?
+Maybe #count() should be some sort of operator? Hash something? #(array)
 
 Div and mod as operators?
 
@@ -224,15 +222,9 @@ Can we index a range? Is it meaningful
 
 Implement lazy sequences etc
 
-In clojure, 'recur' is to call itself. We should have something alike. E.g. #self
-
 Proposal: 
 	1..100[0] ==> 1 
 	1..100[1..] ==> 2..100
 	100.100[1..] ==> []
 
-For variadic functions, Python uses:
-	function variadic_function($a, $b, ...$other) {
-		return $other;
-	}
-	var_dump(variadic_function(1, 2, 3, 4, 5));
+Add #eval

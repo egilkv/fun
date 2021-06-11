@@ -5,4 +5,6 @@ A list of command line arguments (not used by fun itself). #args[0] is the name 
 Compare operators of the same kind may be used N-ary, e.g. a < b < c. This does not work with 
 different operators, e.g. 1 < a <= 5.
 
+Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
+
 
