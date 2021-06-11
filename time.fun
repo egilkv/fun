@@ -1,6 +1,7 @@
 
 io = #use("io");
 time = #use("time");
+
 #include("qsort.fun");
 t1 = time.time(qsort, [6,5,9,12,67,99,12,5,9,6,8,7,0,23,51,23,59,63,61,12,73,
 		       16,25,39,42,17,19,82,55,49,76,18,17,10,13,91,13,89,
@@ -20,7 +21,7 @@ t2 = time.time(factorial, 170.0);
 
 #include("fib.fun");
 t3 = time.time(fib, 92);
-t4 = time.time((){fib(92)}); // this is the same
+t3 = time.time((){fib(92)}); // this is the same
 
 // non end recursion, inefficient
 fib2 = (n) {
@@ -29,7 +30,6 @@ fib2 = (n) {
 
 // Clojure reported 1 sec for (35)
 t4 = time.time(fib2, 27);
-
 							//              -O
 io.println("qsort time is ", t1*1000, " ms");           // 21           14
 io.println("factorial time is ", t2*1000, " ms");       // 0.5          0.7

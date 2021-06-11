@@ -627,10 +627,10 @@ static cell *cfunN_eq(cell *args) {
             args = NIL;
             break;
         }
+        cell_unref(a);
         a = NIL;
     }
     cell_unref(first);
-    cell_unref(a);
     cell_unref(args);
     return cell_ref(eq ? hash_t : hash_f);
 }
