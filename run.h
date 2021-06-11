@@ -5,6 +5,6 @@
 // only one invokation:
 cell *run_main(cell *prog);
 
-void run_also(cell *prog);
+void run_main_apply(cell *lambda, cell *args);
 
 void run_async(cell *prog);

@@ -7,6 +7,7 @@
 
 #include "cell.h"
 #include "run.h"
+#include "node.h" // newnode
 #include "cmod.h" // get_boolean
 #include "err.h"
 #include "debug.h"
@@ -226,15 +227,44 @@ struct run_env *run_environment = 0;
 // run a program from anywhere
 void run_async(cell *prog) {
     // TODO implement async
-    run_main(prog);
+    cell_unref(run_main(prog));
 }
 
+#if 0
 // insert a program
+// TODO not used, may ont work
 void run_also(cell *prog) {
     if (run_environment) {
         run_pushprog(prog, NIL, NIL, run_environment);
     } else {
-        run_main(prog);
+        cell_unref(run_main(prog));
+    }
+}
+#endif
+
+// apply a function from extern
+void run_main_apply(cell *lambda, cell *args) {
+#if 0
+    if (run_environment) {
+        run_apply(lambda, args, NIL, run_environment);
+    } else 
+#endif
+    {
+        // TODO have to make silly program
+        cell *prog = NIL;
+        cell **pp = &prog;
+
+        *pp = newnode(c_DOQPUSH);
+        (*pp)->_.cons.car = args;
+        pp = &(*pp)->_.cons.cdr;
+
+        *pp = newnode(c_DOQPUSH);
+        (*pp)->_.cons.car = lambda;
+        pp = &(*pp)->_.cons.cdr;
+
+        *pp = newnode(c_DOAPPLY);
+
+        cell_unref(run_main(prog));
     }
 }
 
