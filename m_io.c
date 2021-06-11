@@ -326,9 +326,6 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "\n%*s) ", indent,"");
         break;
 
-    case c_CFUNQ:
-        fprintf(out, "#cfunQ()");
-        break;
     case c_CFUN1:
         fprintf(out, "#cfun1()");
         break;

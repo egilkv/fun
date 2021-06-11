@@ -7,4 +7,4 @@ different operators, e.g. 1 < a <= 5.
 
 Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
-
+&& and || does lazy evaluation

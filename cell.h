@@ -27,7 +27,6 @@ enum cell_t {
    c_VECTOR,
    c_ASSOC,
    c_SPECIAL,
-   c_CFUNQ,
    c_CFUN1,     // builtin, 1 arg
    c_CFUN2,     // builtin, 2 arg
    c_CFUNN,     // builtin, N args

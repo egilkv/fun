@@ -93,7 +93,7 @@ int assoc_set_weak(cell *anode, cell* key, cell* val) {
 }
 
 // neither key nor anode is consumed TODO evaluate
-// is valuep is NULL, do not ref value
+// is valuep is NILP, do not ref value
 // false if not found
 int assoc_get(cell *anode, cell* key, cell **valuep) {
     assert(cell_is_assoc(anode));
@@ -134,8 +134,8 @@ static int compar_sym(const void *a, const void *b) {
 void assoc_iter(struct assoc_i *ip, cell *anode) {
     assert(cell_is_assoc(anode));
     ip->anode = anode;
-    ip->sorted = NULL;
-    ip->p = NULL;
+    ip->sorted = NILP;
+    ip->p = NIL;
     ip->h = 0;
 }
 
@@ -147,17 +147,17 @@ struct cell_s *assoc_next(struct assoc_i *ip) {
         result = ip->sorted[(ip->h)++];
         if (!result) { // end of list
             free(ip->sorted);
-            ip->sorted = NULL;
+            ip->sorted = NILP;
         }
         return result;
     }
 
     while (!ip->p) {
         if (ip->h >= ASSOC_HASH_SIZE) {
-            return NULL;
+            return NIL;
         }
         if (ip->anode->_.assoc.table == NULL) {
-            return NULL; // TODO do in initializer?
+            return NIL; // TODO do in initializer?
         }
         ip->p = ip->anode->_.assoc.table[ip->h];
         (ip->h)++;

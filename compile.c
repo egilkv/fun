@@ -237,6 +237,8 @@ static int compile1(cell *prog, cell ***nextpp) {
             cell *args = cell_ref(prog->_.cons.cdr);
             cell_unref(prog);
 
+            // TODO instead of this, if symbol, evaluate it here and decide what to do
+
             if (fun == hash_quote) { // #quote is special case
                 cell *thing;
                 cell_unref(fun);

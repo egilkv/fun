@@ -17,6 +17,7 @@
 #include "cmod.h"
 #include "number.h"
 #include "run.h"
+#include "compile.h"
 #include "err.h"
 
  // seconds since epoch, with sub second accuracy
@@ -162,7 +163,7 @@ static cell *ctime_mktime(cell *a) {
 }
 
 // measure time required for evaluating all arguments
-static cell *ctime_time(cell *args, cell **envp) {
+static cell *ctime_time(cell *args) {
     number secs;
     struct timeval tv;
     gettimeofday(&tv, (struct timezone *)0);
@@ -174,8 +175,9 @@ static cell *ctime_time(cell *args, cell **envp) {
     cell *a;
     while (list_pop(&args, &a)) {
         // TODO no environment
-        cell_unref(run(a));
+        cell_unref(run(compile(a)));
     }
+    assert(args == NIL);
 
     gettimeofday(&tv, (struct timezone *)0);
     secs.dividend.fval = (tv.tv_sec + tv.tv_usec / 1000000.0) - secs.dividend.fval;
@@ -225,7 +227,7 @@ cell *module_time() {
     assoc_set(a, cell_symbol("sleep"),     cell_cfun1(ctime_sleep));
     assoc_set(a, cell_symbol("localtime"), cell_cfun1(ctime_localtime));
     assoc_set(a, cell_symbol("mktime"),    cell_cfun1(ctime_mktime));
-    assoc_set(a, cell_symbol("time"),      cell_cfunQ(ctime_time));
+    assoc_set(a, cell_symbol("time"),      cell_cfunN(ctime_time)); // TODO args must be quoted
     assoc_set(a, cell_symbol("utctime"),   cell_cfun1(ctime_utctime));
 
     return a;

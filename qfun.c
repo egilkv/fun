@@ -19,7 +19,7 @@
 #include "debug.h"
 
 // debugging, enable trace, return first (valid) argument
-static cell *cfunQ_traceon(cell *args, cell **envp) {
+static cell *cfunQ_traceon(cell *args) {
     cell *result = cell_ref(hash_void);
     cell *arg;
     while (list_pop(&args, &arg)) {
@@ -37,7 +37,7 @@ static cell *cfunQ_traceon(cell *args, cell **envp) {
 }
 
 // debugging, disable trace, return first (valid) argument
-static cell *cfunQ_traceoff(cell *args, cell **envp) {
+static cell *cfunQ_traceoff(cell *args) {
     cell *result = cell_ref(hash_void);
     cell *arg;
     while (list_pop(&args, &arg)) {
@@ -67,8 +67,8 @@ void qfun_init() {
     hash_quote    = oblistv("#quote",    NIL);
     hash_refq     = oblistv("#refq",     NIL);
 
-                    oblistv("#traceoff", cell_cfunQ(cfunQ_traceoff)); // debugging
-                    oblistv("#traceon",  cell_cfunQ(cfunQ_traceon)); // debugging
+                    oblistv("#traceoff", cell_cfunN(cfunQ_traceoff)); // debugging TODO args must be quoted
+                    oblistv("#traceon",  cell_cfunN(cfunQ_traceon)); // debugging  TODO args must be quoted
 
     // values should be themselves
     oblist_set(hash_and,       cell_ref(hash_and));

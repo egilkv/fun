@@ -229,7 +229,7 @@ static cell *cfunN_quotient(cell *args) {
 #define CFUNN_COMPARE(funname, OP)                                  \
 static cell *funname(cell *args) {                                  \
     cell *a;                                                        \
-    /* TODO could be cfunQ, do not evaluate more than necessary */  \
+    /* TODO could do lazy evaluation */                             \
     if (!list_pop(&args, &a)) return cell_void();                   \
     if (cell_is_string(a)) {                                        \
         /* compare strings */                                       \
@@ -753,7 +753,6 @@ static cell *cfun1_type(cell *a) {
         break;
 
     case c_FUNC:
-    case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:

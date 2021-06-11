@@ -55,13 +55,13 @@ int arg3(cell *args, cell **ap, cell **bp, cell **cp) {
 // function with 1 argument
 // if false, *ap is error value
 int arg1(cell *args, cell **ap) {
-    return arg3(args, ap, NULL, NULL);
+    return arg3(args, ap, NILP, NILP);
 }
 
 // function with 2 arguments
 // if false, *ap is error value
 int arg2(cell *args, cell **ap, cell **bp) {
-    return arg3(args, ap, bp, NULL);
+    return arg3(args, ap, bp, NILP);
 }
 
 // a is never unreffed

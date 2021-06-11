@@ -219,7 +219,7 @@ hello_er("world!") ==> Hello world!
   mktime: #cfun1(),
   seconds: #cfunN(),
   sleep: #cfun1(),
-  time: #cfunQ(),
+  time: #cfunN(),
   utctime: #cfun1()
 } 
 #refq(time, utctime)(1622447459.9024) ==> { 

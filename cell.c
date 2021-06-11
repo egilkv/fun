@@ -269,12 +269,6 @@ cell *cell_number(number *np) {
     return node;
 }
 
-cell *cell_cfunQ(struct cell_s *(*fun)(cell *, cell **)) {
-    cell *node = newnode(c_CFUNQ);
-    node->_.cfunq.def = fun;
-    return node;
-}
-
 cell *cell_cfunN(struct cell_s *(*fun)(cell *)) {
     cell *node = newnode(c_CFUNN);
     node->_.cfun1.def = fun;
@@ -295,7 +289,7 @@ cell *cell_cfun2(struct cell_s *(*fun)(cell *, cell *)) {
 
 cell *cell_vector_nil(index_t length) {
     cell *node = NIL; // result is NIL if length==0
-    if (length > 0) { // if length==0 table is NULL
+    if (length > 0) { // if length==0 table remains NILP
         // TODO have some sanity check on vector length
         node = newnode(c_VECTOR);
         node->_.vector.len = length;
@@ -451,7 +445,6 @@ void cell_sweep(cell *node) {
         break;
     case c_STRING:
     case c_NUMBER:
-    case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:
@@ -510,7 +503,6 @@ static void cell_free(cell *node) {
         break;
     case c_NUMBER:
         break;
-    case c_CFUNQ:
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:

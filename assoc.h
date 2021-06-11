@@ -8,7 +8,7 @@ struct assoc_i {
     struct cell_s *anode;
     struct cell_s *p;
     index_t h;
-    struct cell_s **sorted; // sorted vector, or NULL
+    struct cell_s **sorted; // sorted vector, or NILP
 };
 
 int assoc_set(struct cell_s *anode, struct cell_s *key, struct cell_s *val);
