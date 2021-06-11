@@ -1,7 +1,7 @@
 /*  TAB-P
  */
 
-// TODO
+// TODO does not work
 struct {
     int showoblist;
 } opt;

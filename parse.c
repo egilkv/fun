@@ -56,7 +56,7 @@ cell *chomp_lx(lxfile *lxf) {
 	    }
 	}
 
-        ct = run(ct);
+        ct = run_main(ct);
 
         if (lxf->f == stdin) {
             if (ct != hash_void) { // write result if not void

@@ -224,7 +224,7 @@ static void do_callback(GtkApplication* gp, gpointer data) {
 
     // TODO this function is in principle async
     // cell_unref(error_rt1("sorry, not implemented, ignoring", cell_ref((cell *)data))); // TODO fix
-    cell_unref(run(cell_ref((cell *)data)));
+    run_also(cell_ref((cell *)data));
 }
 
 static cell *cgtk_signal_connect(cell *args) {

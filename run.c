@@ -214,8 +214,13 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *r
     rep->prog = body;
 }
 
+// run something in addition
+void run_also(cell *prog) {
+    cell_unref(run_main(prog)); // for now
+}
+
 // run program, return result
-cell *run(cell *prog0) {
+cell *run_main(cell *prog0) {
     struct run_env re;
     re.prog = prog0;
     re.stack = NIL;

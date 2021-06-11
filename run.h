@@ -2,4 +2,7 @@
  *
  */
 
-cell *run(cell *prog);
+// only one invokation:
+cell *run_main(cell *prog);
+
+void run_also(cell *prog);

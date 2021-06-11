@@ -1,6 +1,6 @@
 # TAB+S1,9
 #
-#
+# -finline-functions
 
 all: fun fun-gtk
 

@@ -175,7 +175,8 @@ static cell *ctime_time(cell *args) {
     cell *a;
     while (list_pop(&args, &a)) {
         // TODO no environment
-        cell_unref(run(compile(a)));
+        // TODO re-invocation of run_main() is questionable
+        cell_unref(run_main(compile(a)));
     }
     assert(args == NIL);
 
