@@ -28,7 +28,8 @@ fib2 = (n) {
 
 // Clojure reported 1 sec for (35)
 t4 = time.time('fib2(27));
-									-O
+
+							//              -O
 io.println("qsort time is ", t1*1000, " ms");           // 21           14
 io.println("factorial time is ", t2*1000, " ms");       // 0.5          0.7
 io.println("fib time is ", t3*1000, " ms");             // 0.3          0.4
