@@ -15,6 +15,7 @@ struct run_env {
     cell *prog;
     cell *stack;
     cell *env;
+    struct run_env *save; // TODO probably remoce
 } ;
 
 // advance program pointer to anywhere
@@ -214,6 +215,9 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *r
     rep->prog = body;
 }
 
+// the one run environment
+struct run_env *run_environment = 0;
+
 // run something in addition
 void run_also(cell *prog) {
     cell_unref(run_main(prog)); // for now
@@ -225,6 +229,8 @@ cell *run_main(cell *prog0) {
     re.prog = prog0;
     re.stack = NIL;
     re.env = NIL;
+    re.save = run_environment; // mostly NULL
+    run_environment = &re;
 
     for (;;) {
         while (re.prog == NIL) {
@@ -235,8 +241,9 @@ cell *run_main(cell *prog0) {
                     result = cell_ref(hash_void);
                 }
                 if (re.stack) {
-                    cell_unref(error_rt1("stack imbalance", re.stack)); // TODO should this happen
+                    cell_unref(error_rt1("stack imbalance", re.stack)); // TODO should this happen?
                 }
+                run_environment = re.save;
                 return result;
             } else {
                 // pop one level of program/environment stack
@@ -574,5 +581,6 @@ cell *run_main(cell *prog0) {
 
         }
     }
+    assert(0);
 }
 
