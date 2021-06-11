@@ -14,6 +14,7 @@
 
 #include "cmod.h"
 #include "number.h"
+#include "compile.h"
 #include "run.h"
 #include "err.h"
 
@@ -224,7 +225,9 @@ static void do_callback(GtkApplication* gp, gpointer data) {
 
     // TODO this function is in principle async
     // cell_unref(error_rt1("sorry, not implemented, ignoring", cell_ref((cell *)data))); // TODO fix
-    run_also(cell_ref((cell *)data));
+    // TODO move compile earlier..
+
+    run_async(compile(cell_ref((cell *)data)));
 }
 
 static cell *cgtk_signal_connect(cell *args) {

@@ -199,23 +199,21 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *r
 }
 
 static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_env *rep) {
+    cell *next = cell_ref(rep->prog);
 
     // save current program pointer in environment
-    {
-        cell *next = cell_ref(rep->prog);
 #if 1 // TODO tail call enable
-        if (rep->env != NIL && next == NIL) {
-            // tail end call, can drop previous environment
-            cell *newenv = cell_env(cell_ref(env_prev(rep->env)), NIL, newassoc, contenv);
-            cell_unref(rep->env);
-            rep->env = newenv;
-        } else
+    if (rep->env != NIL && next == NIL) {
+        // tail end call, can drop previous environment
+        cell *newenv = cell_env(cell_ref(env_prev(rep->env)), NIL, newassoc, contenv);
+        cell_unref(rep->env);
+        rep->env = newenv;
+    } else
 #endif
-        {
-            // push one level of environment
-            cell *newenv = cell_env(rep->env, next, newassoc, contenv);
-            rep->env = newenv;
-        }
+    {
+        // push one level of environment
+        cell *newenv = cell_env(rep->env, next, newassoc, contenv);
+        rep->env = newenv;
     }
     // switch to new program
     cell_unref(rep->prog);
@@ -225,11 +223,19 @@ static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_e
 // the one run environment
 struct run_env *run_environment = 0;
 
-// run something in addition
-void run_also(cell *prog) {
-    cell *newassoc = cell_assoc();
+// run a program from anywhere
+void run_async(cell *prog) {
+    // TODO implement async
+    run_main(prog);
+}
 
-    run_pushprog(prog, newassoc, NIL, run_environment);
+// insert a program
+void run_also(cell *prog) {
+    if (run_environment) {
+        run_pushprog(prog, NIL, NIL, run_environment);
+    } else {
+        run_main(prog);
+    }
 }
 
 // main run program facility, return result

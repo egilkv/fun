@@ -362,6 +362,10 @@ static int compile1(cell *prog, cell ***nextpp) {
 
     case c_STRING:
     case c_NUMBER:
+    case c_SPECIAL:
+    case c_CLOSURE:
+    case c_CLOSURE0:
+    case c_CLOSURE0T:
         add2prog(c_DOQPUSH, prog, nextpp);
         return 1;
 
