@@ -18,6 +18,8 @@ struct run_env {
     struct run_env *save; // TODO probably remoce
 } ;
 
+static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_env *rep);
+
 // advance program pointer to anywhere
 static INLINE void advance_prog_where(cell *where, struct run_env *rep) {
     // TODO inefficient
@@ -81,6 +83,7 @@ static cell *run_eval(cell *arg, struct run_env *rep) {
     }
 }
 
+// will also advance program pointer
 static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *rep) {
     int gotlabel = 0;
     cell *nam;
@@ -192,10 +195,16 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *r
         // debug_prints("\n");
     }
     cell_unref(lambda);
+    advance_prog(rep);
+
+    run_pushprog(body, newassoc, contenv, rep);
+}
+
+static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_env *rep) {
 
     // save current program pointer in environment
     {
-        cell *next = cell_ref((rep->prog)->_.cons.cdr);
+        cell *next = cell_ref(rep->prog);
 #if 1 // TODO tail call enable
         if (rep->env != NIL && next == NIL) {
             // tail end call, can drop previous environment
