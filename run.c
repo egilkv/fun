@@ -11,8 +11,43 @@
 #include "err.h"
 #include "debug.h"
 
+struct run_env {
+    cell *prog;
+    cell *stack;
+    cell *env;
+} ;
+
+// advance program pointer to anywhere
+// TODO inline
+static void advance_prog_where(cell *where, struct run_env *rep) {
+    // TODO inefficient
+    cell *next = cell_ref(where);
+    cell_unref(rep->prog);
+    rep->prog = next;
+}
+
+// advance program pointer to cdr
+// TODO inline
+static void advance_prog(struct run_env *rep) {
+    advance_prog_where(rep->prog->_.cons.cdr, rep);
+}
+
+// TODO inline
+static void push_value(cell *val, struct run_env *rep) {
+    rep->stack = cell_list(val, rep->stack);
+}
+
+// TODO inline
+static cell *pop_value(struct run_env *rep) {
+    cell *val = NIL;
+    if (!list_pop(&(rep->stack), &val)) {
+        assert(0);
+    }
+    return val;
+}
+
 // evalute a symbol
-static cell *run_eval(cell *arg, cell **envp) {
+static cell *run_eval(cell *arg, struct run_env *rep) {
     cell *result = NIL;
 
     if (arg == NIL) {
@@ -20,7 +55,7 @@ static cell *run_eval(cell *arg, cell **envp) {
     } else switch (arg->type) {
     case c_SYMBOL:
         {
-            cell *e = *envp;
+            cell *e = rep->env;
             for (;;) {
                 if (!e) { // global?
                     result = cell_ref(arg->_.symbol.val);
@@ -45,7 +80,7 @@ static cell *run_eval(cell *arg, cell **envp) {
     }
 }
 
-static void run_apply(cell *lambda, cell *args, cell *contenv, cell **progp, cell **envp) {
+static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *rep) {
     int gotlabel = 0;
     cell *nam;
     cell *val;
@@ -159,209 +194,183 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, cell **progp, cel
 
     // save current program pointer in environment
     {
-        cell *next = cell_ref((*progp)->_.cons.cdr);
+        cell *next = cell_ref((rep->prog)->_.cons.cdr);
 #if 1 // TODO tail call enable
-        if (*envp != NIL && next == NIL) {
+        if (rep->env != NIL && next == NIL) {
             // tail end call, can drop previous environment
-            cell *newenv = cell_env(cell_ref(env_prev(*envp)), NIL, newassoc, contenv);
-            cell_unref(*envp);
-            *envp = newenv;
+            cell *newenv = cell_env(cell_ref(env_prev(rep->env)), NIL, newassoc, contenv);
+            cell_unref(rep->env);
+            rep->env = newenv;
         } else
 #endif
         {
             // push one level of environment
-            cell *newenv = cell_env(*envp, next, newassoc, contenv);
-            *envp = newenv;
+            cell *newenv = cell_env(rep->env, next, newassoc, contenv);
+            rep->env = newenv;
         }
     }
     // switch to new program
-    cell_unref(*progp);
-    *progp = body;
+    cell_unref(rep->prog);
+    rep->prog = body;
 }
 
 // run program, return result
-cell *run(cell *prog) {
-    cell *next;
-    cell *stack = NIL;
-    cell *env = NIL;
+cell *run(cell *prog0) {
+    struct run_env re;
+    re.prog = prog0;
+    re.stack = NIL;
+    re.env = NIL;
 
     for (;;) {
-        while (prog == NIL) {
+        while (re.prog == NIL) {
             // drop one level of environment
-            if (env == NIL) {
+            if (re.env == NIL) {
                 cell *result;
-                if (!list_pop(&stack, &result)) {
+                if (!list_pop(&re.stack, &result)) {
                     result = cell_ref(hash_void);
                 }
-                if (stack) {
-                    cell_unref(error_rt1("stack imbalance", stack)); // TODO should this happen
+                if (re.stack) {
+                    cell_unref(error_rt1("stack imbalance", re.stack)); // TODO should this happen
                 }
                 return result;
             } else {
                 // pop one level of program/environment stack
-                cell *contprog = cell_ref(env_prog(env));
-                cell *prevenv = cell_ref(env_prev(env));
-                cell_unref(env);
-                env = prevenv;
-                prog = contprog;
+                cell *contprog = cell_ref(env_prog(re.env));
+                cell *prevenv = cell_ref(env_prev(re.env));
+                cell_unref(re.env);
+                re.env = prevenv;
+                re.prog = contprog;
             }
         }
 
-        switch (prog->type) {
+        switch (re.prog->type) {
 
         case c_DOQPUSH:   // push car, cdr is next
-            stack = cell_list(cell_ref(prog->_.cons.car), stack);
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
+            push_value(cell_ref(re.prog->_.cons.car), &re);
+            advance_prog(&re);
             break;
 
         case c_DOEPUSH:   // eval and push car, cdr is next
-            next = cell_ref(prog->_.cons.car);
-            next = run_eval(next, &env);
-            stack = cell_list(next, stack);
-
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
+            {
+                cell *val;
+                val = cell_ref(re.prog->_.cons.car);
+                val = run_eval(val, &re);
+                push_value(val, &re);
+                advance_prog(&re);
+            }
             break;
 
         case c_DOCALL1:   // car is closure or function, pop 1 arg, push result
             {
-                cell *fun = prog->_.cons.car;
+                // function evaluated on stack?
+                cell *fun = re.prog->_.cons.car ? cell_ref(re.prog->_.cons.car) : pop_value(&re);
+                cell *arg = pop_value(&re);
                 cell *result;
-                cell *arg;
-                if (fun == NIL) { // function evaluated on stack?
-                    if (!list_pop(&stack, &fun)) {
-                        assert(0);
-                    }
-                } else {
-                    fun = cell_ref(fun); // known function
-                }
-                if (!list_pop(&stack, &arg)) {
-                    assert(0);
-                }
                 switch (fun ? fun->type : c_LIST) {
                 case c_CFUN1:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
                         cell_unref(fun);
+                        advance_prog(&re);
                         result = (*def)(arg);
+                        push_value(result, &re);
                     }
-                builtin1:
-                    stack = cell_list(result, stack);
-                    next = cell_ref(prog->_.cons.cdr);
-                    cell_unref(prog);
-                    prog = next;
                     break;
 
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
                         cell_unref(fun);
-                        result = (*def)(cell_list(arg,NIL));
+                        advance_prog(&re);
+                        result = (*def)(cell_list(arg, NIL));
+                        push_value(result, &re);
                     }
-                    goto builtin1;
+                    break;
 
                 case c_CLOSURE:
                     {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        run_apply(lambda, cell_list(arg,NIL), contenv, &prog, &env);
+                        run_apply(lambda, cell_list(arg, NIL), contenv, &re);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    run_apply(fun, cell_list(arg,NIL), NIL, &prog, &env);
+                    run_apply(fun, cell_list(arg, NIL), NIL, &re);
                     break;
 
                 default:
                     cell_unref(arg);
-                    result = error_rt1("not a function with 1 arg", fun);
-                    goto builtin1;
+                    push_value(error_rt1("not a function with 1 arg", fun), &re);
+                    advance_prog(&re);
+                    break;
                 }
             }
             break;
 
         case c_DOCALL2:   // car is closure or function, pop 2 args, push result
             {
-                cell *fun = prog->_.cons.car;
+                // function evaluated on stack?
+                cell *fun = re.prog->_.cons.car ? cell_ref(re.prog->_.cons.car) : pop_value(&re);
+                cell *arg1 = pop_value(&re);
+                cell *arg2 = pop_value(&re);
                 cell *result;
-                cell *arg1, *arg2;
-                if (fun == NIL) { // function evaluated on stack?
-                    if (!list_pop(&stack, &fun)) {
-                        assert(0);
-                    }
-                } else {
-                    fun = cell_ref(fun); // known function
-                }
-                if (!list_pop(&stack, &arg1)) {
-                    assert(0);
-                }
-                if (!list_pop(&stack, &arg2)) {
-                    assert(0);
-                }
                 switch (fun ? fun->type : c_LIST) {
                 case c_CFUN2:
                     {
                         cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
                         cell_unref(fun);
+                        advance_prog(&re);
                         result = (*def)(arg1, arg2);
+                        push_value(result, &re);
                     }
-                builtin2:
-                    stack = cell_list(result, stack);
-                    next = cell_ref(prog->_.cons.cdr);
-                    cell_unref(prog);
-                    prog = next;
                     break;
 
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
                         cell_unref(fun);
+                        advance_prog(&re);
                         result = (*def)(cell_list(arg1,cell_list(arg2,NIL)));
+                        push_value(result, &re);
                     }
-                    goto builtin2;
+                    break;
 
                 case c_CLOSURE:
                     {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        run_apply(lambda, cell_list(arg1,cell_list(arg2,NIL)), contenv, &prog, &env);
+                        run_apply(lambda, cell_list(arg1,cell_list(arg2, NIL)), contenv, &re);
                     }
                     break;
+
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    run_apply(fun, cell_list(arg1,cell_list(arg2,NIL)), NIL, &prog, &env);
+                    run_apply(fun, cell_list(arg1,cell_list(arg2, NIL)), NIL, &re);
                     break;
 
                 default:
                     cell_unref(arg1);
                     cell_unref(arg2);
-                    result = error_rt1("not a function with 2 args", fun);
-                    goto builtin2;
+                    push_value(error_rt1("not a function with 2 args", fun), &re);
+                    advance_prog(&re);
+                    break;
                 }
             }
             break;
 
         case c_DOCALLN:   // car is Nargs, pop function, pop N args, push result
             {
-                integer_t narg = prog->_.calln.narg;
-                cell *result;
-                cell *fun = NIL;
+                integer_t narg = re.prog->_.calln.narg;
                 cell *args = NIL;
                 cell **pp = &args;
+                cell *fun = pop_value(&re);
+                cell *result;
                 // function evaluated on stack
-                if (!list_pop(&stack, &fun)) {
-                    assert(0);
-                }
                 while (narg-- > 0) {
-                    cell *a;
-                    if (!list_pop(&stack, &a)) {
-                        assert(0);
-                    }
+                    cell *a = pop_value(&re);
                     *pp = cell_list(a, NIL);
                     pp = &((*pp)->_.cons.cdr);
                 }
@@ -370,13 +379,11 @@ cell *run(cell *prog) {
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
                         cell_unref(fun);
+                        // TODO there is also another OP using calln
+                        advance_prog_where(re.prog->_.calln.cdr, &re);
                         result = (*def)(args);
+                        push_value(result, &re);
                     }
-                builtinN:
-                    stack = cell_list(result, stack);
-                    next = cell_ref(prog->_.calln.cdr);
-                    cell_unref(prog);
-                    prog = next;
                     break;
 
                 case c_CLOSURE:
@@ -384,145 +391,102 @@ cell *run(cell *prog) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        run_apply(lambda, args, contenv, &prog, &env);
+                        run_apply(lambda, args, contenv, &re);
                     }
                     break;
+
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    run_apply(fun, args, NIL, &prog, &env);
+                    run_apply(fun, args, NIL, &re);
                     break;
 
                 default:
                     cell_unref(args);
-                    result = error_rt1("not a function with N args", fun);
-                    goto builtinN;
+                    push_value(error_rt1("not a function with N args", fun), &re);
+                    advance_prog_where(re.prog->_.calln.cdr, &re);
+                    break;
                 }
             }
             break;
 
         case c_DOCOND:    // pop, car if true, cdr else
             {
-                cell *cond;
                 int bool;
-                if (!list_pop(&stack, &cond)) {
-                    assert(0);
-                }
+                cell *cond = pop_value(&re);
                 if (!get_boolean(cond, &bool, NIL)) {
                     bool = 1; // TODO assuming true, is this sensible?
                 }
                 if (bool) {
-                    next = cell_ref(prog->_.cons.car);
+                    advance_prog_where(re.prog->_.cons.car, &re);
                 } else {
-                    next = cell_ref(prog->_.cons.cdr);
+                    advance_prog(&re);
                 }
-                cell_unref(prog);
-                prog = next;
             }
             break;
 
         case c_DODEFQ:    // car is name, pop value, push result
             {
-                cell *name = cell_ref(prog->_.cons.car);
-                cell *arg;
-                cell *result;
-                if (!list_pop(&stack, &arg)) {
-                    assert(0);
-                }
-                result = defq(name, arg, &env);
-                stack = cell_list(result, stack);
+                cell *name = cell_ref(re.prog->_.cons.car);
+                cell *arg = pop_value(&re);
+                cell *result = defq(name, arg, &re.env);
+                push_value(result, &re);
+                advance_prog(&re);
             }
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
             break;
 
         case c_DOREFQ:    // car is name, pop assoc, push value, cdr is next
             {
-                cell *name = cell_ref(prog->_.cons.car);
-                cell *arg;
-                cell *result;
-                if (!list_pop(&stack, &arg)) {
-                    assert(0);
-                }
-                result = cfun2_ref(arg, name);
-                stack = cell_list(result, stack);
+                cell *name = cell_ref(re.prog->_.cons.car);
+                cell *arg = pop_value(&re);
+                cell *result = cfun2_ref(arg, name);
+                push_value(result, &re);
+                advance_prog(&re);
             }
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
             break;
 
         case c_DOLAMB:    // car is cell_lambda, cdr is next
             {
-                cell *cp = cell_ref(prog->_.cons.car);
-
-                // make closure as needed
-                if (env != NIL) {
-                    cp = cell_closure(cp, cell_ref(env));
+                cell *cp = cell_ref(re.prog->_.cons.car);
+                if (re.env != NIL) {
+                    cp = cell_closure(cp, cell_ref(re.env));
                 }
                 // cell_unref(error_rt1("and now what?", cp));
-                stack = cell_list(cp, stack);
+                push_value(cp, &re);
+                advance_prog(&re);
             }
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
             break;
 
         case c_DOLABEL:   // pop expr, car is label or NIL for pop, push value, cdr is next
             {
-                cell *label = cell_ref(prog->_.cons.car);
-                cell *val;
-                cell *result;
-                if (label == NIL && !list_pop(&stack, &label)) {
-                    assert(0);
-                }
-                if (!list_pop(&stack, &val)) {
-                    assert(0);
-                }
-                result = cell_label(label, val);
-                stack = cell_list(result, stack);
+                cell *label = re.prog->_.cons.car ? cell_ref(re.prog->_.cons.car) : pop_value(&re);
+                cell *val = pop_value(&re);
+                cell *result = cell_label(label, val);
+                push_value(result, &re);
+                advance_prog(&re);
             }
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
             break;
 
         case c_DORANGE:   // pop lower, pop upper, push result, cdr is next
             {
-                cell *lower;
-                cell *upper;
-                cell *result;
-                if (!list_pop(&stack, &lower)) {
-                    assert(0);
-                }
-                if (!list_pop(&stack, &upper)) {
-                    assert(0);
-                }
-                result = cell_range(lower, upper);
-                stack = cell_list(result, stack);
+                cell *lower = pop_value(&re);
+                cell *upper = pop_value(&re);
+                cell *result = cell_range(lower, upper);
+                push_value(result, &re);
+                advance_prog(&re);
             }
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
             break;
 
         case c_DOAPPLY:   // pop tailarg, pop func, push result, cdr is next
             {
-                cell *fun;
-                cell *tailarg;
+                cell *fun = pop_value(&re);
+                cell *tailarg = pop_value(&re);
                 cell *result;
-                if (!list_pop(&stack, &fun)) {
-                    assert(0);
-                }
-                if (!list_pop(&stack, &tailarg)) {
-                    assert(0);
-                }
                 if (tailarg != NIL && !cell_is_list(tailarg)) {
                     cell_unref(fun);
-                    result = error_rt1("apply argument not a list", tailarg);
-                    goto builtinX;
-                }
-                switch (fun ? fun->type : c_LIST) {
+                    push_value(error_rt1("apply argument not a list", tailarg), &re);
+                    advance_prog(&re);
+
+                } else switch (fun ? fun->type : c_LIST) {
                 case c_CFUN1:
                     {
                         cell *arg;
@@ -532,13 +496,10 @@ cell *run(cell *prog) {
                             arg = cell_ref(cell_void()); // error
                         }
                         arg0(tailarg);
+                        advance_prog(&re);
                         result = (*def)(arg);
+                        push_value(result, &re);
                     }
-                builtinX:
-                    stack = cell_list(result, stack);
-                    next = cell_ref(prog->_.cons.cdr);
-                    cell_unref(prog);
-                    prog = next;
                     break;
 
                 case c_CFUN2:
@@ -554,62 +515,58 @@ cell *run(cell *prog) {
                             arg2 = cell_ref(cell_void()); // error
                         }
                         arg0(tailarg);
+                        advance_prog(&re);
                         result = (*def)(arg1, arg2);
+                        push_value(result, &re);
                     }
-                    goto builtinX;
+                    break;
 
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
                         cell_unref(fun);
+                        advance_prog(&re);
                         result = (*def)(tailarg);
+                        push_value(result, &re);
                     }
-                    goto builtinX;
+                    break;
 
                 case c_CLOSURE:
                     {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
-                        run_apply(lambda, tailarg, contenv, &prog, &env);
+                        run_apply(lambda, tailarg, contenv, &re);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
-                    run_apply(fun, tailarg, NIL, &prog, &env);
+                    run_apply(fun, tailarg, NIL, &re);
                     break;
 
                 default:
                     cell_unref(tailarg);
-                    result = error_rt1("not a function", fun);
-                    goto builtinX;
+                    push_value(error_rt1("not a function", fun), &re);
+                    advance_prog(&re);
+                    break;
                 }
             }
             break;
 
         case c_DOPOP:     // cdr is next
-            {
-                cell *pop;
-                if (!list_pop(&stack, &pop)) {
-                    assert(0);
-                }
-                cell_unref(pop);
-            }
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
-            break;
-
-        default:
-            cell_unref(error_rt1("not a program", prog));
-            prog = NIL;
+            cell_unref(pop_value(&re));
+            advance_prog(&re);
             break;
 
         case c_DONOOP:    // cdr is next
-            next = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
-            prog = next;
+            advance_prog(&re);
             break;
+
+        default:
+            cell_unref(error_rt1("not a program", re.prog));
+            re.prog = NIL;
+            break;
+
         }
     }
 }
