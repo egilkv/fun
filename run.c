@@ -7,12 +7,9 @@
 
 #include "cell.h"
 #include "run.h"
-#include "eval.h" // defq
 #include "cmod.h" // get_boolean
 #include "err.h"
 #include "debug.h"
-
-#if HAVE_COMPILER
 
 // evalute a symbol
 static cell *run_eval(cell *arg, cell **envp) {
@@ -617,4 +614,3 @@ cell *run(cell *prog) {
     }
 }
 
-#endif // HAVE_COMPILER

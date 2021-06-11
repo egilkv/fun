@@ -13,8 +13,8 @@
 #include <gtk/gtk.h>
 
 #include "cmod.h"
-#include "eval.h"
 #include "number.h"
+#include "run.h"
 #include "err.h"
 
 static const char *magic_gtk_app = "gtk_application";
@@ -222,13 +222,9 @@ static void do_callback(GtkApplication* gp, gpointer data) {
  // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
  // printf("\n***callback***\n");
 
-#if !HAVE_COMPILER
     // TODO this function is in principle async
-    // TODO should be continuation
-    eval(cell_ref((cell *)data), NULL);
-#else
-    cell_unref(error_rt1("sorry, not implemented, ignoring", cell_ref((cell *)data))); // TODO fix
-#endif
+    // cell_unref(error_rt1("sorry, not implemented, ignoring", cell_ref((cell *)data))); // TODO fix
+    cell_unref(run(cell_ref((cell *)data)));
 }
 
 static cell *cgtk_signal_connect(cell *args) {

@@ -12,7 +12,6 @@
 #include "cfun.h"
 #include "qfun.h"
 #include "number.h"
-#include "eval.h"
 #include "err.h"
 #include "m_io.h" // cell_write
 #include "compile.h"
@@ -48,7 +47,7 @@ cell *chomp_lx(lxfile *lxf) {
                 printf(" ==> ");
 	    }
 	}
-#if HAVE_COMPILER
+
         ct = compile(ct);
         if (lxf->f == stdin) {
             if (lxf->show_parse & 2) {
@@ -56,13 +55,9 @@ cell *chomp_lx(lxfile *lxf) {
                 printf("\n ==> ");
 	    }
 	}
+
         ct = run(ct);
-#else
-        {
-            cell *env = NIL;
-            ct = eval(ct, &env);
-        }
-#endif
+
         if (lxf->f == stdin) {
             if (ct != hash_void) { // write result if not void
                 cell_write(stdout, ct);

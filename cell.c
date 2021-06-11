@@ -406,7 +406,6 @@ void cell_sweep(cell *node) {
     case c_CLOSURE:
     case c_CLOSURE0:
     case c_CLOSURE0T:
-#if HAVE_COMPILER
     case c_DOQPUSH:
     case c_DOEPUSH:
     case c_DOCALL1:
@@ -420,15 +419,12 @@ void cell_sweep(cell *node) {
     case c_DOAPPLY:
     case c_DOPOP:
     case c_DONOOP:
-#endif
         cell_sweep(node->_.cons.car);
         cell_sweep(node->_.cons.cdr);
         break;
-#if HAVE_COMPILER
     case c_DOCALLN:
         cell_sweep(node->_.calln.cdr);
         break;
-#endif
     case c_ENV: // TODO
         cell_sweep(node->_.cons.car);
         cell_sweep(node->_.cons.cdr);
@@ -481,7 +477,6 @@ static void cell_free(cell *node) {
     case c_CLOSURE:
     case c_CLOSURE0:
     case c_CLOSURE0T:
-#if HAVE_COMPILER
     case c_DOQPUSH:
     case c_DOEPUSH:
     case c_DOCALL1:
@@ -495,15 +490,12 @@ static void cell_free(cell *node) {
     case c_DOAPPLY:
     case c_DOPOP:
     case c_DONOOP:
-#endif
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);
         break;
-#if HAVE_COMPILER
     case c_DOCALLN:
         cell_unref(node->_.calln.cdr);
         break;
-#endif
     case c_ENV: // TODO
         cell_unref(node->_.cons.car);
         cell_unref(node->_.cons.cdr);

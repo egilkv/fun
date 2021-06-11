@@ -9,11 +9,8 @@
 #include "compile.h"
 #include "node.h"
 #include "cmod.h"
-// #include "cfun.h"
 #include "qfun.h"
 #include "err.h"
-
-#if HAVE_COMPILER
 
 static int compile1(cell *prog, cell ***nextpp);
 static void compile1void(cell *prog, cell ***nextpp);
@@ -396,8 +393,6 @@ cell *compile(cell *prog) {
     compile1(prog, &nextp);
     return result; 
 }
-
-#endif // HAVE_COMPILER
 
 
 

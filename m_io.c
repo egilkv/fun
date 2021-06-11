@@ -151,7 +151,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, ")");
         break;
 
-#if HAVE_COMPILER
+#if 1 // runtime
     case c_DOQPUSH:
         fprintf(out, "#doqpush(");
         cell_writei(out, ct->_.cons.car, indent);

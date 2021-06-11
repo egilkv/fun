@@ -4,8 +4,6 @@
 
 #ifndef CELL_H
 
-#define HAVE_COMPILER 1
-
 #include "assoc.h"
 #include "type.h"
 
@@ -30,11 +28,10 @@ enum cell_t {
    c_ASSOC,
    c_SPECIAL,
    c_CFUNQ,
-   c_CFUN1,
-   c_CFUN2,
-   c_CFUNN
-#if HAVE_COMPILER
-  ,c_DOQPUSH,   // push car, cdr is next
+   c_CFUN1,     // builtin, 1 arg
+   c_CFUN2,     // builtin, 2 arg
+   c_CFUNN,     // builtin, N args
+   c_DOQPUSH,   // push car, cdr is next
    c_DOEPUSH,   // eval and push car, cdr is next
    c_DOCALL1,   // car is known function or NIL for pop fun, pop 1 arg, push result
    c_DOCALL2,   // car is known function or NIL for pop fun, pop 2 args, push result
@@ -48,7 +45,6 @@ enum cell_t {
    c_DOAPPLY,   // pop fun, pop tailarg, push result, cdr is next
    c_DOPOP,     // cdr is next
    c_DONOOP     // cdr is next
-#endif
 } ;
 
 struct cell_s {
