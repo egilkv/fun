@@ -49,7 +49,7 @@ static INLINE cell *pop_value(struct run_env *rep) {
     return val;
 }
 
-// evalute a symbol
+// evalute something in runtime, usually a symbol
 static cell *run_eval(cell *arg, struct run_env *rep) {
     cell *result = NIL;
 
@@ -83,7 +83,6 @@ static cell *run_eval(cell *arg, struct run_env *rep) {
     }
 }
 
-// will also advance program pointer
 static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *rep) {
     int gotlabel = 0;
     cell *nam;
@@ -195,7 +194,6 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *r
         // debug_prints("\n");
     }
     cell_unref(lambda);
-    advance_prog(rep);
 
     run_pushprog(body, newassoc, contenv, rep);
 }
@@ -229,13 +227,16 @@ struct run_env *run_environment = 0;
 
 // run something in addition
 void run_also(cell *prog) {
-    cell_unref(run_main(prog)); // for now
+    cell *newassoc = cell_assoc();
+
+    run_pushprog(prog, newassoc, NIL, run_environment);
 }
 
-// run program, return result
-cell *run_main(cell *prog0) {
+// main run program facility, return result
+cell *run_main(cell *prog) {
     struct run_env re;
-    re.prog = prog0;
+
+    re.prog = prog;
     re.stack = NIL;
     re.env = NIL;
     re.save = run_environment; // mostly NULL
@@ -291,20 +292,22 @@ cell *run_main(cell *prog0) {
                 case c_CFUN1:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         advance_prog(&re);
                         result = (*def)(arg);
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp); // use stackp in case re changed
                     }
                     break;
 
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         advance_prog(&re);
                         result = (*def)(cell_list(arg, NIL));
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp);
                     }
                     break;
 
@@ -313,11 +316,13 @@ cell *run_main(cell *prog0) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
+                        advance_prog(&re);
                         run_apply(lambda, cell_list(arg, NIL), contenv, &re);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
+                    advance_prog(&re);
                     run_apply(fun, cell_list(arg, NIL), NIL, &re);
                     break;
 
@@ -341,20 +346,22 @@ cell *run_main(cell *prog0) {
                 case c_CFUN2:
                     {
                         cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         advance_prog(&re);
                         result = (*def)(arg1, arg2);
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp);
                     }
                     break;
 
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         advance_prog(&re);
                         result = (*def)(cell_list(arg1,cell_list(arg2,NIL)));
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp);
                     }
                     break;
 
@@ -363,12 +370,14 @@ cell *run_main(cell *prog0) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
+                        advance_prog(&re);
                         run_apply(lambda, cell_list(arg1,cell_list(arg2, NIL)), contenv, &re);
                     }
                     break;
 
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
+                    advance_prog(&re);
                     run_apply(fun, cell_list(arg1,cell_list(arg2, NIL)), NIL, &re);
                     break;
 
@@ -399,11 +408,12 @@ cell *run_main(cell *prog0) {
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         // TODO there is also another OP using calln
                         advance_prog_where(re.prog->_.calln.cdr, &re);
                         result = (*def)(args);
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp);
                     }
                     break;
 
@@ -412,12 +422,14 @@ cell *run_main(cell *prog0) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
+                        advance_prog(&re);
                         run_apply(lambda, args, contenv, &re);
                     }
                     break;
 
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
+                    advance_prog(&re);
                     run_apply(fun, args, NIL, &re);
                     break;
 
@@ -512,6 +524,7 @@ cell *run_main(cell *prog0) {
                     {
                         cell *arg;
                         cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         if (!list_pop(&tailarg, &arg)) {
                             arg = cell_ref(cell_void()); // error
@@ -519,7 +532,7 @@ cell *run_main(cell *prog0) {
                         arg0(tailarg);
                         advance_prog(&re);
                         result = (*def)(arg);
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp);
                     }
                     break;
 
@@ -528,6 +541,7 @@ cell *run_main(cell *prog0) {
                         cell *arg1;
                         cell *arg2;
                         cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         if (!list_pop(&tailarg, &arg1)) {
                             arg1 = cell_ref(cell_void()); // error
@@ -538,17 +552,18 @@ cell *run_main(cell *prog0) {
                         arg0(tailarg);
                         advance_prog(&re);
                         result = (*def)(arg1, arg2);
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp);
                     }
                     break;
 
                 case c_CFUNN:
                     {
                         cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell **stackp = &(re.stack);
                         cell_unref(fun);
                         advance_prog(&re);
                         result = (*def)(tailarg);
-                        push_value(result, &re);
+                        push_value_stackp(result, stackp);
                     }
                     break;
 
@@ -557,11 +572,13 @@ cell *run_main(cell *prog0) {
                         cell *lambda = cell_ref(fun->_.cons.car);
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
+                        advance_prog(&re);
                         run_apply(lambda, tailarg, contenv, &re);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
+                    advance_prog(&re);
                     run_apply(fun, tailarg, NIL, &re);
                     break;
 
