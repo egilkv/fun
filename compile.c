@@ -304,6 +304,7 @@ static int compile1(cell *prog, cell ***nextpp) {
                 } else {
                     // see if known internal symbol
                     // TODO when compiler does local variables at compile time, can optimize much more
+                    // TODO can also omptimize other cases when known, e.g. c_CLOSURE etc
                     if (cell_is_symbol(fun) && fun->_.symbol.nam && fun->_.symbol.nam[0]=='#') {
                         // built in known global
                         def = cell_ref(fun->_.symbol.val);

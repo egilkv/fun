@@ -2,6 +2,8 @@
  *
  */
 
+#define CELL_C
+
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>                               // TODO superflous
@@ -64,12 +66,6 @@ cell *cell_label(cell *car, cell *cdr) {
     node->_.cons.car = car;
     node->_.cons.cdr = cdr;
     return node;
-}
-
-// TODO inline
-cell *cell_ref(cell *cp) {
-    if (cp) ++(cp->ref);
-    return cp;
 }
 
 // TODO inline
@@ -456,7 +452,8 @@ void cell_sweep(cell *node) {
     }
 }
 
-static void cell_free(cell *node) {
+// only to be used through cell_unref()
+void cell_free1(cell *node) {
     assert(node && node->ref == 0);
 
     switch (node->type) {
@@ -544,7 +541,3 @@ cell *cell_oblist_item(char_t *asym) {
     return node;
 }
 
-// TODO inline
-void cell_unref(cell *node) {
-    if (node && --(node->ref) == 0) cell_free(node);
-}

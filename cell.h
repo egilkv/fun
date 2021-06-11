@@ -100,8 +100,34 @@ typedef enum cell_t celltype;
 
 typedef struct cell_s cell;
 
+#ifdef INLINE
+    #define DEFINLINE static INLINE
+#else
+    #define INLINE
+    #ifdef CELL_C
+        #define DEFINLINE
+    #endif
+#endif
+
+#ifdef DEFINLINE
+
+extern void cell_free1(cell *node);
+
+DEFINLINE cell *cell_ref(cell *cp) {
+    if (cp) ++(cp->ref);
+    return cp;
+}
+
+DEFINLINE void cell_unref(cell *node) {
+    if (node && --(node->ref) == 0) cell_free1(node);
+}
+
+#else
+
 cell *cell_ref(cell *cp);
 void cell_unref(cell *cp);
+
+#endif
 
 cell *cell_cfunQ(cell *(*fun)(cell *, cell **));
 cell *cell_cfunN(cell *(*fun)(cell *));

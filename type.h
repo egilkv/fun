@@ -1,6 +1,8 @@
 /*  TAB-P
  *
  *  basic types and compiler specific things
+ *
+ *  this is for 64 bit modern GCC
  */
 
 #ifndef TYPE_H

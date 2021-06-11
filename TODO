@@ -21,6 +21,8 @@ Variadic functions: fn = (a b & c) where c contains a list of the resto of the p
 Have special symbol that means myself, i.e. own function, e.g. #self
 In clojure, 'recur' is to call itself. We should have something alike. E.g. #self
 
+Clean up calln.cdr usage
+
 Self referrences should default to weak refs.
 How to make weak bindings for local closures.
 keyval -> keyweak
