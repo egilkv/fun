@@ -18,8 +18,7 @@ struct run_env {
 } ;
 
 // advance program pointer to anywhere
-// TODO inline
-static void advance_prog_where(cell *where, struct run_env *rep) {
+static INLINE void advance_prog_where(cell *where, struct run_env *rep) {
     // TODO inefficient
     cell *next = cell_ref(where);
     cell_unref(rep->prog);
@@ -27,18 +26,19 @@ static void advance_prog_where(cell *where, struct run_env *rep) {
 }
 
 // advance program pointer to cdr
-// TODO inline
-static void advance_prog(struct run_env *rep) {
+static INLINE void advance_prog(struct run_env *rep) {
     advance_prog_where(rep->prog->_.cons.cdr, rep);
 }
 
-// TODO inline
-static void push_value(cell *val, struct run_env *rep) {
-    rep->stack = cell_list(val, rep->stack);
+static INLINE void push_value_stackp(cell *val, cell **stackp) {
+    *stackp = cell_list(val, *stackp);
 }
 
-// TODO inline
-static cell *pop_value(struct run_env *rep) {
+static INLINE void push_value(cell *val, struct run_env *rep) {
+    push_value_stackp(val, &(rep->stack));
+}
+
+static INLINE cell *pop_value(struct run_env *rep) {
     cell *val = NIL;
     if (!list_pop(&(rep->stack), &val)) {
         assert(0);

@@ -1,9 +1,11 @@
 /*  TAB-P
  *
- *  basic types
+ *  basic types and compiler specific things
  */
 
 #ifndef TYPE_H
+
+#define INLINE inline
 
 // TODO review size_t and so on, ssize_t is signed size
 
