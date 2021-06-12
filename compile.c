@@ -450,15 +450,31 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
             cell_unref(item);
             return 1;
         }
-	// TODO should mostly be optimized
+        // TODO more optimization
         break;
 
     case c_LABEL: // car is label, cdr is expr
         break;
 
     case c_RANGE: // car is lower, cdr is upper bound; both may be NIL
-	// TODO should most definitely be optimized
-        break;
+        {
+            cell *lower = item->_.cons.car;
+            cell *upper = item->_.cons.cdr;
+            cell *lowerval = NIL;
+            cell *upperval = NIL;
+            if (lower && !compile2constant(cell_ref(lower), &lowerval, cep)) {
+                cell_unref(lower);
+                return 0;
+            }
+            if (upper && !compile2constant(cell_ref(upper), &upperval, cep)) {
+                cell_unref(lowerval);
+                cell_unref(upper);
+                return 0;
+            }
+            *valp = cell_range(lowerval, upperval);
+        }
+        cell_unref(item);
+        return 1;
 
     case c_STRING:
     case c_NUMBER:
