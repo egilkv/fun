@@ -25,16 +25,16 @@ int main(int argc, char * const argv[]) {
 
     opterr = 0;
     while ((opt = getopt(argc, argv, "+:CGOPRS")) >= 0) switch (opt) {
-        case 'C': // debug
+        case 'C': // debug compiler
             opt_showcode = 1;
             break;
-        case 'G': // debug
+        case 'G': // debug gc
             opt_showgc = 1;
             break;
-        case 'O': // debug
+        case 'O': // debug oblist
             opt_showoblist = 1;
             break;
-        case 'P': // debug
+        case 'P': // debug parse
             opt_showparse = 1;
             break;
         case 'R':

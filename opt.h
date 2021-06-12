@@ -2,9 +2,11 @@
  */
 
 // TODO does not work
+/*
 struct {
     int showoblist;
 } opt;
+*/
 
 int opt_showoblist;
 int opt_showparse;
