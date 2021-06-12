@@ -454,6 +454,29 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
         break;
 
     case c_LABEL: // car is label, cdr is expr
+        {
+            cell *label = item->_.cons.car;
+            cell *expr = item->_.cons.cdr;
+            cell *val = NIL;
+            if (!compile2constant(cell_ref(expr), &val, cep)) {
+                cell_unref(expr);
+                return 0;
+            }
+            if (cell_is_symbol(label) || cell_is_number(label)) {
+                cell_ref(label);
+            } else {
+                cell *labelval = NIL;
+                if (!compile2constant(cell_ref(label), &labelval, cep)) {
+                    cell_unref(val);
+                    cell_unref(label);
+                    return 0;
+                }
+                label = labelval;
+            }
+            *valp = cell_label(label, val);
+            cell_unref(item);
+            return 1;
+        }
         break;
 
     case c_RANGE: // car is lower, cdr is upper bound; both may be NIL
@@ -631,7 +654,6 @@ static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
             cell *lower;
             cell *upper;
             range_split(item, &lower, &upper);
-            // TODO assume nam is quoted: cell_is_symbol(nam) cell_is_number(nam)
             if (upper == NIL) {
                 add2prog(c_DOQPUSH, NIL, nextpp); // TODO can optimize..
             } else {
