@@ -54,6 +54,33 @@ static int compile_args(cell *args, cell ***nextpp, struct compile_env *cep) {
     return n;
 }
 
+// see if arguments all can be compiled to constants. return count, or -1 if not
+static int compile2constant_args(cell *args, cell **valp, struct compile_env *cep) {
+    cell *val = NIL;
+    int n = 0;
+    if (args == NIL) {
+        *valp = NIL;
+        return 0;
+    }
+    assert(cell_is_list(args));
+    cell *nextvals = NIL;
+    cell *arg = cell_car(args);
+    cell *nextargs = cell_cdr(args);
+
+    if (!compile2constant(cell_ref(arg), &val, cep)) {
+        cell_unref(arg);
+        return -1;
+    }
+    if ((n = compile2constant_args(cell_ref(nextargs), &nextvals, cep)) < 0) {
+        cell_unref(nextargs);
+        cell_unref(val);
+        return -1;
+    }
+    *valp = cell_list(val, nextvals);
+    cell_unref(args);
+    return n+1;
+}
+
 // return 1 if something was pushed, 0 otherwise
 static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
     cell *cond;
@@ -312,21 +339,85 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
     switch (item ? item->type : c_LIST) {
     case c_FUNC: // function call
         {
-            cell *fun = item->_.cons.car;
+            cell *funs = item->_.cons.car;
             cell *args = item->_.cons.cdr;
 
-            if (fun == hash_quote) { // #quote is special case
-		if (cell_is_list(args) && cell_cdr(args)==NIL) {
+            if (funs == hash_quote) { // #quote is special case
+                if (cell_is_list(args) && cell_cdr(args)==NIL) {
 		    *valp = cell_ref(cell_car(args));
                     cell_unref(item);
 		    return 1;
 		}
-            } else if (fun == hash_list && args == NIL) { // #list() is NIL
-		*valp = NIL;
-                cell_unref(item);
-                return 1;
             }
-	    // TODO optimize for lots of other cases
+            // TODO can optimize #if, #or, #and and so on
+
+            {
+                cell *fun = NIL;
+                cell *argdef = NIL;
+                int n;
+
+                if (!compile2constant(cell_ref(funs), &fun, cep)) {
+                    cell_unref(funs);
+                    return 0;
+                }
+                // TODO assume all of these functions are pure
+                // TODO #include and #exit is not pure, possibly also #use
+                // TODO what about hash_if and so on
+                // TODO for #plus and #times (and others) it is possible to order and make some constants
+
+                if ((n = compile2constant_args(cell_ref(args), &argdef, cep)) < 0) {
+                    cell_unref(fun);
+                    cell_unref(args);
+                    return 0;
+                }
+
+                // TODO deal with all sorts of functions
+                switch (fun->type) {
+                case c_CFUNN:
+                    {
+                        cell *(*def)(cell *) = fun->_.cfun1.def;
+                        *valp = (*def)(argdef);
+                        cell_unref(fun);
+                        cell_unref(item);
+                        return 1;
+                    }
+                    break;
+
+                case c_CFUN1:
+                    if (n == 1) {
+                        cell *(*def)(cell *) = fun->_.cfun1.def;
+                        cell *arg;
+                        list_pop(&argdef, &arg);
+                        *valp = (*def)(arg);
+                        cell_unref(fun);
+                        cell_unref(item);
+                        return 1;
+                    }
+                    break;
+
+                case c_CFUN2:
+                    if (n == 2) {
+                        cell *(*def)(cell *, cell *) = fun->_.cfun2 .def;
+                        cell *arg1;
+                        cell *arg2;
+                        list_pop(&argdef, &arg1);
+                        list_pop(&argdef, &arg2);
+                        *valp = (*def)(arg1, arg2);
+                        cell_unref(fun);
+                        cell_unref(item);
+                        return 1;
+                    }
+
+                case c_CLOSURE:
+                case c_CLOSURE0:
+                case c_CLOSURE0T:
+                default:
+                    break;
+                }
+                cell_unref(fun);
+                cell_unref(argdef);
+                return 0;
+            }
         }
 	break;
 
@@ -337,14 +428,15 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
             do {
                 cell *val;
                 if (assoc_get(e->vars, item, &val)) {
-		    cell *val2 = NIL;
-		    // can optimize away if pure value
-		    if (compile2constant(val, &val2, cep))
-			*valp = val2;
-			cell_unref(item);
-			return 1;
-		    }
-		    cell_unref(val);
+                    cell *val2 = NIL;
+                    // can optimize away if pure value
+                    // TODO any chance of infinite recursion here?
+                    if (compile2constant(val, &val2, e)) {
+                        *valp = val2;
+                        cell_unref(item);
+                        return 1;
+                    }
+                    cell_unref(val);
 		    return 0;
                 }
                 // levels above
@@ -359,14 +451,14 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
             return 1;
         }
 	// TODO should mostly be optimized
-	break;
+        break;
 
     case c_LABEL: // car is label, cdr is expr
-	break;
+        break;
 
     case c_RANGE: // car is lower, cdr is upper bound; both may be NIL
 	// TODO should most definitely be optimized
-	break;
+        break;
 
     case c_STRING:
     case c_NUMBER:
@@ -465,7 +557,7 @@ static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
                 } else {
                     // see if known internal symbol
                     if (!compile2constant(fun, &def, cep)) {
-                        // need to compile, pushing on stack
+                        // need to compile function ref, pushing on stack
                         if (!compile1(fun, nextpp, cep)) {
                             add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
                         }
@@ -578,6 +670,3 @@ cell *compile(cell *item) {
     compile1(item, &nextp, NULL);
     return result; 
 }
-
-
-

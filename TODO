@@ -1,7 +1,10 @@
 
-In compile1, rename from prog to parse
+'[1, 2]   becomes  #list(1, 2).  Really?
+'1+2      becomes  #plus(1, 2).  Really?
 
 Optimize away globals that are immutable. Plus locals
+
+Optimize range, for istance
 
 Do not allow run(), instead insert another level or another tread...
 

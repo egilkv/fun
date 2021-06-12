@@ -891,6 +891,7 @@ void cfun_args(int argc, char * const argv[]) {
 
 void cfun_init() {
     // TODO hash_and etc are unrefferenced, and depends on oblist
+    // TODO #include and #exit is not pure, possibly also #use
     //      to keep symbols in play
     hash_assoc    = oblistv("#assoc",    cell_cfunN(cfunN_assoc));
     hash_cat      = oblistv("#cat",      cell_cfunN(cfunN_cat));
