@@ -397,7 +397,8 @@ void cell_sweep(cell *node) {
     case c_CLOSURE0:
     case c_CLOSURE0T:
     case c_DOQPUSH:
-    case c_DOEPUSH:
+    case c_DOLPUSH:
+    case c_DOGPUSH:
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCOND:
@@ -468,7 +469,8 @@ void cell_free1(cell *node) {
     case c_CLOSURE0:
     case c_CLOSURE0T:
     case c_DOQPUSH:
-    case c_DOEPUSH:
+    case c_DOLPUSH:
+    case c_DOGPUSH:
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCOND:

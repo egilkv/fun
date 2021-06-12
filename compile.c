@@ -218,6 +218,9 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
                 cell_unref(error_rt1("ellipsis must be last parameter", cp));
                 cp = NIL;
             }
+            if (!assoc_set(cep->vars, cell_ref(hash_ellip), NIL)) {
+                assert(0);
+            }
         } else if (!cell_is_symbol(param)) {
             // TODO what to do about this?
             cell_unref(error_rt1("parameter not a symbol", cell_ref(param)));
@@ -381,7 +384,6 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
     case c_SYMBOL:
         // look for non-global definition
         if (cep) {
-            ++(cep->ref_global);
             struct compile_env *e = cep;
             do {
                 cell *val;
@@ -392,16 +394,17 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
                     } else {
                         ++(cep->ref_closure);
                     }
-                    --(cep->ref_global);
                     cell_unref(val);
-                    break;
+                    add2prog(c_DOLPUSH, prog, nextpp);
+                    return 1;
                 }
                 // levels above
                 e = e->prev;
             } while (e);
-        }
 
-        add2prog(c_DOEPUSH, prog, nextpp);
+            ++(cep->ref_global);
+        }
+        add2prog(c_DOGPUSH, prog, nextpp); // must be global
         return 1;
 
     case c_LABEL: // car is label, cdr is expr

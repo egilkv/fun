@@ -766,7 +766,8 @@ static cell *cfun1_type(cell *a) {
     case c_STOP:
     case c_KEYVAL:
     case c_DOQPUSH:
-    case c_DOEPUSH:
+    case c_DOLPUSH:
+    case c_DOGPUSH:
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCALLN:

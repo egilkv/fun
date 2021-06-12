@@ -31,7 +31,8 @@ enum cell_t {
    c_CFUN2,     // builtin, 2 arg
    c_CFUNN,     // builtin, N args
    c_DOQPUSH,   // push car, cdr is next
-   c_DOEPUSH,   // eval and push car, cdr is next
+   c_DOLPUSH,   // car is local, push, cdr is next
+   c_DOGPUSH,   // car is global, push, cdr is next
    c_DOCALL1,   // car is known function or NIL for pop fun, pop 1 arg, push result
    c_DOCALL2,   // car is known function or NIL for pop fun, pop 2 args, push result
    c_DOCALLN,   // car is number of args, pop func and N args, push result

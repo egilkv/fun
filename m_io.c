@@ -159,8 +159,15 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
 
-    case c_DOEPUSH:
-        fprintf(out, "#doepush(");
+    case c_DOLPUSH:
+        fprintf(out, "#dolpush(");
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ") -> ");
+        cell_writei(out, ct->_.cons.cdr, indent);
+        break;
+
+    case c_DOGPUSH:
+        fprintf(out, "#dogpush(");
         cell_writei(out, ct->_.cons.car, indent);
         fprintf(out, ") -> ");
         cell_writei(out, ct->_.cons.cdr, indent);

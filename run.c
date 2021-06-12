@@ -50,40 +50,6 @@ static INLINE cell *pop_value(struct run_env *rep) {
     return val;
 }
 
-// evalute something in runtime, usually a symbol
-static cell *run_eval(cell *arg, struct run_env *rep) {
-    cell *result = NIL;
-
-    if (arg == NIL) {
-        return NIL;
-    } else switch (arg->type) {
-    case c_SYMBOL:
-        {
-            cell *e = rep->env;
-            for (;;) {
-                if (!e) { // global?
-                    result = cell_ref(arg->_.symbol.val);
-                    break;
-                }
-                if (assoc_get(env_assoc(e), arg, &result)) {
-                    break;
-                }
-                e = env_cont_env(e);
-            }
-        }
-        cell_unref(arg);
-        return result;
-
-    case c_STRING:
-    case c_NUMBER:
-        // TODO what evaluates to itself?
-        return arg;
-
-    default:
-        return error_rt1("cannot evaluate", arg);
-    }
-}
-
 static void run_apply(cell *lambda, cell *args, cell *contenv, struct run_env *rep) {
     int gotlabel = 0;
     cell *nam;
@@ -308,11 +274,30 @@ cell *run_main(cell *prog) {
             advance_prog(&re);
             break;
 
-        case c_DOEPUSH:   // eval and push car, cdr is next
+	case c_DOGPUSH:   // car is global symbol, push value, cdr is next
             {
+		cell *sym = re.prog->_.cons.car;
+		assert(cell_is_symbol(sym));
+		push_value(cell_ref(sym->_.symbol.val), &re);
+                advance_prog(&re);
+            }
+	    break;
+
+        case c_DOLPUSH:   // car is local, push value, cdr is next
+            {
+		cell *sym = re.prog->_.cons.car;
+                cell *e = re.env;
                 cell *val;
-                val = cell_ref(re.prog->_.cons.car);
-                val = run_eval(val, &re);
+		assert(cell_is_symbol(sym));
+                while (e) {
+                    if (assoc_get(env_assoc(e), sym, &val)) {
+                        break;
+                    }
+                    e = env_cont_env(e);
+                }
+                if (!e) {
+                    val = error_rt1("no local", cell_ref(sym));
+                }
                 push_value(val, &re);
                 advance_prog(&re);
             }

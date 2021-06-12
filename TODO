@@ -1,9 +1,6 @@
 
 Do not allow run(), instead insert another level or another tread...
 
-Compile todo:
-	stack imbalance after "cannot be evaluated"
-
 Do not recurse if args produced errors
 
 Parsing of code {} within {} is pretty broken, see qsort-new.fun
