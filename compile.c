@@ -337,7 +337,13 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
             do {
                 cell *val;
                 if (assoc_get(e->vars, item, &val)) {
-                    // TODO: can optimize away if pure value
+		    cell *val2 = NIL;
+		    // can optimize away if pure value
+		    if (compile2constant(val, &val2, cep))
+			*valp = val2;
+			cell_unref(item);
+			return 1;
+		    }
 		    cell_unref(val);
 		    return 0;
                 }
