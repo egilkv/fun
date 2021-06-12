@@ -23,6 +23,7 @@ int get_index(cell *a, index_t *indexp, cell *dump);
 int peek_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump);
 int peek_cstring(cell *a, char **valuep, cell *dump);
 int get_symbol(cell *a, char_t **valuep, cell *dump);
+int peek_boolean(cell *a, int *boolp);
 int get_boolean(cell *a, int *boolp, cell *dump);
 integer_t ref_length(cell *a);
 cell *ref_index(cell *a, index_t index);

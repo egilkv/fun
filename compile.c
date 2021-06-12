@@ -84,14 +84,25 @@ static int compile2constant_args(cell *args, cell **valp, struct compile_env *ce
 // return 1 if something was pushed, 0 otherwise
 static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
     cell *cond;
+    int bool = -1;
     cell *iftrue;
     cell *iffalse;
     if (!list_pop(&args, &cond)) {
         cell_unref(error_rt0("missing condition for if"));
         return 0; // empty #if
     }
-    compile1void(cond, nextpp, cep);
+    if (compile2constant(cond, &cond, cep)
+     && peek_boolean(cond, &bool)) {
+        // test condition is constant
+        cell_unref(cond);
+    } else {
+        compile1void(cond, nextpp, cep);
+    }
     if (!list_pop(&args, &iftrue)) {
+        if (bool >= 0) {
+            add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
+        }
+        // leave value from if-test
         cell_unref(error_rt0("missing value if true for if"));
         return 1;
     }
@@ -100,7 +111,13 @@ static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
     } else {
         iffalse = cell_ref(hash_void); // default to void value for else
     }
-    {
+    if (bool == 1) {
+        compile1void(iftrue, nextpp, cep);
+        cell_unref(iffalse);
+    } else if (bool == 0) {
+        compile1void(iffalse, nextpp, cep);
+        cell_unref(iftrue);
+    } else {
         cell **condp = *nextpp;
         cell *noop;
         add2prog(c_DOCOND, NIL, nextpp); // have NIL dummy for iftrue

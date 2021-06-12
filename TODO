@@ -4,8 +4,6 @@
 
 Optimize away globals that are immutable. Plus locals
 
-Optimize range, for istance
-
 Do not allow run(), instead insert another level or another tread...
 
 Do not recurse if args produced errors
@@ -44,9 +42,6 @@ Div and mod as operators, e.g. /% and %
 get_integer() -> get_anyinteger()
 
 Suggest |-operator for replacements, so somewhat related to &.
-
-Compiler should resolve all local variables. And optimize whether an environment is 
-requried at all for a function.
 
 <something> is also a syntax to consider
 
@@ -236,3 +231,7 @@ Proposal:
 	100.100[1..] ==> []
 
 Add #eval
+
+Should have #error() to signal own errors
+
+Also #assert()
