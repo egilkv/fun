@@ -397,7 +397,7 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
 		    return 1;
 		}
             }
-            // TODO can optimize #if, #or, #and and so on
+            // TODO optimize hash_if, hash_or, hash_and and probably more
 
             {
                 cell *fun = NIL;
@@ -410,7 +410,6 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
                 }
                 // TODO assume all of these functions are pure
                 // TODO #include and #exit is not pure, possibly also #use
-                // TODO what about hash_if and so on
                 // TODO for #plus and #times (and others) it is possible to order and make some constants
 
                 if ((n = compile2constant_args(cell_ref(args), &argdef, cep)) < 0) {
@@ -635,9 +634,7 @@ static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
                 if (t == c_DOCALLN) {
                     cell *node;
                     // compile, pushing on stack
-                    if (!compile1(fun, nextpp, cep)) {
-                        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
-                    }
+                    compile1void(fun, nextpp, cep);
                     node = add2prog(t, def, nextpp);
                     node->_.calln.narg = n;
                     assert(*nextpp == &(node->_.calln.cdr)); // TODO assumption
@@ -645,9 +642,7 @@ static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
                     // see if known internal symbol
                     if (!compile2constant(fun, &def, cep)) {
                         // need to compile function ref, pushing on stack
-                        if (!compile1(fun, nextpp, cep)) {
-                            add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
-                        }
+                        compile1void(fun, nextpp, cep);
                     }
                     add2prog(t, def, nextpp);
                 }
@@ -731,20 +726,31 @@ static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
     }
 }
 
-// compile list of expressions
+// compile list of expressions, leaving a value on stack
 static cell *compile_list(cell *tree, struct compile_env *cep) {
+    cell *leavevalue = cell_ref(hash_void); // error assumed
     cell *item;
     int stacklevel = 0;
     cell *result = NIL;
     cell **nextp = &result;
     while (list_pop(&tree, &item)) {
+        cell *val = NIL;
         if (stacklevel > 0) {
             add2prog(c_DOPOP, NIL, &nextp); // TODO inefficient
             --stacklevel;
         }
-        if (compile1(item, &nextp, cep)) ++stacklevel;
+        if (!compile2constant(item, &val, cep)) {
+            if (compile1(item, &nextp, cep)) ++stacklevel;
+            val = cell_ref(hash_void); // error assumed
+        }
+        cell_unref(leavevalue);
+        leavevalue = val;
     }
-    // TODO what about stacklevel?
+    if (stacklevel == 0) {
+        add2prog(c_DOQPUSH, leavevalue, &nextp);
+    } else {
+        cell_unref(leavevalue);
+    }
     return result; 
 }
 
