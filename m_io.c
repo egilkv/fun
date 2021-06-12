@@ -182,15 +182,15 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         break;
 
     case c_DOCALLN:
-        fprintf(out, "#docall%lld() ", ct->_.calln.narg);
+        fprintf(out, "#docall%lld() -> ", ct->_.calln.narg);
         cell_writei(out, ct->_.calln.cdr, indent);
         break;
 
     case c_DOCOND:
-        fprintf(out, "#docond(#t-> ");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") #f-> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        fprintf(out, "#docond\n%*s#t -> ", indent+2,"");
+        cell_writei(out, ct->_.cons.car, indent+4);
+        fprintf(out, "\n%*s#f -> ", indent+2,"");
+        cell_writei(out, ct->_.cons.cdr, indent+4);
         break;
 
     case c_DODEFQ:

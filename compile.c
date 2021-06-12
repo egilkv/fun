@@ -12,9 +12,11 @@
 #include "compile.h"
 #include "node.h"
 #include "cmod.h"
+#include "cfun.h"
 #include "qfun.h"
 #include "opt.h"
 #include "err.h"
+#include "debug.h"
 
 struct compile_env {
     struct compile_env *prev;
@@ -27,6 +29,7 @@ struct compile_env {
 } ;
 
 static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep);
+static int compile2constant(cell *prog, cell **valp, struct compile_env *cep);
 static void compile1void(cell *prog, cell ***nextpp, struct compile_env *cep);
 static cell *compile_prog(cell *prog, struct compile_env *cep);
 
@@ -191,7 +194,7 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
             return 0;
     }
 
-    // assign a new level of compile environment
+    // prepare a new level of compile environment
     {
         struct compile_env *newenv = malloc(sizeof(struct compile_env));
         assert(newenv);
@@ -206,11 +209,21 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
     cp = paramlist;
     while (cp) {
         cell *param;
+
         assert(cell_is_list(cp));
         param = cell_car(cp);
         if (cell_is_label(param)) {
+	    // TODO dirty trick for compiling default value
+	    cell *val = NIL;
+            cell *defval = param->_.cons.cdr;
+            param->_.cons.cdr = NIL;
+
+	    if (compile2constant(defval, &val, cep)) {
+		param->_.cons.cdr = val;
+	    } else {
+		param->_.cons.cdr = error_rt1("default value is not a constant", defval);
+	    }
             param = param->_.cons.car;
-            // TODO compile/evaluate default value when?
         }
         if (param == hash_ellip) {
             // TODO what to do about this?
@@ -250,8 +263,9 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
     {
         struct compile_env *prevenv = cep->prev;
         if (opt_showcode) { // debug?
-            printf("\nlambda: params=%d, locals=%d, refs: local=%d, closure=%d, global=%d\n",
+            printf("\nlambda: params=%d, locals=%d, refs: local=%d, closure=%d, global=%d\nprog=",
                     cep->params, cep->locals, cep->ref_local, cep->ref_closure, cep->ref_global);
+            debug_writeln(prog);
         }
         cell_unref(cep->vars);
         free(cep);
@@ -288,6 +302,68 @@ static void compile1void(cell *prog, cell ***nextpp, struct compile_env *cep) {
     if (!compile1(prog, nextpp, cep)) {
         add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
     }
+}
+
+// attempt to make constant
+// return 1 if success, consume prog, and set *valp
+// otherwise return 0 and do nothing
+static int compile2constant(cell *prog, cell **valp, struct compile_env *cep) {
+
+    switch (prog ? prog->type : c_LIST) {
+    case c_FUNC: // function call
+        {
+	    cell *fun = prog->_.cons.car;
+	    cell *args = prog->_.cons.cdr;
+
+            if (fun == hash_quote) { // #quote is special case
+		if (cell_is_list(args) && cell_cdr(args)==NIL) {
+		    *valp = cell_ref(cell_car(args));
+		    cell_unref(prog);
+		    return 1;
+		}
+            } else if (fun == hash_list && args == NIL) { // #list() is NIL
+		cell_unref(prog);
+		*valp = NIL;
+                return 1;
+            }
+	    // TODO optimize for lots of other cases
+        }
+	break;
+
+    case c_SYMBOL:
+        // look for non-global definition
+        if (cep) {
+            struct compile_env *e = cep;
+            do {
+                cell *val;
+                if (assoc_get(e->vars, prog, &val)) {
+                    // TODO: can optimize away if pure value
+		    return 0;
+                }
+                // levels above
+                e = e->prev;
+            } while (e);
+        }
+	// must be global
+	// TODO should mostly be optimized
+	return 0;
+
+    case c_LABEL: // car is label, cdr is expr
+	return 0;
+
+    case c_RANGE: // car is lower, cdr is upper bound; both may be NIL
+	// TODO should most definitely be optimized
+	return 0;
+
+    case c_STRING:
+    case c_NUMBER:
+	*valp = prog;
+        return 1;
+
+    default:
+	break;
+    }
+    return 0;
 }
 
 // return 1 if something was pushed, 0 otherwise
@@ -338,6 +414,12 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
             } else if (fun == hash_apply) { // #apply is special case
                 cell_unref(fun);
                 return compile1_apply(args, nextpp, cep);
+
+            } else if (fun == hash_list && args == NIL) { // #list() is NIL
+                // TODO optimization needs to be made more general
+                cell_unref(fun);
+                add2prog(c_DOQPUSH, args, nextpp);
+                return 1;
 
             } else {
 		cell *def = NIL;
