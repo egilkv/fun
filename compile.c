@@ -28,10 +28,10 @@ struct compile_env {
     int ref_global;
 } ;
 
-static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep);
-static int compile2constant(cell *prog, cell **valp, struct compile_env *cep);
-static void compile1void(cell *prog, cell ***nextpp, struct compile_env *cep);
-static cell *compile_prog(cell *prog, struct compile_env *cep);
+static int compile1(cell *item, cell ***nextpp, struct compile_env *cep);
+static int compile2constant(cell *item, cell **valp, struct compile_env *cep);
+static void compile1void(cell *item, cell ***nextpp, struct compile_env *cep);
+static cell *compile_list(cell *tree, struct compile_env *cep);
 
 // return unreffed node if needed
 static cell *add2prog(enum cell_t type, cell *car, cell ***nextpp) {
@@ -48,7 +48,7 @@ static int compile_args(cell *args, cell ***nextpp, struct compile_env *cep) {
     int n = 0;
     cell *arg;
     if (list_pop(&args, &arg)) {
-        n = compile_args(args, nextpp, cep);
+        n += compile_args(args, nextpp, cep);
         n += compile1(arg, nextpp, cep);
     }
     return n;
@@ -248,7 +248,7 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
     }
 
     // now compile the function body
-    prog = compile_prog(args, cep);
+    prog = compile_list(args, cep);
 
     cp = cell_lambda(paramlist, prog);
 
@@ -298,32 +298,32 @@ static int compile1_apply(cell *args, cell ***nextpp, struct compile_env *cep) {
 }
 
 // compile, substituting void value on error
-static void compile1void(cell *prog, cell ***nextpp, struct compile_env *cep) {
-    if (!compile1(prog, nextpp, cep)) {
+static void compile1void(cell *item, cell ***nextpp, struct compile_env *cep) {
+    if (!compile1(item, nextpp, cep)) {
         add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
     }
 }
 
 // attempt to make constant
-// return 1 if success, consume prog, and set *valp
+// return 1 if success, consume item, and set reffed *valp, but no other side effects
 // otherwise return 0 and do nothing
-static int compile2constant(cell *prog, cell **valp, struct compile_env *cep) {
+static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
 
-    switch (prog ? prog->type : c_LIST) {
+    switch (item ? item->type : c_LIST) {
     case c_FUNC: // function call
         {
-	    cell *fun = prog->_.cons.car;
-	    cell *args = prog->_.cons.cdr;
+            cell *fun = item->_.cons.car;
+            cell *args = item->_.cons.cdr;
 
             if (fun == hash_quote) { // #quote is special case
 		if (cell_is_list(args) && cell_cdr(args)==NIL) {
 		    *valp = cell_ref(cell_car(args));
-		    cell_unref(prog);
+                    cell_unref(item);
 		    return 1;
 		}
             } else if (fun == hash_list && args == NIL) { // #list() is NIL
-		cell_unref(prog);
 		*valp = NIL;
+                cell_unref(item);
                 return 1;
             }
 	    // TODO optimize for lots of other cases
@@ -336,8 +336,9 @@ static int compile2constant(cell *prog, cell **valp, struct compile_env *cep) {
             struct compile_env *e = cep;
             do {
                 cell *val;
-                if (assoc_get(e->vars, prog, &val)) {
+                if (assoc_get(e->vars, item, &val)) {
                     // TODO: can optimize away if pure value
+		    cell_unref(val);
 		    return 0;
                 }
                 // levels above
@@ -345,19 +346,25 @@ static int compile2constant(cell *prog, cell **valp, struct compile_env *cep) {
             } while (e);
         }
 	// must be global
+        if (item->_.symbol.nam && item->_.symbol.nam[0]=='#') {
+            // built in known global
+            *valp = cell_ref(item->_.symbol.val);
+            cell_unref(item);
+            return 1;
+        }
 	// TODO should mostly be optimized
-	return 0;
+	break;
 
     case c_LABEL: // car is label, cdr is expr
-	return 0;
+	break;
 
     case c_RANGE: // car is lower, cdr is upper bound; both may be NIL
 	// TODO should most definitely be optimized
-	return 0;
+	break;
 
     case c_STRING:
     case c_NUMBER:
-	*valp = prog;
+        *valp = item;
         return 1;
 
     default:
@@ -367,27 +374,36 @@ static int compile2constant(cell *prog, cell **valp, struct compile_env *cep) {
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
+// item is always consumed
+static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
+    {
+        cell *val = NIL;
+        if (compile2constant(item, &val, cep)) {
+            add2prog(c_DOQPUSH, val, nextpp);
+            return 1;
+        }
+    }
 
-    switch (prog ? prog->type : c_LIST) {
+    switch (item ? item->type : c_LIST) {
     case c_FUNC: // function call
         {
-            cell *fun = cell_ref(prog->_.cons.car); // TODO make split function for this?
-            cell *args = cell_ref(prog->_.cons.cdr);
-            cell_unref(prog);
+            cell *fun = cell_ref(item->_.cons.car); // TODO make split function for this?
+            cell *args = cell_ref(item->_.cons.cdr);
+            cell_unref(item);
 
-            // TODO instead of this, if symbol, evaluate it here and decide what to do
-
+#if 0 // TODO here only if qoute with not 1 arg
             if (fun == hash_quote) { // #quote is special case
                 cell *thing;
                 cell_unref(fun);
                 if (!arg1(args, &thing)) {
                     return 0;
                 }
+                // TODO should never end up here...
                 add2prog(c_DOQPUSH, thing, nextpp);
                 return 1;
-
-            } else if (fun == hash_defq) { // #defq is special case
+            } else 
+#endif
+            if (fun == hash_defq) { // #defq is special case
                 cell_unref(fun);
                 return compile1_defq(args, nextpp, cep);
 
@@ -414,12 +430,6 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
             } else if (fun == hash_apply) { // #apply is special case
                 cell_unref(fun);
                 return compile1_apply(args, nextpp, cep);
-
-            } else if (fun == hash_list && args == NIL) { // #list() is NIL
-                // TODO optimization needs to be made more general
-                cell_unref(fun);
-                add2prog(c_DOQPUSH, args, nextpp);
-                return 1;
 
             } else {
 		cell *def = NIL;
@@ -448,14 +458,8 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
                     assert(*nextpp == &(node->_.calln.cdr)); // TODO assumption
                 } else {
                     // see if known internal symbol
-                    // TODO when compiler does local variables at compile time, can optimize much more
-                    // TODO can also omptimize other cases when known, e.g. c_CLOSURE etc
-                    if (cell_is_symbol(fun) && fun->_.symbol.nam && fun->_.symbol.nam[0]=='#') {
-                        // built in known global
-                        def = cell_ref(fun->_.symbol.val);
-                        cell_unref(fun);
-                    } else {
-                        // compile, pushing on stack
+                    if (!compile2constant(fun, &def, cep)) {
+                        // need to compile, pushing on stack
                         if (!compile1(fun, nextpp, cep)) {
                             add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
                         }
@@ -473,7 +477,7 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
             struct compile_env *e = cep;
             do {
                 cell *val;
-                if (assoc_get(e->vars, prog, &val)) {
+                if (assoc_get(e->vars, item, &val)) {
                     // TODO: can optimize away if pure value
                     if (e == cep) {
                         ++(cep->ref_local);
@@ -481,7 +485,7 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
                         ++(cep->ref_closure);
                     }
                     cell_unref(val);
-                    add2prog(c_DOLPUSH, prog, nextpp);
+                    add2prog(c_DOLPUSH, item, nextpp);
                     return 1;
                 }
                 // levels above
@@ -490,14 +494,14 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
 
             ++(cep->ref_global);
         }
-        add2prog(c_DOGPUSH, prog, nextpp); // must be global
+        add2prog(c_DOGPUSH, item, nextpp); // must be global
         return 1;
 
     case c_LABEL: // car is label, cdr is expr
         {
             cell *label;
             cell *val;
-            label_split(prog, &label, &val);
+            label_split(item, &label, &val);
             compile1void(val, nextpp, cep);
             if (cell_is_symbol(label) || cell_is_number(label)) {
                 add2prog(c_DOLABEL, label, nextpp);
@@ -512,7 +516,7 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
         {
             cell *lower;
             cell *upper;
-            range_split(prog, &lower, &upper);
+            range_split(item, &lower, &upper);
             // TODO assume nam is quoted: cell_is_symbol(nam) cell_is_number(nam)
             if (upper == NIL) {
                 add2prog(c_DOQPUSH, NIL, nextpp); // TODO can optimize..
@@ -528,28 +532,28 @@ static int compile1(cell *prog, cell ***nextpp, struct compile_env *cep) {
         }
         return 1;
 
-    case c_STRING:
-    case c_NUMBER:
     case c_SPECIAL:
     case c_CLOSURE:
     case c_CLOSURE0:
     case c_CLOSURE0T:
-        add2prog(c_DOQPUSH, prog, nextpp);
+        add2prog(c_DOQPUSH, item, nextpp);
         return 1;
 
+ // case c_STRING: // compile2constant
+ // case c_NUMBER: // compile2constant
     default:
-        cell_unref(error_rt1("cannot compile", prog));
+        cell_unref(error_rt1("cannot compile", item));
         return 0;
     }
 }
 
 // compile list of expressions
-static cell *compile_prog(cell *prog, struct compile_env *cep) {
+static cell *compile_list(cell *tree, struct compile_env *cep) {
     cell *item;
     int stacklevel = 0;
     cell *result = NIL;
     cell **nextp = &result;
-    while (list_pop(&prog, &item)) {
+    while (list_pop(&tree, &item)) {
         if (stacklevel > 0) {
             add2prog(c_DOPOP, NIL, &nextp); // TODO inefficient
             --stacklevel;
@@ -562,10 +566,10 @@ static cell *compile_prog(cell *prog, struct compile_env *cep) {
 
 // if total failure, result is NIL
 // TODO deal with that
-cell *compile(cell *prog) {
+cell *compile(cell *item) {
     cell *result = NIL;
     cell **nextp = &result;
-    compile1(prog, &nextp, NULL);
+    compile1(item, &nextp, NULL);
     return result; 
 }
 

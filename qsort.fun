@@ -26,7 +26,7 @@ qsort = (list, first: [], last: []) {
     list == []
         ? first ++ last
         : list[1..] == []
-            ? first ++ list[0..0] ++ last
+            ? qsort(first) ++ list[0..0] ++ qsort(last)
             : list[1] < list[0] // pivot = list[0]
                 ? qsort(list[0..0] ++ list[2..], list[1..1] ++ first, last)
                 : qsort(list[0..0] ++ list[2..], first, list[1..1] ++ last)
