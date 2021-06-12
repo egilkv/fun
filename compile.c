@@ -29,8 +29,10 @@ struct compile_env {
 } ;
 
 static int compile1(cell *item, cell ***nextpp, struct compile_env *cep);
+static int compile1nc(cell *item, cell ***nextpp, struct compile_env *cep);
 static int compile2constant(cell *item, cell **valp, struct compile_env *cep);
 static void compile1void(cell *item, cell ***nextpp, struct compile_env *cep);
+static void compilenc1void(cell *item, cell ***nextpp, struct compile_env *cep);
 static cell *compile_list(cell *tree, struct compile_env *cep);
 
 // return unreffed node if needed
@@ -95,7 +97,7 @@ static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
         // test condition is constant
         cell_unref(cond);
     } else {
-        compile1void(cond, nextpp, cep);
+        compilenc1void(cond, nextpp, cep);
     }
     if (!list_pop(&args, &iftrue)) {
         if (bool >= 0) {
@@ -142,7 +144,7 @@ static int compile1_and(cell *args, cell ***nextpp, struct compile_env *cep) {
             // test condition is constant
             cell_unref(test);
         } else {
-            compile1void(test, nextpp, cep);
+            compilenc1void(test, nextpp, cep);
         }
         if (args == NIL) { // last item can be left as is
             if (bool >= 0) add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
@@ -188,7 +190,7 @@ static int compile1_or(cell *args, cell ***nextpp, struct compile_env *cep) {
             // test condition is constant
             cell_unref(test);
         } else {
-            compile1void(test, nextpp, cep);
+            compilenc1void(test, nextpp, cep);
         }
         if (args == NIL) { // last item does not need to be read
             if (bool >= 0) add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
@@ -379,6 +381,13 @@ static void compile1void(cell *item, cell ***nextpp, struct compile_env *cep) {
     }
 }
 
+// like compile1void(), but do not look for constants initially
+static void compilenc1void(cell *item, cell ***nextpp, struct compile_env *cep) {
+    if (!compile1nc(item, nextpp, cep)) {
+        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
+    }
+}
+
 // attempt to make constant
 // return 1 if success, consume item, and set reffed *valp, but no other side effects
 // otherwise return 0 and do nothing
@@ -560,13 +569,17 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
 // return 1 if something was pushed, 0 otherwise
 // item is always consumed
 static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
-    {
-        cell *val = NIL;
-        if (compile2constant(item, &val, cep)) {
-            add2prog(c_DOQPUSH, val, nextpp);
-            return 1;
-        }
+    cell *val = NIL;
+    if (compile2constant(item, &val, cep)) {
+        add2prog(c_DOQPUSH, val, nextpp);
+        return 1;
     }
+    return compile1nc(item, nextpp, cep);
+}
+
+// same as compile1(), but no check for constant initially
+// this is just to avoid double work
+static int compile1nc(cell *item, cell ***nextpp, struct compile_env *cep) {
 
     switch (item ? item->type : c_LIST) {
     case c_FUNC: // function call
@@ -642,7 +655,7 @@ static int compile1(cell *item, cell ***nextpp, struct compile_env *cep) {
                     // see if known internal symbol
                     if (!compile2constant(fun, &def, cep)) {
                         // need to compile function ref, pushing on stack
-                        compile1void(fun, nextpp, cep);
+                        compilenc1void(fun, nextpp, cep);
                     }
                     add2prog(t, def, nextpp);
                 }
@@ -740,7 +753,7 @@ static cell *compile_list(cell *tree, struct compile_env *cep) {
             --stacklevel;
         }
         if (!compile2constant(item, &val, cep)) {
-            if (compile1(item, &nextp, cep)) ++stacklevel;
+            if (compile1nc(item, &nextp, cep)) ++stacklevel;
             val = cell_ref(hash_void); // error assumed
         }
         cell_unref(leavevalue);
