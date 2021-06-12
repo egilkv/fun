@@ -298,3 +298,12 @@ error; apply argument not a list: 1
   args: [ a, ... ]
 ) 
 g(2, a: 3, 4) ==> [ 2, 99, a: 3, 4 ]
+#defq(A, 1) ==> 1
+#defq(B, 1) ==> 1
+#defq(C, 2) ==> 2
+#defq(D, 2) ==> 2
+#and(#eq(A, B), #eq(C, D)) ==> #t
+#and(#eq(1, 1), #eq(C, D)) ==> #t
+#and(#eq(1, 2), #eq(C, D)) ==> #f
+#and(#eq(2, 2), #eq(1, 1), #eq(C, D)) ==> #t
+#and(#eq(1, A), #eq(2, A), #eq(C, D)) ==> #f

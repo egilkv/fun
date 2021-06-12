@@ -91,8 +91,7 @@ static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
         cell_unref(error_rt0("missing condition for if"));
         return 0; // empty #if
     }
-    if (compile2constant(cond, &cond, cep)
-     && peek_boolean(cond, &bool)) {
+    if (compile2constant(cond, &cond, cep) && peek_boolean(cond, &bool)) {
         // test condition is constant
         cell_unref(cond);
     } else {
@@ -138,18 +137,34 @@ static int compile1_and(cell *args, cell ***nextpp, struct compile_env *cep) {
     cell **pushfp = &pushf;
 
     while (list_pop(&args, &test)) {
-        compile1void(test, nextpp, cep);
-        if (args == NIL) { // last item does not need to be read
+        int bool = -1;
+        if (compile2constant(test, &test, cep) && peek_boolean(test, &bool)) {
+            // test condition is constant
+            cell_unref(test);
+        } else {
+            compile1void(test, nextpp, cep);
+        }
+        if (args == NIL) { // last item can be left as is
+            if (bool >= 0) add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
             break;
         }
-        // more items, so need a "push false"
-        if (pushf == NIL) {
-            add2prog(c_DOQPUSH, cell_ref(hash_f), &pushfp); // make NIL dummy for iffalse
-        }
-        {
-            cell *testp = add2prog(c_DOCOND, NIL, nextpp); // have NIL dummy for iftrue, filled in below
-            **nextpp = cell_ref(pushf); // iffalse, go to push false
-            *nextpp = &(testp->_.cons.car); // iftrue, continue
+        if (bool == 0) {
+            cell_unref(args); // false, so forget about rest
+            args = NIL ;
+            // TODO can use pushf instead?
+            add2prog(c_DOQPUSH, cell_ref(hash_f), nextpp);
+        } else if (bool == 1) {
+            // continue to next test
+        } else {
+            // more items, so need a "push false"
+            if (pushf == NIL) {
+                add2prog(c_DOQPUSH, cell_ref(hash_f), &pushfp); // make NIL dummy for iffalse
+            }
+            {
+                cell *testp = add2prog(c_DOCOND, NIL, nextpp); // have NIL dummy for iftrue, filled in below
+                **nextpp = cell_ref(pushf); // iffalse, go to push false
+                *nextpp = &(testp->_.cons.car); // iftrue, continue
+            }
         }
     }
     if (pushf != NIL) {
@@ -168,15 +183,31 @@ static int compile1_or(cell *args, cell ***nextpp, struct compile_env *cep) {
     cell **pushtp = &pusht;
 
     while (list_pop(&args, &test)) {
-        compile1void(test, nextpp, cep);
+        int bool = -1;
+        if (compile2constant(test, &test, cep) && peek_boolean(test, &bool)) {
+            // test condition is constant
+            cell_unref(test);
+        } else {
+            compile1void(test, nextpp, cep);
+        }
         if (args == NIL) { // last item does not need to be read
+            if (bool >= 0) add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
             break;
         }
-        // more items, so need a "push true"
-        if (pusht == NIL) {
-            add2prog(c_DOQPUSH, cell_ref(hash_t), &pushtp); // make NIL dummy for iftrue
+        if (bool == 1) {
+            cell_unref(args); // true, so forget about rest
+            args = NIL ;
+            // TODO can use pusht instead?
+            add2prog(c_DOQPUSH, cell_ref(hash_t), nextpp);
+        } else if (bool == 0) {
+            // continue to next test
+        } else {
+            // more items, so need a "push true"
+            if (pusht == NIL) {
+                add2prog(c_DOQPUSH, cell_ref(hash_t), &pushtp); // make NIL dummy for iftrue
+            }
+            add2prog(c_DOCOND, cell_ref(pusht), nextpp); // go push true iftrue
         }
-        add2prog(c_DOCOND, cell_ref(pusht), nextpp); // go push true iftrue
     }
     if (pusht != NIL) {
         // patch up missing links
@@ -341,7 +372,7 @@ static int compile1_apply(cell *args, cell ***nextpp, struct compile_env *cep) {
     return 1;
 }
 
-// compile, substituting void value on error
+// compile, substituting void value in case of error
 static void compile1void(cell *item, cell ***nextpp, struct compile_env *cep) {
     if (!compile1(item, nextpp, cep)) {
         add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
