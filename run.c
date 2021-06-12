@@ -501,10 +501,7 @@ cell *run_main(cell *prog) {
         case c_DOLAMB:    // car is cell_lambda, cdr is next
             {
                 cell *cp = cell_ref(re.prog->_.cons.car);
-                if (re.env != NIL) {
-                    cp = cell_closure(cp, cell_ref(re.env));
-                }
-                // cell_unref(error_rt1("and now what?", cp));
+                cp = cell_closure(cp, cell_ref(re.env));
                 push_value(cp, &re);
                 advance_prog(&re);
             }

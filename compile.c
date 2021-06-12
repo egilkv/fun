@@ -239,8 +239,12 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
 
     cp = cell_lambda(paramlist, prog);
 
-    // closure dealt with at runtime
-    add2prog(c_DOLAMB, cp, nextpp);
+    if (cep->ref_closure > 0) { // function needs a closure?
+        // closure dealt with at runtime
+        add2prog(c_DOLAMB, cp, nextpp);
+    } else {
+        add2prog(c_DOQPUSH, cp, nextpp);
+    }
 
     // drop locals
     {
