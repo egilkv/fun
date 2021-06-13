@@ -23,22 +23,39 @@ static const char *magic_gtk_wid = "gtk_widget";
 
 // a in always unreffed
 // dump is unreffed only if error
-static int peek_special(cell *a, const char *magic, void **valuep, const char *errmsg, cell *dump) {
-    if (!cell_is_special(a, magic)) {
-        cell_unref(dump);
-        cell_unref(error_rt1(errmsg, cell_ref(a)));
+static int peek_special(const char *magic, cell *arg, void **valuep) {
+    if (!cell_is_special(arg, magic)) {
+        const char *m = magic ? magic : "special";
+        char *errmsg = malloc(strlen(m) + 6);
+        assert(errmsg);
+        strcpy(errmsg, "not a ");
+        strcpy(errmsg+6, m);
+        cell_unref(error_rt1(errmsg, cell_ref(arg)));
+        free(errmsg);
         return 0;
     }
-    *valuep = a->_.special.ptr;
+    *valuep = arg->_.special.ptr;
     return 1;
 }
 
-static int peek_app_s(cell *app, GtkApplication **gpp, cell *dump) {
-    return peek_special(app, magic_gtk_app, (void **)gpp, "not a gtk application", dump);
+// a in always unreffed
+// dump is unreffed only if error
+static int get_special(const char *magic, cell *arg, void **valuep, cell *dump) {
+    if (!peek_special(magic, arg, valuep)) {
+        cell_unref(arg);
+        cell_unref(dump);
+        return 0;
+    }
+    cell_unref(arg);
+    return 1;
 }
 
-static int peek_wid_s(cell *wid, GtkWidget **wdp, cell *dump) {
-    return peek_special(wid, magic_gtk_wid, (void **)wdp, "not a gtk widget", dump);
+static int get_gtkapp(cell *arg, GtkApplication **gpp, cell *dump) {
+    return get_special(magic_gtk_app, arg, (void **)gpp, dump);
+}
+
+static int get_wid_s(cell *arg, GtkWidget **gpp, cell *dump) {
+    return get_special(magic_gtk_wid, arg, (void **)gpp, dump);
 }
 
 static cell *cgtk_application_new(cell *args) {
@@ -66,14 +83,15 @@ static cell *cgtk_application_new(cell *args) {
 
 static cell *cgtk_application_run(cell *app, cell *arglist) {
     GtkApplication *gp;
-    if (peek_app_s(app, &gp, arglist)) {
-        // TODO convert to argc, argv
-        // status =
-        g_application_run(G_APPLICATION(gp), 0, NULL);
-        // TODO look at status
-        cell_unref(arglist);
+    if (!get_gtkapp(app, &gp, arglist)) {
+        return cell_void(); // error
     }
-    return app;
+    // TODO convert to argc, argv
+    // status =
+    g_application_run(G_APPLICATION(gp), 0, NULL);
+    // TODO look at status
+    cell_unref(arglist);
+    return cell_void();
 }
 
 static cell *cgtk_button_box_new(cell *flags) {
@@ -106,21 +124,21 @@ static cell *cgtk_button_new(cell *args) {
 static cell *cgtk_container_add(cell *widget, cell *add) {
     GtkWidget *wp;
     GtkWidget *ap;
-    if (peek_wid_s(widget, &wp, add)
-     && peek_wid_s(add, &ap, NIL)) {
+    if (get_wid_s(widget, &wp, add)
+     && get_wid_s(add, &ap, NIL)) {
         gtk_container_add(GTK_CONTAINER(wp), ap);
     }
-    return widget;
+    return cell_void();
 }
 
 static cell *cgtk_container_set_border_width(cell *widget, cell *wid) {
     GtkWidget *wp;
     integer_t width;
-    if (peek_wid_s(widget, &wp, wid)
+    if (get_wid_s(widget, &wp, wid)
      && get_integer(wid, &width, NIL)) {
         gtk_container_set_border_width(GTK_CONTAINER(wp), width);
     }
-    return widget;
+    return cell_void();
 }
 
 static cell *cgtk_grid_new(cell *args) {
@@ -143,20 +161,20 @@ static cell *cgtk_grid_attach(cell *args) {
     if (!arg3(args, &grid, &widget, &coord)) {
         return cell_void(); // error
     }
-    if (!peek_wid_s(grid, &gp, widget)) {
+    if (!get_wid_s(grid, &gp, widget)) {
 	cell_unref(coord);
-	return grid; // error
+        return cell_void(); // error
     }
-    if (!peek_wid_s(widget, &wp, coord)) {
-	return grid;
+    if (!get_wid_s(widget, &wp, coord)) {
+        return cell_void(); // error
     }
 
     for (n=0; n<4; ++n) {
 	cell *v = ref_index(coord, n);
-        if (!get_integer(v, &co[n], coord)) return grid;
+        if (!get_integer(v, &co[n], coord)) return cell_void(); // error
     }
     gtk_grid_attach(GTK_GRID(gp), wp, co[0], co[1], co[2], co[3]);
-    return grid;
+    return cell_void();
 }
 
 static cell *cgtk_init(cell *arglist) {
@@ -243,7 +261,8 @@ static cell *cgtk_signal_connect(cell *args) {
     if (!arg3(args, &app, &hook, &callback)) {
         return cell_void(); // error
     }
-    if (!peek_special(app, (const char *)0, (void **)&gp, "not a gtk entity", callback)) {
+    if (!peek_special((const char *)0, app, (void **)&gp)) {
+        cell_unref(callback);
         cell_unref(hook); // TODO
     } else if (get_symbol(hook, &signal, callback)) {
         if (app->_.special.magic != magic_gtk_app
@@ -263,24 +282,26 @@ static cell *cgtk_signal_connect(cell *args) {
 
 static cell *cgtk_widget_destroy(cell *widget) {
     GtkWidget *wp;
-    if (peek_wid_s(widget, &wp, NIL)) {
-        gtk_widget_destroy(wp);
+    cell_ref(widget); // extra ref
+    if (!get_wid_s(widget, &wp, widget)) {
+        return cell_void(); // error
     }
-    // TODO properly invalidate widget
+    gtk_widget_destroy(wp);
+    // properly invalidate widget
     widget->_.special.ptr = NULL;
     widget->_.special.magic = NULL;
-    return widget;
+    cell_unref(widget);
+    return cell_void();
 }
 
 static cell *cgtk_window_set_title(cell *widget, cell *title) {
     GtkWidget *wp;
     char *title_s;
-    if (!peek_wid_s(widget, &wp, title)) return widget;
-    if (peek_cstring(title, &title_s, NIL)) {
-        gtk_window_set_title(GTK_WINDOW(wp), title_s);
-        cell_unref(title);
-    }
-    return widget;
+    if (!get_wid_s(widget, &wp, title)
+     || !peek_cstring(title, &title_s, NIL)) return cell_void(); // error
+    gtk_window_set_title(GTK_WINDOW(wp), title_s);
+    cell_unref(title);
+    return cell_void();
 }
 
 static cell *cgtk_window_set_default_size(cell *args) {
@@ -295,34 +316,34 @@ static cell *cgtk_window_set_default_size(cell *args) {
     if (!arg3(args, &widget, &width, &height)) {
         return cell_void(); // error
     }
-    if (!peek_wid_s(widget, &wp, width)) {
+    if (!get_wid_s(widget, &wp, width)) {
         cell_unref(height);
-    } else if (get_integer(width, &w, height)
-            && get_integer(height, &h, NIL)) {
-        gtk_window_set_default_size(GTK_WINDOW(wp), w, h);
+        return cell_void(); // error
     }
-    return widget;
+    if (!get_integer(width, &w, height)
+     || !get_integer(height, &h, NIL)) {
+        return cell_void(); // error
+    }
+    gtk_window_set_default_size(GTK_WINDOW(wp), w, h);
+    return cell_void();
 }
 
 static cell *cgtk_widget_show_all(cell *widget) {
     GtkWidget *wp;
-    if (peek_wid_s(widget, &wp, NIL)) {
-        gtk_widget_show_all(wp);
-    }
-    return widget;
+    if (!get_wid_s(widget, &wp, NIL)) return cell_void(); // error
+    gtk_widget_show_all(wp);
+    return cell_void();
 }
 
 static cell *cgtk_application_window_new(cell *app) {
     GtkWidget *window;
     GtkApplication *gp;
-    if (!peek_app_s(app, &gp, NIL)) {
-        cell_unref(app);
-        return cell_void();
+    if (!get_gtkapp(app, &gp, NIL)) {
+        return cell_void(); // error
     }
     window = gtk_application_window_new(gp);
     // TODO error check
 
-    cell_unref(app);
     return cell_special(magic_gtk_wid, (void *)window);
 }
 
