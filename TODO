@@ -4,8 +4,6 @@
 
 Optimize away globals that are immutable. Plus locals
 
-undef1 == undef2    gives #t, should give #undef
-
 Do not allow run(), instead insert another level or another tread...
 
 Do not recurse if args produced errors

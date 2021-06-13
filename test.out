@@ -307,3 +307,7 @@ g(2, a: 3, 4) ==> [ 2, 99, a: 3, 4 ]
 #and(#eq(1, 2), #eq(C, D)) ==> #f
 #and(#eq(2, 2), #eq(1, 1), #eq(C, D)) ==> #t
 #and(#eq(1, A), #eq(2, A), #eq(C, D)) ==> #f
+#eq(A2, B2) ==> error; cannot compare undefined: #undefined
+#eq(A, A2) ==> error; cannot compare undefined: #undefined
+#lt(A2, B2) ==> error; not a number: #undefined
+#lt(A2, 1) ==> error; not a number: #undefined

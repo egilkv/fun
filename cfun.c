@@ -594,7 +594,17 @@ static cell *cfunN_eq(cell *args) {
     if (!list_pop(&args, &first)) {
         return cell_void(); // error
     }
+    if (first == hash_undef || first == hash_void) {
+        cell_unref(args);
+        return error_rt1("cannot compare undefined", first);
+    }
+
     while (list_pop(&args, &a)) {
+        if (a == hash_undef || a == hash_void) {
+            cell_unref(first);
+            cell_unref(args);
+            return error_rt1("cannot compare undefined", a);
+        }
         if (a != first) switch (a ? a->type : c_LIST) {
 
         case c_STRING:
