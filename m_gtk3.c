@@ -124,20 +124,22 @@ static cell *cgtk_button_new(cell *args) {
 static cell *cgtk_container_add(cell *widget, cell *add) {
     GtkWidget *wp;
     GtkWidget *ap;
-    if (get_wid_s(widget, &wp, add)
-     && get_wid_s(add, &ap, NIL)) {
-        gtk_container_add(GTK_CONTAINER(wp), ap);
+    if (!get_wid_s(widget, &wp, add)
+     || !get_wid_s(add, &ap, NIL)) {
+        return cell_void(); // error
     }
+    gtk_container_add(GTK_CONTAINER(wp), ap);
     return cell_void();
 }
 
 static cell *cgtk_container_set_border_width(cell *widget, cell *wid) {
     GtkWidget *wp;
-    integer_t width;
-    if (get_wid_s(widget, &wp, wid)
-     && get_integer(wid, &width, NIL)) {
-        gtk_container_set_border_width(GTK_CONTAINER(wp), width);
+    integer_t width = 0;
+    if (!get_wid_s(widget, &wp, wid)
+     || !get_integer(wid, &width, NIL)) {
+        return cell_void(); // error
     }
+    gtk_container_set_border_width(GTK_CONTAINER(wp), width);
     return cell_void();
 }
 
@@ -243,7 +245,6 @@ static void do_callback(GtkApplication* gp, gpointer data) {
 
     // TODO this function is in principle async
     // cell_unref(error_rt1("sorry, not implemented, ignoring", cell_ref((cell *)data))); // TODO fix
-    // TODO move compile earlier..
 
     run_async(cell_ref((cell *)data));
 }
@@ -264,20 +265,28 @@ static cell *cgtk_signal_connect(cell *args) {
     if (!peek_special((const char *)0, app, (void **)&gp)) {
         cell_unref(callback);
         cell_unref(hook); // TODO
-    } else if (get_symbol(hook, &signal, callback)) {
-        if (app->_.special.magic != magic_gtk_app
-         && app->_.special.magic != magic_gtk_wid) {
-            cell_unref(error_rt1("not a widget nor application", cell_ref(app)));
-            return app;
-        } else {
-            // connect where data is the function with one argument, the app
-            cell *callbackprog = compile(cell_func(callback, cell_list(app, NIL)));
-
-            g_signal_connect(gp, signal, G_CALLBACK(do_callback), callbackprog);
-            // cell_unref(callbackprog); // TODO when to unref callbackprog ???
-        }
+        cell_unref(app);
+        return cell_void(); // error
     }
-    return app;
+    if (!get_symbol(hook, &signal, callback)) {
+        cell_unref(app);
+        return cell_void(); // error
+    }
+    if (app->_.special.magic != magic_gtk_app
+     && app->_.special.magic != magic_gtk_wid) {
+        cell_unref(error_rt1("not a widget nor application", cell_ref(app)));
+        cell_unref(app);
+        return cell_void(); // error
+    }
+
+    // connect where data is the function with one argument, the app
+    cell *callbackprog = compile(cell_func(callback, cell_list(app, NIL)));
+
+    g_signal_connect(gp, signal, G_CALLBACK(do_callback), callbackprog);
+    // cell_unref(callbackprog); // TODO when to unref callbackprog ???
+
+    cell_unref(app);
+    return cell_void();
 }
 
 static cell *cgtk_widget_destroy(cell *widget) {
