@@ -877,7 +877,7 @@ static cell *cfun1_getenv(cell *a) {
         }
     }
     cell_unref(a);
-    return cell_ref(hash_void);
+    return cell_void();
 
 }
 

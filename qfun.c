@@ -20,7 +20,7 @@
 
 // debugging, enable trace, return first (valid) argument
 static cell *cfunQ_traceon(cell *args) {
-    cell *result = cell_ref(hash_void);
+    cell *result = cell_void();
     cell *arg;
     while (list_pop(&args, &arg)) {
         if (!debug_traceon(arg)) {
@@ -38,7 +38,7 @@ static cell *cfunQ_traceon(cell *args) {
 
 // debugging, disable trace, return first (valid) argument
 static cell *cfunQ_traceoff(cell *args) {
-    cell *result = cell_ref(hash_void);
+    cell *result = cell_void();
     cell *arg;
     while (list_pop(&args, &arg)) {
         if (!debug_traceoff(arg)) {

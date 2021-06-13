@@ -250,7 +250,7 @@ cell *run_main(cell *prog) {
             if (re.env == NIL) {
                 cell *result;
                 if (!list_pop(&re.stack, &result)) {
-                    result = cell_ref(hash_void);
+                    result = cell_void();
                 }
                 if (re.stack) {
                     cell_unref(error_rt1("stack imbalance", re.stack)); // TODO should this happen?

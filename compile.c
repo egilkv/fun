@@ -110,7 +110,7 @@ static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
     if (list_pop(&args, &iffalse)) {
         arg0(args); // no more
     } else {
-        iffalse = cell_ref(hash_void); // default to void value for else
+        iffalse = cell_void(); // default to void value for else
     }
     if (bool == 1) {
         compile1void(iftrue, nextpp, cep);
@@ -377,14 +377,14 @@ static int compile1_apply(cell *args, cell ***nextpp, struct compile_env *cep) {
 // compile, substituting void value in case of error
 static void compile1void(cell *item, cell ***nextpp, struct compile_env *cep) {
     if (!compile1(item, nextpp, cep)) {
-        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
+        add2prog(c_DOQPUSH, cell_void(), nextpp); // error
     }
 }
 
 // like compile1void(), but do not look for constants initially
 static void compilenc1void(cell *item, cell ***nextpp, struct compile_env *cep) {
     if (!compile1nc(item, nextpp, cep)) {
-        add2prog(c_DOQPUSH, cell_ref(hash_void), nextpp); // error
+        add2prog(c_DOQPUSH, cell_void(), nextpp); // error
     }
 }
 
@@ -741,7 +741,7 @@ static int compile1nc(cell *item, cell ***nextpp, struct compile_env *cep) {
 
 // compile list of expressions, leaving a value on stack
 static cell *compile_list(cell *tree, struct compile_env *cep) {
-    cell *leavevalue = cell_ref(hash_void); // error assumed
+    cell *leavevalue = cell_void(); // error assumed
     cell *item;
     int stacklevel = 0;
     cell *result = NIL;
@@ -754,7 +754,7 @@ static cell *compile_list(cell *tree, struct compile_env *cep) {
         }
         if (!compile2constant(item, &val, cep)) {
             if (compile1nc(item, &nextp, cep)) ++stacklevel;
-            val = cell_ref(hash_void); // error assumed
+            val = cell_void(); // error assumed
         }
         cell_unref(leavevalue);
         leavevalue = val;

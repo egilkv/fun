@@ -4,9 +4,12 @@
 
 Optimize away globals that are immutable. Plus locals
 
-Do not allow run(), instead insert another level or another tread...
+This really, really should yield void if A2 is unknown
+A2 == B2 ? "same":"not";
 
-Do not recurse if args produced errors
+Do not recurse if args produced errors. Fix to if mayy help a lot.
+
+Do not allow run(), instead insert another level or another tread...
 
 Parsing of code {} within {} is pretty broken, see qsort-new.fun
 
