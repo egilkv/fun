@@ -42,7 +42,7 @@ gtk_grid = (...) {
     grid = gtk.grid_new();
     args = (a) {
 	a == [] ? grid : {
-	    attach:         (){ gtk.grid_attach(grid, a[0][1], a[1]); args(a[2..]) }
+            attach:         (){ gtk.grid_attach(grid, a[1], a[0][1]); args(a[2..]) }     // note: attach: [,,,], what,
 	}[a[0][0]]()
     };
     args(...)
