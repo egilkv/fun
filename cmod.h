@@ -25,11 +25,14 @@ int peek_cstring(cell *a, char **valuep, cell *dump);
 int get_symbol(cell *a, char_t **valuep, cell *dump);
 int peek_boolean(cell *a, int *boolp);
 int get_boolean(cell *a, int *boolp, cell *dump);
+int peek_special(const char *magic, cell *arg, void **valuep, cell *dump);
+int get_special(const char *magic, cell *arg, void **valuep, cell *dump);
 integer_t ref_length(cell *a);
 cell *ref_index(cell *a, index_t index);
 cell *ref_range1(cell *a, index_t index);
 cell *ref_range2(cell *a, index_t index, integer_t len);
 cell *cell_void();
+cell *cell_error();
 
 cell *cfun2_ref(cell *a, cell *b);
 

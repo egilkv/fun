@@ -186,6 +186,34 @@ int get_boolean(cell *a, int *boolp, cell *dump) {
     return 1;
 }
 
+// arg is unreffed, unless there is an error
+int peek_special(const char *magic, cell *arg, void **valuep, cell *dump) {
+    if (!cell_is_special(arg, magic)) {
+        const char *m = magic ? magic : "special";
+        char *errmsg = malloc(strlen(m) + 6);
+        assert(errmsg);
+        strcpy(errmsg, "not a ");
+        strcpy(errmsg+6, m);
+        cell_unref(error_rt1(errmsg, cell_ref(arg)));
+        free(errmsg);
+        cell_unref(arg);
+        cell_unref(dump);
+        return 0;
+    }
+    *valuep = arg->_.special.ptr;
+    return 1;
+}
+
+// a in always unreffed
+// dump is unreffed only if error
+int get_special(const char *magic, cell *arg, void **valuep, cell *dump) {
+    if (!peek_special(magic, arg, valuep, dump)) {
+        return 0;
+    }
+    cell_unref(arg);
+    return 1;
+}
+
 // does not consume
 integer_t ref_length(cell *a) {
     switch (a ? a->type : c_LIST) {
@@ -246,7 +274,7 @@ cell *cfun2_ref(cell *a, cell *b) {
         if (b1) {
             if (!get_index(b1, &index1, b2)) {
                 cell_unref(a);
-                return cell_void(); // error
+                return cell_error();
             }
         }
         if (b2) {
@@ -404,6 +432,11 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
 
 // TODO inline
 cell *cell_void() {
+    return cell_ref(hash_void);
+}
+
+// TODO do something smarter
+cell *cell_error() {
     return cell_ref(hash_void);
 }
 

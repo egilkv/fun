@@ -21,35 +21,7 @@
 
 static const char *magic_gtk_app = "gtk_application";
 static const char *magic_gtk_widget = "gtk_widget";
-//static const char *magic_gtk_text_buf = "gtk_text_buffer";
-
-// a is nevre unreffed
-static int peek_special(const char *magic, cell *arg, void **valuep) {
-    if (!cell_is_special(arg, magic)) {
-        const char *m = magic ? magic : "special";
-        char *errmsg = malloc(strlen(m) + 6);
-        assert(errmsg);
-        strcpy(errmsg, "not a ");
-        strcpy(errmsg+6, m);
-        cell_unref(error_rt1(errmsg, cell_ref(arg)));
-        free(errmsg);
-        return 0;
-    }
-    *valuep = arg->_.special.ptr;
-    return 1;
-}
-
-// a in always unreffed
-// dump is unreffed only if error
-static int get_special(const char *magic, cell *arg, void **valuep, cell *dump) {
-    if (!peek_special(magic, arg, valuep)) {
-        cell_unref(arg);
-        cell_unref(dump);
-        return 0;
-    }
-    cell_unref(arg);
-    return 1;
-}
+static const char *magic_gtk_textbuf = "gtk_text_buffer";
 
 static int get_gtkapp(cell *arg, GtkApplication **gpp, cell *dump) {
     return get_special(magic_gtk_app, arg, (void **)gpp, dump);
@@ -58,6 +30,39 @@ static int get_gtkapp(cell *arg, GtkApplication **gpp, cell *dump) {
 static int get_gtkwidget(cell *arg, GtkWidget **gpp, cell *dump) {
     return get_special(magic_gtk_widget, arg, (void **)gpp, dump);
 }
+
+static int get_gtktextbuffer(cell *arg, GtkTextBuffer **gpp, cell *dump) {
+    return get_special(magic_gtk_textbuf, arg, (void **)gpp, dump);
+}
+
+////////////////////////////////////////////////////////////////
+//
+
+#define WIDGET_INT_GET(gname) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    guint width;   \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    width = gtk_##gname(GTK_CONTAINER(wp)); \
+    return cell_integer(width); \
+}
+
+#define WIDGET_INT_SET(gname) \
+static cell *cgtk_##gname(cell *widget, cell *wid) { \
+    GtkWidget *wp; \
+    integer_t width = 0; \
+    if (!get_gtkwidget(widget, &wp, wid) \
+     || !get_integer(wid, &width, NIL)) return cell_error(); \
+    gtk_##gname(GTK_CONTAINER(wp), width); \
+    return cell_void(); \
+}
+
+#define DEFINE_CFUN1(gname) \
+    assoc_set(a, cell_symbol(#gname), cell_cfun1(cgtk_##gname));
+#define DEFINE_CFUN2(gname) \
+    assoc_set(a, cell_symbol(#gname), cell_cfun2(cgtk_##gname));
+#define DEFINE_CFUNN(gname) \
+    assoc_set(a, cell_symbol(#gname), cell_cfunN(cgtk_##gname));
 
 ////////////////////////////////////////////////////////////////
 //
@@ -243,26 +248,8 @@ static cell *cgtk_container_check_resize(cell *widget) {
 // TODO gtk_container_class_list_child_properties
 // TODO gtk_container_class_handle_border_width
 
-static cell *cgtk_container_get_border_width(cell *widget) {
-    GtkWidget *wp;
-    guint width;
-    if (!get_gtkwidget(widget, &wp, NIL)) {
-         return cell_void(); // error
-    }
-    width = gtk_container_get_border_width(GTK_CONTAINER(wp));
-    return cell_integer(width);
-}
-
-static cell *cgtk_container_set_border_width(cell *widget, cell *wid) {
-    GtkWidget *wp;
-    integer_t width = 0;
-    if (!get_gtkwidget(widget, &wp, wid)
-     || !get_integer(wid, &width, NIL)) {
-        return cell_void(); // error
-    }
-    gtk_container_set_border_width(GTK_CONTAINER(wp), width);
-    return cell_void();
-}
+    WIDGET_INT_GET(container_get_border_width)
+    WIDGET_INT_SET(container_set_border_width)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -326,22 +313,68 @@ static cell *cgtk_grid_attach(cell *args) {
 //      gtk_grid_set_row_baseline_position ()
 //      gtk_grid_get_row_baseline_position ()
 
+
+////////////////////////////////////////////////////////////////
+//
+//  text buffer
+//
+
+static cell *cgtk_text_buffer_new(cell *args) {
+    arg0(args); // TODO optional GtkTextTagTable *table);
+    GtkTextBuffer *textbuf;
+    textbuf = gtk_text_buffer_new(NULL);
+    return cell_special(magic_gtk_textbuf, (void *)textbuf);
+}
+
+/* TODO
+gint gtk_text_buffer_get_line_count (textbuf)
+gint gtk_text_buffer_get_char_count ()
+gtk_text_buffer_get_tag_table ()
+*/
+
+// BUG: iter is where?
+static cell *cgtk_text_buffer_insert_at_cursor(cell *tb, cell *str) {
+    GtkTextBuffer *textbuf;
+    char_t *str_ptr;
+    index_t str_len;
+    if (!get_gtktextbuffer(tb, &textbuf, str)
+     || !peek_string(str, &str_ptr, &str_len, NIL)) {
+        return cell_void(); // error
+    }
+#if 0
+    // TODO iter
+    GtkTextIter *iter = NULL;
+    gtk_text_buffer_insert(textbuf, iter, str_ptr, str_len);
+#endif
+    gtk_text_buffer_insert_at_cursor(textbuf, str_ptr, str_len);
+
+    return cell_void();
+}
+
+/* TODO
+gtk_text_buffer_insert_interactive ()
+gtk_text_buffer_insert_interactive_at_cursor ()
+...
+*/
+
 ////////////////////////////////////////////////////////////////
 //
 //  text view
 //
 
 static cell *cgtk_text_view_new(cell *args) {
-//  cell *a;
+    cell *a;
     GtkWidget *text_view;
-//  GtkTextBuffer *text_buf;
-    arg0(args);
-#if 0
     if (list_pop(&args, &a)) {
-        if (!get_text_buf_s(widget, &wp, width)) {
-#endif
-    text_view = gtk_text_view_new();
-
+        GtkTextBuffer *textbuf;
+        if (!get_gtktextbuffer(a, &textbuf, NIL)) {
+            return cell_void(); // error
+        }
+        arg0(args);
+        text_view = gtk_text_view_new_with_buffer(textbuf);
+    } else {
+        text_view = gtk_text_view_new();
+    }
     return cell_special(magic_gtk_widget, (void *)text_view);
 }
 
@@ -438,10 +471,8 @@ static cell *cgtk_signal_connect(cell *args) {
     if (!arg3(args, &app, &hook, &callback)) {
         return cell_void(); // error
     }
-    if (!peek_special((const char *)0, app, (void **)&gp)) {
-        cell_unref(callback);
+    if (!peek_special((const char *)0, app, (void **)&gp, callback)) {
         cell_unref(hook); // TODO
-        cell_unref(app);
         return cell_void(); // error
     }
     if (!get_symbol(hook, &signal, callback)) {
@@ -538,28 +569,31 @@ cell *module_gtk() {
     // TODO consider cache
     cell *a = cell_assoc();
 
-    // TODO these functions are impure
-    assoc_set(a, cell_symbol("application_new"),        cell_cfunN(cgtk_application_new));
-    assoc_set(a, cell_symbol("application_run"),        cell_cfun2(cgtk_application_run));
-    assoc_set(a, cell_symbol("application_window_new"), cell_cfun1(cgtk_application_window_new));
-    assoc_set(a, cell_symbol("button_new"),             cell_cfunN(cgtk_button_new)); // also "button_new_with_label"
-    assoc_set(a, cell_symbol("button_box_new"),         cell_cfunN(cgtk_button_box_new));
-    assoc_set(a, cell_symbol("container_add"),          cell_cfunN(cgtk_container_add));
-    assoc_set(a, cell_symbol("container_remove"),       cell_cfun2(cgtk_container_remove));
-    assoc_set(a, cell_symbol("container_check_resize"), cell_cfunN(cgtk_container_check_resize));
-    assoc_set(a, cell_symbol("container_get_border_width"), cell_cfun1(cgtk_container_get_border_width));
-    assoc_set(a, cell_symbol("container_set_border_width"), cell_cfun2(cgtk_container_set_border_width));
-    assoc_set(a, cell_symbol("grid_new"),               cell_cfunN(cgtk_grid_new));
-    assoc_set(a, cell_symbol("grid_attach"),            cell_cfunN(cgtk_grid_attach));
-    assoc_set(a, cell_symbol("init"),                   cell_cfun1(cgtk_init));
-    assoc_set(a, cell_symbol("main"),                   cell_cfunN(cgtk_main));
-    assoc_set(a, cell_symbol("print"),                  cell_cfunN(cgtk_print));
-    assoc_set(a, cell_symbol("signal_connect"),         cell_cfunN(cgtk_signal_connect));
-    assoc_set(a, cell_symbol("text_view_new"),          cell_cfunN(cgtk_text_view_new));
-    assoc_set(a, cell_symbol("widget_destroy"),         cell_cfun1(cgtk_widget_destroy));
-    assoc_set(a, cell_symbol("window_set_title"),       cell_cfun2(cgtk_window_set_title));
-    assoc_set(a, cell_symbol("window_set_default_size"), cell_cfunN(cgtk_window_set_default_size));
-    assoc_set(a, cell_symbol("widget_show_all"),        cell_cfun1(cgtk_widget_show_all));
+    // TODO these functions are mostly impure
+
+    DEFINE_CFUNN(application_new)
+    DEFINE_CFUN2(application_run)
+    DEFINE_CFUN1(application_window_new)
+    DEFINE_CFUNN(button_new)   // also: button_new_with_label
+    DEFINE_CFUNN(button_box_new)
+    DEFINE_CFUNN(container_add)
+    DEFINE_CFUN2(container_remove)
+    DEFINE_CFUNN(container_check_resize)
+    DEFINE_CFUN1(container_get_border_width)
+    DEFINE_CFUN2(container_set_border_width)
+    DEFINE_CFUNN(grid_new)
+    DEFINE_CFUNN(grid_attach)
+    DEFINE_CFUN1(init)
+    DEFINE_CFUNN(main)
+    DEFINE_CFUNN(print)
+    DEFINE_CFUNN(signal_connect)
+    DEFINE_CFUNN(text_buffer_new)
+    DEFINE_CFUN2(text_buffer_insert_at_cursor)
+    DEFINE_CFUNN(text_view_new)
+    DEFINE_CFUN1(widget_destroy)
+    DEFINE_CFUN2(window_set_title)
+    DEFINE_CFUNN(window_set_default_size)
+    DEFINE_CFUN1(widget_show_all)
 
     return a;
 }
