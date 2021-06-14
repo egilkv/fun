@@ -5,6 +5,7 @@
 #include "cell.h"
 
 int get_float(cell *a, number *np, cell *dump);
+int get_real(cell *a, real_t *rp, cell *dump);
 
 cell *cell_integer(integer_t integer);
 cell *cell_real(real_t real);

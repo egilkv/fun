@@ -38,24 +38,129 @@ static int get_gtktextbuffer(cell *arg, GtkTextBuffer **gpp, cell *dump) {
 ////////////////////////////////////////////////////////////////
 //
 
-#define WIDGET_INT_GET(gname) \
+#define WIDGET_VOID(gname, gtype) \
 static cell *cgtk_##gname(cell *widget) { \
     GtkWidget *wp; \
-    guint width;   \
     if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
-    width = gtk_##gname(GTK_CONTAINER(wp)); \
-    return cell_integer(width); \
-}
-
-#define WIDGET_INT_SET(gname) \
-static cell *cgtk_##gname(cell *widget, cell *wid) { \
-    GtkWidget *wp; \
-    integer_t width = 0; \
-    if (!get_gtkwidget(widget, &wp, wid) \
-     || !get_integer(wid, &width, NIL)) return cell_error(); \
-    gtk_##gname(GTK_CONTAINER(wp), width); \
+    gtk_##gname(gtype(wp)); \
     return cell_void(); \
 }
+
+#define WIDGET_GET_WIDGET(gname, gtype) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    GtkWidget *result; \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    result = gtk_##gname(gtype(wp)); \
+    return cell_special(magic_gtk_widget, (void *)result); \
+}
+// TODO above will create copies, ideally we should keep track of them
+
+#define WIDGET_SET_WIDGET(gname, gtype) \
+static cell *cgtk_##gname(cell *widget, cell *widget2) { \
+    GtkWidget *wp, *w2p; \
+    if (!get_gtkwidget(widget, &wp, widget2) \
+     || !get_gtkwidget(widget2, &w2p, NIL)) return cell_error(); \
+    gtk_##gname(gtype(wp), w2p); \
+    return cell_void(); \
+}
+
+#define WIDGET_GET_INT(gname, gtype) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    guint ival;    \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    ival = gtk_##gname(gtype(wp)); \
+    return cell_integer(ival); \
+}
+
+#define WIDGET_SET_INT(gname, gtype) \
+static cell *cgtk_##gname(cell *widget, cell *val) { \
+    GtkWidget *wp; \
+    integer_t ival = 0; \
+    if (!get_gtkwidget(widget, &wp, val) \
+     || !get_integer(val, &ival, NIL)) return cell_error(); \
+    gtk_##gname(gtype(wp), ival); \
+    return cell_void(); \
+}
+
+#define WIDGET_SET_2INT(gname, gtype) \
+static cell *cgtk_##gname(cell *args) { \
+    cell *widget; \
+    cell *val1, *val2; \
+    GtkWidget *wp; \
+    integer_t ival1, ival2; \
+    if (!arg3(args, &widget, &val1, &val2)) return cell_error(); \
+    if (!get_gtkwidget(widget, &wp, val1)) { \
+        cell_unref(val2); \
+        return cell_error(); \
+    } \
+    if (!get_integer(val1, &ival1, val2) \
+     || !get_integer(val2, &ival2, NIL)) return cell_error(); \
+    gtk_##gname(gtype(wp), ival1, ival2); \
+    return cell_void(); \
+}
+
+#define WIDGET_GET_BOOL(gname, gtype) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    gboolean bval; \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    bval = gtk_##gname(gtype(wp)); \
+    return cell_ref(bval ? hash_t : hash_f); \
+}
+
+#define WIDGET_SET_BOOL(gname, gtype) \
+static cell *cgtk_##gname(cell *widget, cell *val) { \
+    GtkWidget *wp; \
+    int bval = 0; \
+    if (!get_gtkwidget(widget, &wp, val) \
+     || !get_boolean(val, &bval, NIL)) return cell_error(); \
+    gtk_##gname(gtype(wp), bval); \
+    return cell_void(); \
+}
+
+#define WIDGET_GET_FLOAT(gname, gtype) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    real_t rval;   \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    rval = gtk_##gname(gtype(wp)); \
+    return cell_real(rval); \
+}
+
+#define WIDGET_SET_FLOAT(gname, gtype) \
+static cell *cgtk_##gname(cell *widget, cell *val) { \
+    GtkWidget *wp; \
+    real_t rval; \
+    if (!get_gtkwidget(widget, &wp, val) \
+     || !get_real(val, &rval, NIL)) return cell_error(); \
+    gtk_##gname(gtype(wp), rval); \
+    return cell_void(); \
+}
+
+#define WIDGET_GET_CSTRING(gname, gtype) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    const char *cstr; \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    cstr = gtk_##gname(gtype(wp)); \
+    return cell_astring(strdup(cstr), strlen(cstr)); \
+}
+
+#define WIDGET_SET_CSTRING(gname, gtype) \
+static cell *cgtk_##gname(cell *widget, cell *str) { \
+    GtkWidget *wp; \
+    char_t *cstr; \
+    if (!get_gtkwidget(widget, &wp, str) \
+     || !peek_cstring(str, &cstr, NIL)) return cell_error(); \
+    gtk_##gname(gtype(wp), cstr); \
+    cell_unref(str); \
+    return cell_void(); \
+}
+
+////////////////////////////////////////////////////////////////
+//
 
 #define DEFINE_CFUN1(gname) \
     assoc_set(a, cell_symbol(#gname), cell_cfun1(cgtk_##gname));
@@ -158,24 +263,20 @@ static cell *cgtk_button_new(cell *args) {
 
 // TODO gtk_button_new_with_mnemonic() see gtk_button_set_use_underline()
 // gtk_button_new_from_icon_name (), use gtk_button_new() and gtk_button_set_image().instead
-// TODO gtk_button_clicked (button)
+WIDGET_VOID(button_clicked, GTK_BUTTON)
 // TODO gtk_button_set_relief(button, reliefstyle)
 // TODO gtk_button_get_relief(button)
-// TODO gtk_button_get_label(button)
-// TODO gtk_button_set_label(button, label)
-// TODO gtk_button_set_use_underline(button, bool)
-// TODO gtk_button_get_use_underline(button) -> bool
-// TODO gtk_button_set_focus_on_click(button, bool)
-// TODO gtk_button_get_focus_on_click(button) -> bool
-// TODO gtk_button_set_alignment(button, xalign, yalign)
-// TODO gtk_button_get_alignment(button) -> xalign, yalign
-// TODO gtk_button_set_image(button, image)
-// TODO gtk_button_get_image(button)
+WIDGET_GET_CSTRING(button_get_label, GTK_BUTTON)
+WIDGET_SET_CSTRING(button_set_label, GTK_BUTTON)
+WIDGET_GET_BOOL(button_get_use_underline, GTK_BUTTON)
+WIDGET_SET_BOOL(button_set_use_underline, GTK_BUTTON)
+WIDGET_SET_WIDGET(button_set_image, GTK_BUTTON)
+WIDGET_GET_WIDGET(button_get_image, GTK_BUTTON)
 // TODO gtk_button_set_image_position(
 // TODO gtk_button_get_image_position(
-// TODO gtk_button_set_always_show_image ()
-// TODO gtk_button_get_always_show_image ()
-// TODO gtk_button_get_event_window ()
+WIDGET_GET_BOOL(button_get_always_show_image, GTK_BUTTON)
+WIDGET_SET_BOOL(button_set_always_show_image, GTK_BUTTON)
+// TODO gtk_button_get_event_window
 
 ////////////////////////////////////////////////////////////////
 //
@@ -183,55 +284,25 @@ static cell *cgtk_button_new(cell *args) {
 //  https://developer.gnome.org/gtk3/stable/GtkContainer.html
 //
 
-static cell *cgtk_container_add(cell *args) {
-    cell *widget = NIL;
-    cell *add = NIL;
-    GtkWidget *wp;
-    GtkWidget *ap;
-    if (!list_pop(&args, &widget)
-     || !list_pop(&args, &add)) {
-        cell_unref(widget);
-        return error_rt0("needs arguments container and add");
-    }
-    arg0(args);
-    if (!get_gtkwidget(widget, &wp, add)
-     || !get_gtkwidget(add, &ap, NIL)) {
-        return cell_error();
-    }
-    gtk_container_add(GTK_CONTAINER(wp), ap);
-    return cell_void();
-}
+WIDGET_SET_WIDGET(container_add, GTK_CONTAINER)
+WIDGET_SET_WIDGET(container_remove, GTK_CONTAINER)
 
-static cell *cgtk_container_remove(cell *widget, cell *rem) {
-    GtkWidget *wp;
-    GtkWidget *ap;
-    if (!get_gtkwidget(widget, &wp, rem)
-     || !get_gtkwidget(rem, &ap, NIL)) {
-        return cell_error();
-    }
-    gtk_container_remove(GTK_CONTAINER(wp), ap);
-    return cell_void();
-}
+// TODO gtk_container_add_with_properties
+// TODO gtk_container_get_resize_mode
+// TODO gtk_container_set_resize_mode
 
-static cell *cgtk_container_check_resize(cell *widget) {
-     GtkWidget *wp;
-     if (!get_gtkwidget(widget, &wp, NIL)) {
-        return cell_error();
-     }
-     gtk_container_check_resize(GTK_CONTAINER(wp));
-     return cell_void();
-}
+WIDGET_VOID(container_check_resize, GTK_CONTAINER)
 
-// TODO gtk_container_foreach(cell *widget, ... callback) {
-// TODO gtk_container_get_children(cell *widget) {
-// TODO gtk_container_get_path_for_child
-// TODO gtk_container_get_focus_child(cell *widget) returns widget
-// TODO gtk_container_set_focus_child(cell *widget, cell *child)
+// TODO gtk_container_foreach(cell *widget, ... callback)
+// TODO gtk_container_get_children(cell *widget)  --> gList
+// TODO gtk_container_get_path_for_child          --> widget
+WIDGET_GET_WIDGET(container_get_focus_child, GTK_CONTAINER)
+WIDGET_SET_WIDGET(container_set_focus_child, GTK_CONTAINER)
 // TODO gtk_container_get_focus_vadjustment(cell *widget) returns adjustment or NULL
 // TODO gtk_container_set_focus_vadjustment(cell *widget, cell *adjustment)  GtkAdjustment
 // TODO gtk_container_get_focus_hadjustment(cell *widget) returns adjustment or NULL
 // TODO gtk_container_set_focus_hadjustment(cell *widget, cell *adjustment)  GtkAdjustment
-// TODO gtk_container_child_type(cell *widget) {
+// TODO gtk_container_child_type(cell *widget) --> GTYPE
 // TODO gtk_container_child_get(cell *widget, property names ... ) { see also ..._with_properties
 // TODO gtk_container_child_set(cell *widget, property names ... ) { see also ..._with_properties
 // TODO gtk_container_child_get_property(cell *widget, cell *child, cell *propertyname) {
@@ -241,6 +312,8 @@ static cell *cgtk_container_check_resize(cell *widget) {
 // TODO gtk_container_child_notify(cell *widget, cell *child, cell *propertyname) {
 // TODO gtk_container_child_notify_by_pspec(cell *widget, cell *child, ... ) {
 // TODO gtk_container_forall(cell *widget, cell *callback ... ) {
+WIDGET_GET_INT(container_get_border_width, GTK_CONTAINER)
+WIDGET_SET_INT(container_set_border_width, GTK_CONTAINER)
 // TODO gtk_container_propagate_draw(cell *widget
 // TODO gtk_container_class_find_child_property(
 // TODO gtk_container_class_install_child_property(
@@ -248,8 +321,6 @@ static cell *cgtk_container_check_resize(cell *widget) {
 // TODO gtk_container_class_list_child_properties
 // TODO gtk_container_class_handle_border_width
 
-    WIDGET_INT_GET(container_get_border_width)
-    WIDGET_INT_SET(container_set_border_width)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -313,6 +384,71 @@ static cell *cgtk_grid_attach(cell *args) {
 //      gtk_grid_set_row_baseline_position ()
 //      gtk_grid_get_row_baseline_position ()
 
+////////////////////////////////////////////////////////////////
+//
+//  label
+//  https://developer.gnome.org/gtk3/stable/GtkLabel.html
+//
+
+static cell *cgtk_label_new(cell *str) {
+    GtkWidget *label;
+    char_t *str_ptr;
+    index_t str_len;
+    if (!peek_string(str, &str_ptr, &str_len, NIL)) {
+        return cell_error();
+    }
+    label = gtk_label_new(str_ptr);
+    cell_unref(str);
+    return cell_special(magic_gtk_widget, (void *)label);
+}
+
+WIDGET_SET_CSTRING(label_set_text, GTK_LABEL)
+// TODO    label_set_attributes
+WIDGET_SET_CSTRING(label_set_markup, GTK_LABEL) // TODO g_markup_escape_text() or g_markup_printf_escaped():
+WIDGET_SET_CSTRING(label_set_markup_with_mnemonic, GTK_LABEL) // TODO ditto
+WIDGET_SET_CSTRING(label_set_pattern, GTK_LABEL)
+// TODO    label_set_justify
+WIDGET_SET_FLOAT(label_set_xalign, GTK_LABEL)
+WIDGET_SET_FLOAT(label_set_yalign, GTK_LABEL)
+// TODO    label_set_ellipsize
+WIDGET_SET_INT(label_set_width_chars, GTK_LABEL)
+WIDGET_SET_INT(label_set_max_width_chars, GTK_LABEL)
+WIDGET_SET_BOOL(label_set_line_wrap, GTK_LABEL)
+// TODP label_set_line_wrap_mode ()
+WIDGET_SET_INT(label_set_lines, GTK_LABEL)
+// TODO label_get_layout_offsets
+WIDGET_GET_INT(label_get_mnemonic_keyval, GTK_LABEL)
+WIDGET_GET_BOOL(label_get_selectable, GTK_LABEL)
+WIDGET_GET_CSTRING(label_get_text, GTK_LABEL)
+// TODO label_new_with_mnemonic
+WIDGET_SET_2INT(label_select_region, GTK_LABEL)
+// TODO label_set_mnemonic_widget
+WIDGET_SET_BOOL(label_set_selectable, GTK_LABEL)
+WIDGET_SET_CSTRING(label_set_text_with_mnemonic, GTK_LABEL)
+// TODO gtk_label_get_attributes
+// TODO gtk_label_get_justify
+WIDGET_GET_FLOAT(label_get_xalign, GTK_LABEL)
+WIDGET_GET_FLOAT(label_get_yalign, GTK_LABEL)
+// TODO gtk_label_get_ellipsize
+// TODO gtk_label_get_ellipsize
+WIDGET_GET_INT(label_get_width_chars, GTK_LABEL)
+WIDGET_GET_INT(label_get_max_width_chars, GTK_LABEL)
+WIDGET_GET_CSTRING(label_get_label, GTK_LABEL)
+// TODO ...
+WIDGET_GET_INT(label_get_lines, GTK_LABEL)
+// TODO ...
+WIDGET_GET_BOOL(label_get_use_markup, GTK_LABEL)
+WIDGET_GET_BOOL(label_get_use_underline, GTK_LABEL)
+WIDGET_GET_BOOL(label_get_single_line_mode, GTK_LABEL)
+WIDGET_GET_FLOAT(label_get_angle, GTK_LABEL)
+WIDGET_SET_CSTRING(label_set_label, GTK_LABEL)
+WIDGET_SET_BOOL(label_set_use_markup, GTK_LABEL)
+WIDGET_SET_BOOL(label_set_use_underline, GTK_LABEL)
+WIDGET_SET_BOOL(label_set_single_line_mode, GTK_LABEL)
+WIDGET_SET_FLOAT(label_set_angle, GTK_LABEL)
+WIDGET_GET_CSTRING(label_get_current_uri, GTK_LABEL)
+WIDGET_SET_BOOL(label_set_track_visited_links, GTK_LABEL)
+WIDGET_GET_BOOL(label_get_track_visited_links, GTK_LABEL)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -439,6 +575,12 @@ static cell *cgtk_print(cell *args) {
     return cell_void();
 }
 
+static cell *cgtk_println(cell *args) {
+    cell *result = cgtk_print(args);
+    g_print("\n");
+    return result;
+}
+
 ////////////////////////////////////////////////////////////////
 //
 //
@@ -508,19 +650,24 @@ static cell *cgtk_widget_destroy(cell *widget) {
         return cell_error();
     }
     gtk_widget_destroy(wp);
-    // properly invalidate widget
+    // properly invalidate widget to avoid future refs to dead gtk widget
     widget->_.special.ptr = NULL;
     widget->_.special.magic = NULL;
     cell_unref(widget);
     return cell_void();
 }
 
-static cell *cgtk_widget_show_all(cell *widget) {
-    GtkWidget *wp;
-    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error();
-    gtk_widget_show_all(wp);
-    return cell_void();
-}
+WIDGET_VOID(widget_show_all, GTK_WIDGET);
+WIDGET_VOID(widget_show, GTK_WIDGET);
+WIDGET_VOID(widget_show_now, GTK_WIDGET);
+WIDGET_VOID(widget_hide, GTK_WIDGET);
+WIDGET_GET_BOOL(widget_activate, GTK_WIDGET);
+WIDGET_GET_BOOL(widget_is_focus, GTK_WIDGET);
+WIDGET_VOID(widget_grab_focus, GTK_WIDGET);
+WIDGET_VOID(widget_grab_default, GTK_WIDGET);
+WIDGET_SET_CSTRING(widget_set_name, GTK_WIDGET);
+
+// TODO widget_draw
 
 ////////////////////////////////////////////////////////////////
 //
@@ -528,39 +675,8 @@ static cell *cgtk_widget_show_all(cell *widget) {
 //  https://developer.gnome.org/gtk3/stable/GtkWindow.html
 //
 
-static cell *cgtk_window_set_title(cell *widget, cell *title) {
-    GtkWidget *wp;
-    char *title_s;
-    if (!get_gtkwidget(widget, &wp, title)
-     || !peek_cstring(title, &title_s, NIL)) return cell_error();
-    gtk_window_set_title(GTK_WINDOW(wp), title_s);
-    cell_unref(title);
-    return cell_void();
-}
-
-static cell *cgtk_window_set_default_size(cell *args) {
-    cell *widget;
-    cell *width;
-    cell *height;
-    GtkWidget *wp;
-    integer_t w, h;
-    // TODO also works for widgets, any instance
-    // TODO signal names are separated by either - or _
-
-    if (!arg3(args, &widget, &width, &height)) {
-        return cell_error();
-    }
-    if (!get_gtkwidget(widget, &wp, width)) {
-        cell_unref(height);
-        return cell_error();
-    }
-    if (!get_integer(width, &w, height)
-     || !get_integer(height, &h, NIL)) {
-        return cell_error();
-    }
-    gtk_window_set_default_size(GTK_WINDOW(wp), w, h);
-    return cell_void();
-}
+WIDGET_SET_CSTRING(window_set_title, GTK_WINDOW);
+WIDGET_SET_2INT(window_set_default_size, GTK_WINDOW);
 
 ////////////////////////////////////////////////////////////////
 //
@@ -576,24 +692,80 @@ cell *module_gtk() {
     DEFINE_CFUN1(application_window_new)
     DEFINE_CFUNN(button_new)   // also: button_new_with_label
     DEFINE_CFUNN(button_box_new)
-    DEFINE_CFUNN(container_add)
+    DEFINE_CFUN1(button_clicked)
+    DEFINE_CFUN1(button_get_label)
+    DEFINE_CFUN2(button_set_label)
+    DEFINE_CFUN1(button_get_use_underline)
+    DEFINE_CFUN2(button_set_use_underline)
+    DEFINE_CFUN2(button_set_image)
+    DEFINE_CFUN1(button_get_image)
+    DEFINE_CFUN1(button_get_always_show_image)
+    DEFINE_CFUN2(button_set_always_show_image)
+    DEFINE_CFUN2(container_add)
     DEFINE_CFUN2(container_remove)
     DEFINE_CFUNN(container_check_resize)
+    DEFINE_CFUN1(container_get_focus_child)
+    DEFINE_CFUN2(container_set_focus_child)
     DEFINE_CFUN1(container_get_border_width)
     DEFINE_CFUN2(container_set_border_width)
     DEFINE_CFUNN(grid_new)
     DEFINE_CFUNN(grid_attach)
     DEFINE_CFUN1(init)
     DEFINE_CFUNN(main)
+    DEFINE_CFUN1(label_new)
+    DEFINE_CFUN2(label_set_text)
+    DEFINE_CFUN2(label_set_markup)
+    DEFINE_CFUN2(label_set_markup_with_mnemonic)
+    DEFINE_CFUN2(label_set_pattern)
+    DEFINE_CFUN2(label_set_xalign)
+    DEFINE_CFUN2(label_set_yalign)
+    DEFINE_CFUN2(label_set_width_chars)
+    DEFINE_CFUN2(label_set_max_width_chars)
+    DEFINE_CFUN2(label_set_line_wrap)
+    DEFINE_CFUN2(label_set_lines)
+    DEFINE_CFUN1(label_get_mnemonic_keyval)
+    DEFINE_CFUN1(label_get_selectable)
+    DEFINE_CFUN1(label_get_text)
+    DEFINE_CFUNN(label_select_region)
+    DEFINE_CFUN2(label_set_selectable)
+    DEFINE_CFUN2(label_set_text_with_mnemonic)
+    DEFINE_CFUN1(label_get_xalign)
+    DEFINE_CFUN1(label_get_yalign)
+    DEFINE_CFUN1(label_get_width_chars)
+    DEFINE_CFUN1(label_get_max_width_chars)
+    DEFINE_CFUN1(label_get_label)
+    DEFINE_CFUN1(label_get_lines)
+    DEFINE_CFUN1(label_get_lines)
+    DEFINE_CFUN1(label_get_use_markup)
+    DEFINE_CFUN1(label_get_use_underline)
+    DEFINE_CFUN1(label_get_single_line_mode)
+    DEFINE_CFUN1(label_get_angle)
+    DEFINE_CFUN2(label_set_label)
+    DEFINE_CFUN2(label_set_use_markup)
+    DEFINE_CFUN2(label_set_use_underline)
+    DEFINE_CFUN2(label_set_single_line_mode)
+    DEFINE_CFUN2(label_set_angle)
+    DEFINE_CFUN1(label_get_current_uri)
+    DEFINE_CFUN2(label_set_track_visited_links)
+    DEFINE_CFUN1(label_get_track_visited_links)
     DEFINE_CFUNN(print)
+    DEFINE_CFUNN(println)
     DEFINE_CFUNN(signal_connect)
     DEFINE_CFUNN(text_buffer_new)
     DEFINE_CFUN2(text_buffer_insert_at_cursor)
     DEFINE_CFUNN(text_view_new)
     DEFINE_CFUN1(widget_destroy)
+    DEFINE_CFUN1(widget_show_all)
+    DEFINE_CFUN1(widget_show)
+    DEFINE_CFUN1(widget_show_now)
+    DEFINE_CFUN1(widget_hide)
+    DEFINE_CFUN1(widget_activate)
+    DEFINE_CFUN1(widget_is_focus)
+    DEFINE_CFUN1(widget_grab_focus)
+    DEFINE_CFUN1(widget_grab_default)
+    DEFINE_CFUN2(widget_set_name)
     DEFINE_CFUN2(window_set_title)
     DEFINE_CFUNN(window_set_default_size)
-    DEFINE_CFUN1(widget_show_all)
 
     return a;
 }

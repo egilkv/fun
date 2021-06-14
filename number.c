@@ -117,6 +117,16 @@ int get_float(cell *a, number *np, cell *dump) {
     return 1;
 }
 
+// a in always unreffed
+// dump is unreffed only if error
+int get_real(cell *a, real_t *rp, cell *dump) {
+    number nb;
+    if (!get_number(a, &nb, dump)) return 0;
+    make_float(&nb);
+    *rp = nb.dividend.fval;
+    return 1;
+}
+
 // used Euclidean algorithm
 static integer_t gcd(integer_t a, integer_t b) {
     return (b == 0) ? a : gcd(b, a % b);
