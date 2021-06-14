@@ -311,3 +311,10 @@ g(2, a: 3, 4) ==> [ 2, 99, a: 3, 4 ]
 #eq(A, A2) ==> error; cannot compare undefined: #undefined
 #lt(A2, B2) ==> error; not a number: #undefined
 #lt(A2, 1) ==> error; not a number: #undefined
+#defq(fc, #lambda([ a ], #defq(b, #times(2, a)), #defq(g, #lambda([], b)), g())) ==> #closure0(
+  args: [ a ]
+) 
+#defq(h, #lambda([], #times(10, fc(12)))) ==> #closure0(
+  args: []
+) 
+h() ==> 240

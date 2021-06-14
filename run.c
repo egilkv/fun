@@ -170,9 +170,16 @@ static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_e
 
     // save current program pointer in environment
 #if 1 // TODO tail call enable
+
     if (rep->env != NIL && next == NIL) {
-        // tail end call, can drop previous environment
-        cell *newenv = cell_env(cell_ref(env_prev(rep->env)), NIL, newassoc, contenv);
+        // tail end call, can drop previous environment:
+        //   env_prev(rep->env)
+        //   env_cont_env(rep->env)
+        //   env_prog(rep->env)
+        //   env_assoc(rep->env)
+
+        cell *newenv = cell_env(cell_ref(env_prev(rep->env)), cell_ref(env_prog(rep->env)), newassoc, contenv);
+
         cell_unref(rep->env);
         rep->env = newenv;
     } else
