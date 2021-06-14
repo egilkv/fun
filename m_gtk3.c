@@ -384,6 +384,59 @@ static cell *cgtk_grid_attach(cell *args) {
 //      gtk_grid_set_row_baseline_position ()
 //      gtk_grid_get_row_baseline_position ()
 
+
+////////////////////////////////////////////////////////////////
+//
+//  image
+//  https://developer.gnome.org/gtk3/stable/GtkImage.html
+//
+
+// TODO gtk_image_get_pixbuf
+// TODO gtk_image_get_animation
+// TODO gtk_image_get_icon_name
+// TODO gtk_image_get_gicon_name
+// TODO gtk_image_get_storage_type
+
+static cell *cgtk_image_new_from_file(cell *str) {
+    GtkWidget *image;
+    char_t *str_ptr;
+    index_t str_len;
+    if (!peek_string(str, &str_ptr, &str_len, NIL)) return cell_error();
+    image = gtk_image_new_from_file(str_ptr);
+    cell_unref(str);
+    return cell_special(magic_gtk_widget, (void *)image);
+}
+
+// TODO gtk_image_new_from_pixbuf
+// TODO gtk_image_new_from_animation
+// TODO gtk_image_new_from_icon_name
+// TODO gtk_image_new_from_gicon
+// TODO gtk_image_new_from_resource
+// TODO gtk_image_new_from_surface
+
+WIDGET_SET_CSTRING(image_set_from_file, GTK_IMAGE)
+
+// TODO gtk_image_set_from_pixbuf
+// TODO gtk_image_set_from_animation
+// TODO gtk_image_set_from_icon_name
+// TODO gtk_image_set_from_gicon
+
+WIDGET_SET_CSTRING(image_set_from_resource, GTK_IMAGE)
+
+// TODO gtk_image_set_from_gicon
+
+WIDGET_VOID(image_clear, GTK_IMAGE)
+
+static cell *cgtk_image_new(cell *args) {
+    GtkWidget *image;
+    arg0(args);
+    image = gtk_image_new();
+    return cell_special(magic_gtk_widget, (void *)image);
+}
+
+WIDGET_SET_INT(image_set_pixel_size, GTK_IMAGE)
+WIDGET_GET_INT(image_get_pixel_size, GTK_IMAGE)
+
 ////////////////////////////////////////////////////////////////
 //
 //  label
@@ -710,6 +763,13 @@ cell *module_gtk() {
     DEFINE_CFUN2(container_set_border_width)
     DEFINE_CFUNN(grid_new)
     DEFINE_CFUNN(grid_attach)
+    DEFINE_CFUN1(image_new_from_file)
+    DEFINE_CFUN2(image_set_from_file)
+    DEFINE_CFUN2(image_set_from_resource)
+    DEFINE_CFUN1(image_clear)
+    DEFINE_CFUNN(image_new)
+    DEFINE_CFUN2(image_set_pixel_size)
+    DEFINE_CFUN1(image_get_pixel_size)
     DEFINE_CFUN1(init)
     DEFINE_CFUNN(main)
     DEFINE_CFUN1(label_new)
