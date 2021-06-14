@@ -140,13 +140,11 @@ int peek_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump) {
     return 0;
 }
 
-// a in always unreffed
-// dump is unreffed only if error
-int get_symbol(cell *a, char_t **valuep, cell *dump) {
+// a and dump is unreffed only if error
+int peek_symbol(cell *a, char_t **valuep, cell *dump) {
     if (a) switch (a->type) {
     case c_SYMBOL:
 	*valuep = a->_.symbol.nam;
-	cell_unref(a);
 	return 1;
     default:
 	break;
@@ -154,6 +152,14 @@ int get_symbol(cell *a, char_t **valuep, cell *dump) {
     cell_unref(dump);
     cell_unref(error_rt1("not a symbol", a));
     return 0;
+}
+
+// a in always unreffed
+// dump is unreffed only if error
+int get_symbol(cell *a, char_t **valuep, cell *dump) {
+    if (!peek_symbol(a, valuep, dump)) return 0;
+    cell_unref(a);
+    return 1;
 }
 
 // as peek_string, but nul-terminated C string is returned

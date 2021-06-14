@@ -53,8 +53,7 @@ popup_dialog = (){
     w3 = gtk.dialog_add_button(dialog, "Option 3", 3);
 
     // destroy when one choice has been made
-    // TODO crashes
-    gtk.signal_connect(dialog, 'response, (response) { gtk.widget_destroy(dialog) });
+    gtk.signal_connect(dialog, 'response, (r){ gtk.println("response is ", r); gtk.widget_destroy(dialog) });
 
     gtk.widget_show_all(dialog)
 };

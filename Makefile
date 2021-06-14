@@ -14,7 +14,7 @@ HFILES =	      compile.h run.h lex.h parse.h cell.h node.h oblist.h cmod.h cfun.
 all: fun fun-gtk
 
 fun-gtk: $(CFILES) $(HFILES) m_gtk3.c m_gtk.h Makefile
-	gcc $(CCOPTS) -DHAVE_GTK $(HAVES) `pkg-config --cflags gtk+-3.0` $(CFILES) m_gtk3.c \
+	gcc -fmax-errors=10 $(CCOPTS) -DHAVE_GTK $(HAVES) `pkg-config --cflags gtk+-3.0` $(CFILES) m_gtk3.c \
 	    -o fun-gtk `pkg-config --libs gtk+-3.0` -lreadline -lm
 
 fun: $(CFILES) $(HFILES) Makefile

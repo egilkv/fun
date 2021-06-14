@@ -431,7 +431,7 @@ static cell *cfio_read(cell *args) {
     // TODO should probably continue previous lxfile
     lxfile infile;
     arg0(args);
-    lxfile_init(&infile, stdin);
+    lxfile_init(&infile, stdin, NULL);
     return expression(&infile);
 }
 

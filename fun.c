@@ -61,7 +61,7 @@ int main(int argc, char * const argv[]) {
     if (optind >= argc) { // filename on command line?
         // interactive mode
         lxfile infile;
-        lxfile_init(&infile, stdin);
+        lxfile_init(&infile, stdin, NULL);
         infile.show_parse = (opt_showparse ? 1:0) | (opt_showcode ? 2:0);
         if (infile.is_terminal) {
             fprintf(stdout, "Have fun");

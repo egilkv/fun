@@ -45,8 +45,11 @@ enum it_ {
 
 typedef enum it_ token;
 
+#define LX_FILENAME 40 // suitable max length for presentation
+
 struct file_s {
     FILE *f;
+    char filename[LX_FILENAME+1];
     short is_terminal;
     short is_eof;
     short show_parse;
@@ -72,7 +75,7 @@ struct item_s {
 typedef struct item_s item;
 
 item *lexical(lxfile *in);
-void lxfile_init(lxfile *in, FILE *f);
+void lxfile_init(lxfile *in, FILE *f, const char *name);
 const char *lxfile_info(lxfile *in);
 
 char *lex_getline(FILE *f, ssize_t *lenp);

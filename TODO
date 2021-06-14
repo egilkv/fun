@@ -1,4 +1,6 @@
 
+Add debugger and #breakpoint(). Option to switch to debugger on error.
+
 The argument to the GTK3 callback is not handled right. E.g. response
 
 '[1, 2]   becomes  #list(1, 2).  Really?

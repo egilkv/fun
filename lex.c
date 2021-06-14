@@ -40,9 +40,12 @@ static char **readline_completion(const char *text, int start, int end) {
 }
 #endif // HAVE_READLINE
 
-void lxfile_init(lxfile *in, FILE *f) {
+void lxfile_init(lxfile *in, FILE *f, const char *name) {
     memset(in, 0, sizeof(lxfile));
     in->f = f;
+    if (name && *name) {
+        strncpy(in->filename, name, LX_FILENAME);
+    }
     if (f == stdin) {
         in->is_terminal = isatty(fileno(stdin));
     }
@@ -65,8 +68,9 @@ void lxfile_init(lxfile *in, FILE *f) {
 
 // BUG: static string
 const char *lxfile_info(lxfile *in) {
-    static char infobuf[81];
-    snprintf(infobuf, sizeof(infobuf)-1, " at %d:%ld", in->lineno, in->index);
+    static char infobuf[41+LX_FILENAME];
+    snprintf(infobuf, sizeof(infobuf)-1, "%s%s at %d:%ld", 
+             (in->filename[0] ? " in ":""), in->filename, in->lineno, in->index);
     return infobuf;
 }
 

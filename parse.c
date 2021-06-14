@@ -81,7 +81,7 @@ int chomp_file(const char *name, cell **resultp) {
     if (!f) {
         return 0;
     }
-    lxfile_init(&cfile, f);
+    lxfile_init(&cfile, f, name);
     result = chomp_lx(&cfile);
     if (resultp) *resultp = result;
     else cell_unref(result);
