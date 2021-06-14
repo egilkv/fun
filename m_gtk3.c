@@ -159,6 +159,26 @@ static cell *cgtk_##gname(cell *widget, cell *str) { \
     return cell_void(); \
 }
 
+#define WIDGET_SET_CSTRING_INT_GET_WIDGET(gname, gtype) \
+static cell *cgtk_##gname(cell *args) { \
+    cell *widget; \
+    cell *str; \
+    cell *val; \
+    GtkWidget *wp; \
+    integer_t ival; \
+    char_t *cstr; \
+    GtkWidget *result; \
+    if (!arg3(args, &widget, &str, &val)) return cell_error(); \
+    if (!get_gtkwidget(widget, &wp, str)) { \
+        cell_unref(val); \
+        return cell_error(); \
+    } \
+    if (!peek_cstring(str, &cstr, str) \
+     || !get_integer(val, &ival, NIL)) return cell_error(); \
+    result = gtk_##gname(gtype(wp), cstr, ival); \
+    return cell_special(magic_gtk_widget, (void *)result); \
+}
+
 ////////////////////////////////////////////////////////////////
 //
 
@@ -249,9 +269,7 @@ static cell *cgtk_button_new(cell *args) {
     cell *label = NIL;
     if (list_pop(&args, &label)) {
         char *label_s;
-        if (!peek_cstring(label, &label_s, NIL)) {
-            return cell_error();
-        }
+        if (!peek_cstring(label, &label_s, NIL)) return cell_error();
         button = gtk_button_new_with_label(label_s);
         cell_unref(label);
     } else {
@@ -321,6 +339,35 @@ WIDGET_SET_INT(container_set_border_width, GTK_CONTAINER)
 // TODO gtk_container_class_list_child_properties
 // TODO gtk_container_class_handle_border_width
 
+////////////////////////////////////////////////////////////////
+//
+//  dialog
+//  https://developer.gnome.org/gtk3/stable/GtkDialog.html
+//
+
+static cell *cgtk_dialog_new(cell *args) {
+    GtkWidget *dialog;
+    arg0(args);
+    dialog = gtk_dialog_new();
+    return cell_special(magic_gtk_widget, (void *)dialog);
+}
+
+// TODO gtk_dialog_new_with_buttons ()
+
+WIDGET_VOID(dialog_run, GTK_DIALOG)
+WIDGET_SET_INT(dialog_response, GTK_DIALOG)
+
+WIDGET_SET_CSTRING_INT_GET_WIDGET(dialog_add_button, GTK_DIALOG)
+
+// TODO dialog_add_buttons
+// TODO ialog_add_action_widget
+
+WIDGET_SET_INT(dialog_set_default_response, GTK_DIALOG)
+
+// TODO gtk_dialog_get_response_for_widget
+// TODO dialog_get_widget_for_response
+// TODO gtk_dialog_get_content_area
+// TODO gtk_dialog_get_header_bar
 
 ////////////////////////////////////////////////////////////////
 //
@@ -399,10 +446,9 @@ static cell *cgtk_grid_attach(cell *args) {
 
 static cell *cgtk_image_new_from_file(cell *str) {
     GtkWidget *image;
-    char_t *str_ptr;
-    index_t str_len;
-    if (!peek_string(str, &str_ptr, &str_len, NIL)) return cell_error();
-    image = gtk_image_new_from_file(str_ptr);
+    char_t *cstr;
+    if (!peek_cstring(str, &cstr, NIL)) return cell_error();
+    image = gtk_image_new_from_file(cstr);
     cell_unref(str);
     return cell_special(magic_gtk_widget, (void *)image);
 }
@@ -445,12 +491,9 @@ WIDGET_GET_INT(image_get_pixel_size, GTK_IMAGE)
 
 static cell *cgtk_label_new(cell *str) {
     GtkWidget *label;
-    char_t *str_ptr;
-    index_t str_len;
-    if (!peek_string(str, &str_ptr, &str_len, NIL)) {
-        return cell_error();
-    }
-    label = gtk_label_new(str_ptr);
+    char_t *cstr;
+    if (!peek_cstring(str, &cstr, NIL)) return cell_error();
+    label = gtk_label_new(cstr);
     cell_unref(str);
     return cell_special(magic_gtk_widget, (void *)label);
 }
@@ -527,9 +570,7 @@ static cell *cgtk_text_buffer_insert_at_cursor(cell *tb, cell *str) {
     char_t *str_ptr;
     index_t str_len;
     if (!get_gtktextbuffer(tb, &textbuf, str)
-     || !peek_string(str, &str_ptr, &str_len, NIL)) {
-        return cell_error();
-    }
+     || !peek_string(str, &str_ptr, &str_len, NIL)) return cell_error();
 #if 0
     // TODO iter
     GtkTextIter *iter = NULL;
@@ -681,6 +722,7 @@ static cell *cgtk_signal_connect(cell *args) {
         return cell_error();
     }
 
+    // TODO
     // connect where data is the function with one argument, the app
     cell *callbackprog = compile(cell_func(callback, cell_list(app, NIL)));
 
@@ -704,21 +746,191 @@ static cell *cgtk_widget_destroy(cell *widget) {
     }
     gtk_widget_destroy(wp);
     // properly invalidate widget to avoid future refs to dead gtk widget
+    // TODO sure?
     widget->_.special.ptr = NULL;
     widget->_.special.magic = NULL;
     cell_unref(widget);
     return cell_void();
 }
 
-WIDGET_VOID(widget_show_all, GTK_WIDGET);
-WIDGET_VOID(widget_show, GTK_WIDGET);
-WIDGET_VOID(widget_show_now, GTK_WIDGET);
-WIDGET_VOID(widget_hide, GTK_WIDGET);
-WIDGET_GET_BOOL(widget_activate, GTK_WIDGET);
-WIDGET_GET_BOOL(widget_is_focus, GTK_WIDGET);
-WIDGET_VOID(widget_grab_focus, GTK_WIDGET);
-WIDGET_VOID(widget_grab_default, GTK_WIDGET);
-WIDGET_SET_CSTRING(widget_set_name, GTK_WIDGET);
+WIDGET_GET_BOOL(widget_in_destruction, GTK_WIDGET)
+// TODO gtk_widget_destroyed
+WIDGET_VOID(widget_show, GTK_WIDGET)
+WIDGET_VOID(widget_show_now, GTK_WIDGET)
+WIDGET_VOID(widget_hide, GTK_WIDGET)
+// TODO gtk_widget_draw
+// TODO gtk_widget_queue_draw
+WIDGET_VOID(widget_show_all, GTK_WIDGET)
+// TODO gtk_widget_get_frame_clock
+WIDGET_GET_INT(widget_get_scale_factor, GTK_WIDGET)
+// TODO gtk_widget_add_tick_callback
+// TODO gtk_widget_remove_tick_callback
+// TODO gtk_widget_add_accelerator
+// TODO gtk_widget_remove_accelerator
+// TODO ...
+WIDGET_GET_BOOL(widget_activate, GTK_WIDGET)
+// TODO gtk_widget_intersect
+WIDGET_GET_BOOL(widget_is_focus, GTK_WIDGET)
+WIDGET_VOID(widget_grab_focus, GTK_WIDGET)
+WIDGET_VOID(widget_grab_default, GTK_WIDGET)
+WIDGET_SET_CSTRING(widget_set_name, GTK_WIDGET)
+WIDGET_GET_CSTRING(widget_get_name, GTK_WIDGET)
+// TODO widget_set_sensitive
+// TODO gtk_widget_set_parent_window
+// TODO gtk_widget_get_parent_window
+WIDGET_SET_INT(widget_set_events, GTK_WIDGET)
+WIDGET_GET_INT(widget_get_events, GTK_WIDGET)
+WIDGET_SET_INT(widget_add_events, GTK_WIDGET)
+// TODO gtk_widget_set_device_events
+// TODO gtk_widget_get_device_events
+// TODO gtk_widget_add_device_events ()
+// TODO gtk_widget_set_device_enabled
+// TODO gtk_widget_get_device_enabled
+WIDGET_GET_WIDGET(widget_get_toplevel, GTK_WIDGET)
+// TODO gtk_widget_get_ancestor
+// TODO gtk_widget_get_visual
+// TODO gtk_widget_set_visual
+// TODO gtk_widget_is_ancestor
+// TODO gtk_widget_translate_coordinates
+WIDGET_GET_BOOL(widget_hide_on_delete, GTK_WIDGET)
+// TODO gtk_widget_set_direction
+// TODO gtk_widget_get_direction
+// TODO gtk_widget_set_default_direction
+// TODO gtk_widget_get_default_direction
+// TODO gtk_widget_shape_combine_region
+// TODO gtk_widget_input_shape_combine_region
+// TODO gtk_widget_create_pango_context
+// TODO gtk_widget_get_pango_context
+// TODO gtk_widget_set_font_options
+// TODO gtk_widget_get_font_options
+// TODO gtk_widget_set_font_map
+// TODO gtk_widget_get_font_map
+// TODO gtk_widget_create_pango_layout
+// TODO gtk_widget_queue_draw_area
+// TODO gtk_widget_queue_draw_region
+// TODO gtk_widget_set_app_paintable
+WIDGET_SET_BOOL(widget_set_redraw_on_allocate, GTK_WIDGET)
+// TODO gtk_widget_mnemonic_activate
+// TODO gtk_widget_class_install_style_property
+// TODO gtk_widget_class_install_style_property_parser
+// TODO gtk_widget_class_find_style_property
+// TODO gtk_widget_class_list_style_properties
+// TODO gtk_widget_send_focus_change
+// gtk_widget_style_get ()
+// gtk_widget_style_get_property ()
+// gtk_widget_class_set_accessible_type
+// gtk_widget_class_set_accessible_role
+// gtk_widget_get_accessible
+// TODO gtk_widget_child_focus ()
+// TODO gtk_widget_child_notify ()
+// TODO gtk_widget_freeze_child_notify ()
+WIDGET_GET_WIDGET(widget_get_parent, GTK_WIDGET)
+// TODO gtk_widget_get_settings()
+// TODO gtk_widget_get_clipboard()
+// TODO gtk_widget_get_display()
+// TODO gtk_widget_get_screen()
+WIDGET_GET_BOOL(widget_has_screen, GTK_WIDGET)
+// TODO gtk_widget_get_size_request
+// TODO gtk_widget_set_size_request
+// TODO gtk_widget_thaw_child_notify
+WIDGET_SET_BOOL(widget_set_no_show_all, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_no_show_all, GTK_WIDGET)
+// TODO gtk_widget_list_mnemonic_labels
+WIDGET_SET_WIDGET(widget_add_mnemonic_label, GTK_WIDGET)
+WIDGET_SET_WIDGET(widget_remove_mnemonic_label, GTK_WIDGET)
+WIDGET_VOID(widget_error_bell, GTK_WIDGET)
+// TODO gtk_widget_keynav_failed
+WIDGET_GET_CSTRING(widget_get_tooltip_markup, GTK_WIDGET)
+WIDGET_SET_CSTRING(widget_set_tooltip_markup, GTK_WIDGET)
+WIDGET_GET_CSTRING(widget_get_tooltip_text, GTK_WIDGET)
+WIDGET_SET_CSTRING(widget_set_tooltip_text, GTK_WIDGET)
+// TODO widget_get_tooltip_window
+// TODO widget_set_tooltip_window
+WIDGET_GET_BOOL(widget_get_has_tooltip, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_has_tooltip, GTK_WIDGET)
+WIDGET_VOID(widget_trigger_tooltip_query, GTK_WIDGET)
+// TODO gtk_widget_get_window
+// TODO gtk_widget_register_window
+// TODO gtk_widget_unregister_window
+// TODO gtk_cairo_should_draw_window
+// TODO gtk_cairo_transform_to_window
+WIDGET_GET_INT(widget_get_allocated_width, GTK_WIDGET)
+WIDGET_GET_INT(widget_get_allocated_height, GTK_WIDGET)
+// TODO gtk_widget_get_allocation
+// TODO gtk_widget_set_allocation
+// TODO gtk_widget_get_allocated_baseline
+// TODO gtk_widget_get_allocated_size
+// TODO gtk_widget_get_clip
+// TODO gtk_widget_set_clip
+// TODO gtk_widget_get_app_paintable
+WIDGET_GET_BOOL(widget_get_can_default, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_can_default, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_can_focus, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_can_focus, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_focus_on_click, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_focus_on_click, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_has_window, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_has_window, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_sensitive, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_is_sensitive, GTK_WIDGET)
+// TODO gtk_widget_get_state
+WIDGET_GET_BOOL(widget_get_visible, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_is_visible, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_visible, GTK_WIDGET)
+// TODO gtk_widget_set_state_flags
+// TODO gtk_widget_unset_state_flags
+// TODO gtk_widget_get_state_flags
+WIDGET_GET_BOOL(widget_has_default, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_has_focus, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_has_visible_focus, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_has_grab, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_is_drawable, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_is_toplevel, GTK_WIDGET)
+// TODO gtk_widget_set_window
+WIDGET_SET_BOOL(widget_set_receives_default, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_receives_default, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_support_multidevice, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_support_multidevice, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_realized, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_realized, GTK_WIDGET)
+WIDGET_SET_BOOL(widget_set_mapped, GTK_WIDGET)
+WIDGET_GET_BOOL(widget_get_mapped, GTK_WIDGET)
+// TODO widget_device_is_shadowed
+// TODO gtk_widget_get_modifier_mask
+// TODO gtk_widget_insert_action_group
+WIDGET_GET_FLOAT(widget_get_opacity, GTK_WIDGET)
+WIDGET_SET_FLOAT(widget_set_opacity, GTK_WIDGET)
+// TODO gtk_widget_list_action_prefixes
+// TODO gtk_widget_get_action_group
+// TODO gtk_widget_get_path
+// TODO gtk_widget_get_style_context
+WIDGET_VOID(widget_reset_style, GTK_WIDGET)
+// TODO widget_class_get_css_name, GTK_WIDGET_CLASS
+// TODO widget_class_set_css_name, GTK_WIDGET_CLASS
+// TODO gtk_requisition_new
+// TODO gtk_requisition_copy
+// TODO gtk_requisition_free
+// TODO gtk_widget_get_preferred_height
+// TODO gtk_widget_get_preferred_width
+// TODO gtk_widget_get_preferred_height_for_width
+// TODO gtk_widget_get_preferred_width_for_height
+// TODO gtk_widget_get_preferred_height_and_baseline_for_width
+// TODO gtk_widget_get_request_mode
+// TODO gtk_widget_get_preferred_size
+// TODO gtk_distribute_natural_allocation
+// TODO gtk_widget_get_halign
+// TODO gtk_widget_set_halign
+// TODO gtk_widget_get_valign
+// TODO gtk_widget_get_valign_with_baseline
+// TODO gtk_widget_set_valign_with_baseline
+// TODO gtk_widget_set_valign
+// ....
+// TODO gtk_widget_get_margin_start
+// TODO gtk_widget_set_margin_start
+// TODO gtk_widget_get_margin_end
+// TODO gtk_widget_set_margin_end
+// ....
+
 
 // TODO widget_draw
 
@@ -761,6 +973,11 @@ cell *module_gtk() {
     DEFINE_CFUN2(container_set_focus_child)
     DEFINE_CFUN1(container_get_border_width)
     DEFINE_CFUN2(container_set_border_width)
+    DEFINE_CFUNN(dialog_new)
+    DEFINE_CFUN1(dialog_run)
+    DEFINE_CFUN2(dialog_response)
+    DEFINE_CFUNN(dialog_add_button)
+    DEFINE_CFUN2(dialog_set_default_response)
     DEFINE_CFUNN(grid_new)
     DEFINE_CFUNN(grid_attach)
     DEFINE_CFUN1(image_new_from_file)
@@ -815,17 +1032,72 @@ cell *module_gtk() {
     DEFINE_CFUN2(text_buffer_insert_at_cursor)
     DEFINE_CFUNN(text_view_new)
     DEFINE_CFUN1(widget_destroy)
-    DEFINE_CFUN1(widget_show_all)
+    DEFINE_CFUN1(widget_in_destruction)
     DEFINE_CFUN1(widget_show)
     DEFINE_CFUN1(widget_show_now)
     DEFINE_CFUN1(widget_hide)
+    DEFINE_CFUN1(widget_show_all)
+    DEFINE_CFUN1(widget_get_scale_factor)
     DEFINE_CFUN1(widget_activate)
     DEFINE_CFUN1(widget_is_focus)
     DEFINE_CFUN1(widget_grab_focus)
     DEFINE_CFUN1(widget_grab_default)
     DEFINE_CFUN2(widget_set_name)
+    DEFINE_CFUN1(widget_get_name)
     DEFINE_CFUN2(window_set_title)
     DEFINE_CFUNN(window_set_default_size)
+    DEFINE_CFUN2(widget_set_events)
+    DEFINE_CFUN1(widget_get_events)
+    DEFINE_CFUN2(widget_add_events)
+    DEFINE_CFUN1(widget_get_toplevel)
+    DEFINE_CFUN1(widget_hide_on_delete)
+    DEFINE_CFUN2(widget_set_redraw_on_allocate)
+    DEFINE_CFUN1(widget_get_parent)
+    DEFINE_CFUN1(widget_has_screen)
+    DEFINE_CFUN2(widget_set_no_show_all)
+    DEFINE_CFUN1(widget_get_no_show_all)
+    DEFINE_CFUN2(widget_add_mnemonic_label)
+    DEFINE_CFUN2(widget_remove_mnemonic_label)
+    DEFINE_CFUN1(widget_error_bell)
+    DEFINE_CFUN1(widget_get_tooltip_markup)
+    DEFINE_CFUN2(widget_set_tooltip_markup)
+    DEFINE_CFUN1(widget_get_tooltip_text)
+    DEFINE_CFUN2(widget_set_tooltip_text)
+    DEFINE_CFUN1(widget_get_has_tooltip)
+    DEFINE_CFUN2(widget_set_has_tooltip)
+    DEFINE_CFUN1(widget_trigger_tooltip_query)
+    DEFINE_CFUN1(widget_get_allocated_width)
+    DEFINE_CFUN1(widget_get_allocated_height)
+    DEFINE_CFUN1(widget_get_can_default)
+    DEFINE_CFUN2(widget_set_can_default)
+    DEFINE_CFUN1(widget_get_can_focus)
+    DEFINE_CFUN2(widget_set_can_focus)
+    DEFINE_CFUN1(widget_get_focus_on_click)
+    DEFINE_CFUN2(widget_set_focus_on_click)
+    DEFINE_CFUN1(widget_get_has_window)
+    DEFINE_CFUN2(widget_set_has_window)
+    DEFINE_CFUN1(widget_get_sensitive)
+    DEFINE_CFUN1(widget_is_sensitive)
+    DEFINE_CFUN1(widget_get_visible)
+    DEFINE_CFUN1(widget_is_visible)
+    DEFINE_CFUN2(widget_set_visible)
+    DEFINE_CFUN1(widget_has_default)
+    DEFINE_CFUN1(widget_has_focus)
+    DEFINE_CFUN1(widget_has_visible_focus)
+    DEFINE_CFUN1(widget_has_grab)
+    DEFINE_CFUN1(widget_is_drawable)
+    DEFINE_CFUN1(widget_is_toplevel)
+    DEFINE_CFUN2(widget_set_receives_default)
+    DEFINE_CFUN1(widget_get_receives_default)
+    DEFINE_CFUN2(widget_set_support_multidevice)
+    DEFINE_CFUN1(widget_get_support_multidevice)
+    DEFINE_CFUN2(widget_set_realized)
+    DEFINE_CFUN1(widget_get_realized)
+    DEFINE_CFUN2(widget_set_mapped)
+    DEFINE_CFUN1(widget_get_mapped)
+    DEFINE_CFUN1(widget_get_opacity)
+    DEFINE_CFUN2(widget_set_opacity)
+    DEFINE_CFUN1(widget_reset_style)
 
     return a;
 }
