@@ -9,6 +9,16 @@ A2 == B2 ? "same":"not";
 
 Do not recurse if args produced errors. Fix to if mayy help a lot.
 
+Printing label stuff, add parens:
+	[ a: 2, b: 3 ]
+	[ (a: 2), (b: 3) ]
+
+How to deal with back and forth local refs? Maybe this:
+
+	a = #undefined;
+	b = (){ something(a) };
+	a = (){ something(b) };
+
 Do not allow run(), instead insert another level or another tread...
 
 Parsing of code {} within {} is pretty broken, see qsort-new.fun

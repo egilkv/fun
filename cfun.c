@@ -818,6 +818,11 @@ static cell *cfunN_exit(cell *args) {
     return NIL;
 }
 
+static cell *cfunN_error(cell *args) {
+    // TODO improve...
+    return error_rt1("error", args);
+}
+
 // return last (or only) item in file
 static cell *cfun1_include(cell *a) {
     char_t *name;
@@ -907,6 +912,7 @@ void cfun_init() {
     hash_cat      = oblistv("#cat",      cell_cfunN(cfunN_cat));
                     oblistv("#count",    cell_cfun1(cfun1_count));
     hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
+                    oblistv("#error",    cell_cfunN(cfunN_error));
                     oblistv("#exit",     cell_cfunN(cfunN_exit));
                     oblistv("#getenv",   cell_cfun1(cfun1_getenv));
     hash_ge       = oblistv("#ge",       cell_cfunN(cfunN_ge));

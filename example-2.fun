@@ -1,12 +1,28 @@
 // TAB P
 // https://developer.gnome.org/gtk3/stable/gtk-getting-started.html
 
+io = #use("io");
 gtk = #use("gtk3");
 
 app = gtk.application_new("org.gtk.example");
 
+gtk_application_window = (app) {
+    win = gtk.application_window_new(app);
+//  io.writeln("win=", win);
+    args = (){ 
+//    io.writeln("win2=", win);
+      win };
+    args();
+    win
+};
+
 gtk.signal_connect(app, 'activate, (a){
-    window = gtk.application_window_new(app);
+    io.writeln("activate");
+//  window = gtk.application_window_new(app);
+//  gtk.window_set_title(window, "Window");
+//  gtk.container_set_border_width(window, 10);
+    window = gtk_application_window(app);
+    io.writeln("window=", window);
     gtk.window_set_title(window, "Window");
     gtk.container_set_border_width(window, 10);
 

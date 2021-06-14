@@ -12,6 +12,7 @@ struct assoc_i {
 };
 
 int assoc_set(struct cell_s *anode, struct cell_s *key, struct cell_s *val);
+int assoc_set_local(struct cell_s *anode, struct cell_s *key, struct cell_s *val);
 int assoc_set_weak(struct cell_s *anode, struct cell_s *key, struct cell_s *val);
 
 int assoc_get(struct cell_s *anode, struct cell_s *key, struct cell_s **valuep);

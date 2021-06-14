@@ -10,6 +10,23 @@
 #define ASSOC_HASH_SIZE 16
 
 #include "cell.h"
+#include "cmod.h" // hash_undef
+
+// TODO inline
+cell *assoc_key(cell *cp) {
+    assert(cp && (cp->type == c_KEYVAL));
+    return cp->_.cons.car;
+}
+
+// TODO inline
+cell *assoc_val(cell *cp) {
+    assert(cp && (cp->type == c_KEYVAL));
+    return cp->_.cons.cdr;
+}
+
+static INLINE cell **assoc_valp(cell *cp) {
+    return &(cp->_.cons.cdr);
+}
 
 static unsigned int hash_cons(cell *key) {
     // TODO 64bit
@@ -45,6 +62,52 @@ int assoc_set(cell *anode, cell* key, cell* val) {
         // last item
         if (assoc_key(p) == key) { // exists already?
             return 0; 
+        }
+        // not found, make new entry
+        *pp = cell_elist(cell_keyval(key, val), *pp);
+    } else {
+        // empty list, make new entry
+        anode->_.assoc.table[hash] = cell_keyval(key, val);
+    }
+    return 1;
+}
+
+// as assoc_set, but allows redefine if hash_undef
+int assoc_set_local(cell *anode, cell* key, cell* val) {
+    cell *p;
+    cell **pp;
+    int hash = hash_cons(key);
+    assert(cell_is_assoc(anode));
+
+    if (anode->_.assoc.table == NULL) {
+        // table not yet allocated
+	anode->_.assoc.table = malloc(ASSOC_HASH_SIZE * sizeof(struct assoc_s *));
+	assert(anode->_.assoc.table);
+	memset(anode->_.assoc.table, 0, ASSOC_HASH_SIZE * sizeof(struct assoc_s *));
+	anode->_.assoc.size = ASSOC_HASH_SIZE;
+    }
+    pp = &(anode->_.assoc.table[hash]);
+
+    if ((p = *pp)) { // there is a table?
+        while (cell_is_elist(p)) {
+            if (assoc_key(p->_.cons.car) == key) { // exists already?
+                if (assoc_val(p->_.cons.car) == hash_undef) {
+                    cell_unref(hash_undef); // special case for undefined
+                    *assoc_valp(p->_.cons.car) = val;
+                    return 1;
+                }
+                return 0;
+            }
+            p = p->_.cons.cdr;
+        }
+        // last item
+        if (assoc_key(p) == key) { // exists already?
+            if (assoc_val(p) == hash_undef) {
+                cell_unref(hash_undef); // special case for undefined
+                *assoc_valp(p) = val;
+                return 1;
+            }
+            return 0;
         }
         // not found, make new entry
         *pp = cell_elist(cell_keyval(key, val), *pp);
@@ -207,16 +270,4 @@ void assoc_drop(cell *anode) {
         }
         free(t);
     }
-}
-
-// TODO inline
-cell *assoc_key(cell *cp) {
-    assert(cp && (cp->type == c_KEYVAL));
-    return cp->_.cons.car;
-}
-
-// TODO inline
-cell *assoc_val(cell *cp) {
-    assert(cp && (cp->type == c_KEYVAL));
-    return cp->_.cons.cdr;
 }

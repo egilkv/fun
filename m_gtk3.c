@@ -399,7 +399,7 @@ static cell *cgtk_main(cell *args) {
 
 static cell *cgtk_print(cell *args) {
     cell *a;
-    // TODO sync with io
+    // TODO sync with io and so on
     while (list_pop(&args, &a)) {
         if (a) switch (a->type) { // NIL prints as nothing
         case c_STRING:

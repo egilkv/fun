@@ -3,8 +3,8 @@
 # -finline-functions
 # -Og is best for debugging
 
-##CCOPTS = -g -Wall -Werror
-CCOPTS = -Og -g -Wall -Werror
+CCOPTS = -g -Wall -Werror
+## CCOPTS = -Og -g -Wall -Werror
 
 HAVES = -DHAVE_MATH -DHAVE_READLINE
 

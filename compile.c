@@ -230,7 +230,7 @@ static int compile1_defq(cell *args, cell ***nextpp, struct compile_env *cep) {
     }
 
     if (cep) {
-        if (!assoc_set(cep->vars, cell_ref(nam), cell_ref(val))) {
+        if (!assoc_set_local(cep->vars, cell_ref(nam), cell_ref(val))) {
             cell_unref(error_rt1("cannot redefine local value", nam));
             cell_unref(val);
             return 0;
@@ -487,7 +487,7 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
                     cell *val2 = NIL;
                     // can optimize away if pure value
                     // TODO any chance of infinite recursion here?
-                    if (compile2constant(val, &val2, e)) {
+                    if (val != hash_undef && compile2constant(val, &val2, e)) {
                         *valp = val2;
                         cell_unref(item);
                         return 1;

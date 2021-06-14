@@ -460,7 +460,7 @@ cell *defq(cell *nam, cell *val, cell **envp) {
         return error_rt1("not a symbol", nam);
     }
     if (*envp) {
-        if (!assoc_set(env_assoc(*envp), nam, cell_ref(val))) {
+        if (!assoc_set_local(env_assoc(*envp), nam, cell_ref(val))) {
             cell_unref(val);
             cell_unref(error_rt1("cannot redefine immutable", nam));
         }
