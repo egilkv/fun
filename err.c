@@ -55,7 +55,7 @@ cell *error_rt0(const char *msg) {
     fflush(stdout);
     fprintf(stderr,"error; %s\n", msg);
     fflush(stderr);
-    return cell_void(); // error
+    return cell_error();
 }
 
 // runtime error, 1 numeric argument
@@ -63,7 +63,7 @@ cell *error_rti(const char *msg, integer_t val) {
     fflush(stdout);
     fprintf(stderr,"error; %s: %lld\n", msg, val);
     fflush(stderr);
-    return cell_void(); // error
+    return cell_error();
 }
 
 // runtime error, 1 argument
@@ -75,7 +75,7 @@ cell *error_rt1(const char *msg, cell *arg) {
     fprintf(stderr,"\n");
     fflush(stderr);
     cell_unref(arg);
-    return cell_void(); // error
+    return cell_error();
 }
 
 // parsing error

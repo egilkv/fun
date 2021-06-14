@@ -15,7 +15,7 @@ static cell *cbit_and(cell *args) {
     integer_t operand;
     cell *a;
     if (!list_pop(&args, &a)
-     || !get_integer(a, &result, args)) return cell_void(); // error
+     || !get_integer(a, &result, args)) return cell_error();
     while (list_pop(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_void();
         result &= operand;
@@ -29,7 +29,7 @@ static cell *cbit_or(cell *args) {
     integer_t operand;
     cell *a;
     if (!list_pop(&args, &a)
-     || !get_integer(a, &result, args)) return cell_void(); // error
+     || !get_integer(a, &result, args)) return cell_error();
     while (list_pop(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_void();
         result |= operand;
@@ -43,7 +43,7 @@ static cell *cbit_xor(cell *args) {
     integer_t operand;
     cell *a;
     if (!list_pop(&args, &a)
-     || !get_integer(a, &result, args)) return cell_void(); // error
+     || !get_integer(a, &result, args)) return cell_error();
     while (list_pop(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_void();
         result ^= operand;
@@ -54,7 +54,7 @@ static cell *cbit_xor(cell *args) {
 
 static cell *cbit_not(cell *a) {
     integer_t result;
-    if (!get_integer(a, &result, NIL)) return cell_void(); // error
+    if (!get_integer(a, &result, NIL)) return cell_error();
     result = ~result;
     return cell_integer(result);
 }
@@ -64,7 +64,7 @@ static cell *cbit_shift(cell *a, cell *b) {
     integer_t result;
     integer_t shift;
     if (!get_integer(a, &result, b)
-     || !get_integer(b, &shift, NIL)) return cell_void(); // error
+     || !get_integer(b, &shift, NIL)) return cell_error();
     // TODO overflow
     if (shift > 0) result <<= shift;
     else if (shift < 0) result >>= -shift;

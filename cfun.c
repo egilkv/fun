@@ -31,7 +31,7 @@ static void cfun_exit(void);
 static cell *cfun1_not(cell *a) {
     int bool;
     if (!get_boolean(a, &bool, NIL)) {
-        return cell_void(); // error
+        return cell_error();
     }
     return bool ? cell_ref(hash_f) : cell_ref(hash_t);
 }
@@ -89,7 +89,7 @@ static cell *cfunN_minus(cell *args) {
     result.dividend.ival = 0;
     result.divisor = 1;
     if (!list_pop(&args, &a)
-     || !get_number(a, &result, args)) return cell_void(); // error
+     || !get_number(a, &result, args)) return cell_error();
     if (args == NIL) { // special case, one argument?
         if (!make_negative(&result)) {
             return err_overflow(args);
@@ -180,10 +180,10 @@ static cell *cfunN_quotient(cell *args) {
         return error_rt1("needs at least one argument", args);
     }
     // remark: in standard lisp (/ 5) is shorthand for 1/5
-    if (!get_number(a, &result, args)) return cell_void(); // error
+    if (!get_number(a, &result, args)) return cell_error();
 
     while (list_pop(&args, &a)) {
-        if (!get_number(a, &operand, args)) return cell_void(); // error
+        if (!get_number(a, &operand, args)) return cell_error();
 	if (sync_float(&result, &operand)) {
 	    result.dividend.fval /= operand.dividend.fval;
             if (!isfinite(result.dividend.fval)) {
@@ -592,7 +592,7 @@ static cell *cfunN_eq(cell *args) {
     cell *a = NIL;
     int eq = 1;
     if (!list_pop(&args, &first)) {
-        return cell_void(); // error
+        return cell_error();
     }
     if (first == hash_undef || first == hash_void) {
         cell_unref(args);
@@ -670,7 +670,7 @@ static cell *cfun1_count(cell *a) {
 static cell *cfun1_use(cell *a) {
     char *str;
     if (!peek_cstring(a, &str, NIL)) {
-        return cell_void(); // error
+        return cell_error();
     }
 #ifdef HAVE_GTK
     if (strcmp(str, "gtk3") == 0) {
@@ -823,7 +823,7 @@ static cell *cfun1_include(cell *a) {
     char_t *name;
     index_t len;
     cell *result = NIL;
-    if (!peek_string(a, &name, &len, a)) return cell_void(); // error
+    if (!peek_string(a, &name, &len, a)) return cell_error();
     if (!chomp_file(name, &result)) {
         return error_rt1("cannot find include-file", a);
     }

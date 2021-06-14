@@ -16,7 +16,7 @@ static cell *cstr_length(cell *a) {
     char_t *ptr;
     index_t len;
     cell *result;
-    if (!peek_string(a, &ptr, &len, NIL)) return cell_void(); // error
+    if (!peek_string(a, &ptr, &len, NIL)) return cell_error();
     return cell_integer(len);
 
     cell_unref(a);
@@ -29,7 +29,7 @@ static cell *cstr_lower(cell *a) {
     index_t n;
     index_t len;
     cell *result;
-    if (!peek_string(a, &ptr, &len, NIL)) return cell_void(); // error
+    if (!peek_string(a, &ptr, &len, NIL)) return cell_error();
     ptr2 = malloc(len+1);
     assert(ptr2);
     for (n = 0; n < len; ++n) {
@@ -48,7 +48,7 @@ static cell *cstr_upper(cell *a) {
     index_t n;
     index_t len;
     cell *result;
-    if (!peek_string(a, &ptr, &len, NIL)) return cell_void(); // error
+    if (!peek_string(a, &ptr, &len, NIL)) return cell_error();
     ptr2 = malloc(len+1);
     assert(ptr2);
     for (n = 0; n < len; ++n) {
@@ -66,7 +66,7 @@ static cell *cstr_ordinal(cell *a) {
     char_t *ptr;
     index_t len;
     cell *result;
-    if (!peek_string(a, &ptr, &len, NIL)) return cell_void(); // error
+    if (!peek_string(a, &ptr, &len, NIL)) return cell_error();
     if (len < 1) {
         result = cell_void(); // TODO message?
     } else {

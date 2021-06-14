@@ -741,7 +741,7 @@ static int compile1nc(cell *item, cell ***nextpp, struct compile_env *cep) {
 
 // compile list of expressions, leaving a value on stack
 static cell *compile_list(cell *tree, struct compile_env *cep) {
-    cell *leavevalue = cell_void(); // error assumed
+    cell *leavevalue = cell_error(); // assume error
     cell *item;
     int stacklevel = 0;
     cell *result = NIL;
@@ -754,7 +754,7 @@ static cell *compile_list(cell *tree, struct compile_env *cep) {
         }
         if (!compile2constant(item, &val, cep)) {
             if (compile1nc(item, &nextp, cep)) ++stacklevel;
-            val = cell_void(); // error assumed
+            val = cell_error(); // assume error
         }
         cell_unref(leavevalue);
         leavevalue = val;

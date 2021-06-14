@@ -152,7 +152,7 @@ static cell *ctime_mktime(cell *a) {
     struct tm tm;
     time_t t;
     if (!assoc2tm(a, &tm)) {
-        return cell_void(); // error
+        return cell_error();
     }
     if ((t = mktime(&tm)) == (time_t) -1) {
         return error_rt1("cannot convert from calendar time", a);

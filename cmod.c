@@ -279,7 +279,7 @@ cell *cfun2_ref(cell *a, cell *b) {
         }
         if (b2) {
             index_t index2 = 0;
-            if (!get_index(b2, &index2, a)) return cell_void(); // error
+            if (!get_index(b2, &index2, a)) return cell_error();
             if (index2 < index1) {
                 return error_rti("index range cannot be reverse", index2);
             }
@@ -289,7 +289,7 @@ cell *cfun2_ref(cell *a, cell *b) {
         }
     } else {
 	index_t index;
-        if (!get_index(b, &index, a)) return cell_void(); // error
+        if (!get_index(b, &index, a)) return cell_error();
 	value = ref_index(a, index);
     }
     cell_unref(a);
