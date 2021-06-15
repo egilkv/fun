@@ -64,17 +64,11 @@ popup_dialog = (){
 };
 
 demo_events = (w) {
-    gtk.widget_add_events(w,      gtk.exposure_mask +
-                                  gtk.leave_notify_mask +
-                                  gtk.button_press_mask +
-                                  gtk.key_press_mask +
-                                  gtk.key_release_mask +
-                                  gtk.pointer_motion_mask +
-                                  gtk.pointer_motion_hint_mask);
-    gtk.println("events are ", gtk.widget_get_events(w));
+    gtk.widget_add_events(w, ['exposure, 'leave_notify, 'button_press, 'key_press, 'key_release, pointer_motion]);
+    io.println("events are ", gtk.widget_get_events(w));
 //  gtk.signal_connect(w,      'expose_event,        (e){ io.println("Expose:", e) });
     gtk.signal_connect(w,      'configure_event,     (e){ io.println("Configure:", e) });
-    gtk.signal_connect(w,      'motion_notify_event, (e){ io.println("Motion:", e) });
+//  gtk.signal_connect(w,      'motion_notify_event, (e){ io.println("Motion:", e) });
     gtk.signal_connect(w,      'key_press_event,     (e){ io.println("Key pressed (t=",time.seconds(),"):", e) });
     gtk.signal_connect(w,      'key_release_event,   (e){ io.println("Key released:", e) });
     gtk.signal_connect(w,      'button_press_event,  (e){ io.println("Button pressed:", e) })

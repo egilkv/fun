@@ -21,6 +21,7 @@
 #include "node.h" // newnode
 #include "run.h"
 #include "err.h"
+#include "set.h"
 
 static cell *cell_gdkevent(GdkEvent *event);
 
@@ -51,12 +52,84 @@ static int get_gtktextbuffer(cell *arg, GtkTextBuffer **gpp, cell *dump) {
 //
 
 // enum GtkOrientation
-static cell *cgtk_orientation_horizontal;
-static cell *cgtk_orientation_vertical;
+static set cgtk_orientation[] = {
+    { "horizontal",        NIL, GTK_ORIENTATION_HORIZONTAL },
+    { "vertical",          NIL, GTK_ORIENTATION_VERTICAL },
+    { NULL,                NIL, 0 }
+};
 
 // enum GtkWindowType
-static cell *cgtk_window_toplevel;
-static cell *cgtk_window_popup;
+static set cgtk_window_type[] = {
+    { "toplevel",          NIL, GTK_WINDOW_TOPLEVEL },
+    { "popup",             NIL, GTK_WINDOW_POPUP },
+    { NULL,                NIL, 0 }
+};
+
+// enum GdkGravity
+static set cgdk_gravity[] = {
+    { "north_west",        NIL, GDK_GRAVITY_NORTH_WEST },
+    { "north",             NIL, GDK_GRAVITY_NORTH },
+    { "north_east",        NIL, GDK_GRAVITY_NORTH_EAST },
+    { "west",              NIL, GDK_GRAVITY_WEST },
+    { "center",            NIL, GDK_GRAVITY_CENTER },
+    { "east",              NIL, GDK_GRAVITY_EAST },
+    { "south_west",        NIL, GDK_GRAVITY_SOUTH_WEST },
+    { "south",             NIL, GDK_GRAVITY_SOUTH },
+    { "south_east",        NIL, GDK_GRAVITY_SOUTH_EAST },
+    { "static",            NIL, GDK_GRAVITY_STATIC },
+    { NULL,                NIL, 0 }
+};
+
+// GdkModifierType for keys
+// https://developer.gnome.org/gdk3/stable/gdk3-Windows.html#GdkModifierType
+static set cgdk_modifier_type[] = {
+    { "shift",             NIL, GDK_SHIFT_MASK },
+    { "lock",              NIL, GDK_LOCK_MASK },
+    { "control",           NIL, GDK_CONTROL_MASK },
+    { "mod1",              NIL, GDK_MOD1_MASK },
+    { "mod2",              NIL, GDK_MOD2_MASK },
+    { "mod3",              NIL, GDK_MOD3_MASK },
+    { "mod4",              NIL, GDK_MOD4_MASK },
+    { "mod5",              NIL, GDK_MOD5_MASK },
+    { "button1",           NIL, GDK_BUTTON1_MASK },
+    { "button2",           NIL, GDK_BUTTON2_MASK },
+    { "button3",           NIL, GDK_BUTTON3_MASK },
+    { "button4",           NIL, GDK_BUTTON4_MASK },
+    { "button5",           NIL, GDK_BUTTON5_MASK },
+// TODO fill in more
+    { NULL,                NIL, 0 }
+};
+
+// GdkEventMask
+// https://developer.gnome.org/gdk3/stable/gdk3-Events.html#GdkEventMask
+set cgdk_event_mask[] = {
+    { "exposure",          NIL, GDK_EXPOSURE_MASK },
+    { "pointer_motion",    NIL, GDK_POINTER_MOTION_MASK },
+    // deprecated:              GDK_POINTER_MOTION_HINT_MASK
+    { "button_motion",     NIL, GDK_BUTTON_MOTION_MASK },
+    { "button1_motion",    NIL, GDK_BUTTON1_MOTION_MASK },
+    { "button2_motion",    NIL, GDK_BUTTON2_MOTION_MASK },
+    { "button3_motion",    NIL, GDK_BUTTON3_MOTION_MASK },
+    { "button_press",      NIL, GDK_BUTTON_PRESS_MASK },
+    { "button_release",    NIL, GDK_BUTTON_RELEASE_MASK },
+    { "key_press",         NIL, GDK_KEY_PRESS_MASK },
+    { "key_release",       NIL, GDK_KEY_RELEASE_MASK },
+    { "enter_notify",      NIL, GDK_ENTER_NOTIFY_MASK },
+    { "leave_notify",      NIL, GDK_LEAVE_NOTIFY_MASK },
+    { "focus_change",      NIL, GDK_FOCUS_CHANGE_MASK },
+    { "structure",         NIL, GDK_STRUCTURE_MASK },
+    { "property_change",   NIL, GDK_PROPERTY_CHANGE_MASK },
+    { "visibility_notify", NIL, GDK_VISIBILITY_NOTIFY_MASK },
+    { "proximity_in",      NIL, GDK_PROXIMITY_IN_MASK },
+    { "proximity_out",     NIL, GDK_PROXIMITY_OUT_MASK },
+    { "scroll",            NIL, GDK_SCROLL_MASK },
+    { "touch",             NIL, GDK_TOUCH_MASK },
+    { "smooth_scroll",     NIL, GDK_SMOOTH_SCROLL_MASK },
+    { "touchpad_gesture",  NIL, GDK_TOUCHPAD_GESTURE_MASK },
+    { "tablet_pad",        NIL, GDK_TABLET_PAD_MASK },
+    { "all_events",        NIL, GDK_ALL_EVENTS_MASK }, // TODO special
+    { NULL,                NIL, 0 }
+};
 
 ////////////////////////////////////////////////////////////////
 //
@@ -79,7 +152,7 @@ static cell *cgtk_##gname(cell *widget) { \
     result = gtk_##gname(gtype(wp)); \
     return cell_special(magic_gtk_widget, (void *)result); \
 }
-// TODO above will create copies, ideally we should keep track of them
+// TODO above will create copies, ideally we should keep track of them in an assoc
 
 #define WIDGET_SET_WIDGET(gname, gtype) \
 static cell *cgtk_##gname(cell *widget, cell *widget2) { \
@@ -204,6 +277,44 @@ static cell *cgtk_##gname(cell *args) { \
     return cell_special(magic_gtk_widget, (void *)result); \
 }
 
+#define WIDGET_GET_FROMSET(gname, gtype, gset) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    integer_t ival; \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    ival = gtk_##gname(gtype(wp)); \
+    return cell_fromset(gset, ival); \
+}
+
+#define WIDGET_SET_FROMSET(gname, gtype, gset) \
+static cell *cgtk_##gname(cell *widget, cell *key) { \
+    GtkWidget *wp; \
+    integer_t ival = 0; \
+    if (!get_gtkwidget(widget, &wp, key) \
+     || !get_fromset(gset, key, &ival)) return cell_error(); \
+    gtk_##gname(gtype(wp), ival); \
+    return cell_void(); \
+}
+
+#define WIDGET_GET_MASKSET(gname, gtype, gset) \
+static cell *cgtk_##gname(cell *widget) { \
+    GtkWidget *wp; \
+    integer_t ival; \
+    if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
+    ival = gtk_##gname(gtype(wp)); \
+    return cell_maskset(gset, ival); \
+}
+
+#define WIDGET_SET_MASKSET(gname, gtype, gset) \
+static cell *cgtk_##gname(cell *widget, cell *keys) { \
+    GtkWidget *wp; \
+    integer_t ival = 0; \
+    if (!get_gtkwidget(widget, &wp, keys) \
+     || !get_maskset(gset, keys, &ival)) return cell_error(); \
+    gtk_##gname(gtype(wp), ival); \
+    return cell_void(); \
+}
+
 #define VOID_GET_WIDGET(gname) \
 static cell *cgtk_##gname(cell *args) { \
     GtkWidget *result; \
@@ -243,6 +354,15 @@ static cell *cgtk_##gname(cell *args) { \
     arg0(args); \
     cstr = gtk_##gname(); \
     return cell_cstring(cstr); \
+}
+
+#define FROMSET_GET_WIDGET(gname, gset) \
+static cell *cgtk_##gname(cell *key) { \
+    GtkWidget *result; \
+    integer_t ival = 0; \
+    if (!get_fromset(gset, key, &ival)) return cell_error(); \
+    result = gtk_##gname(ival); \
+    return cell_special(magic_gtk_widget, (void *)result); \
 }
 
 #define CSTRING_GET_WIDGET(gname) \
@@ -324,17 +444,7 @@ static cell *cgtk_application_window_new(cell *app) {
 //  box
 //
 
-static cell *cgtk_button_box_new(cell *typ) {
-    GtkOrientation t;
-    GtkWidget *button_box;
-
-    if (typ == cgtk_orientation_horizontal) t = GTK_ORIENTATION_HORIZONTAL;
-    else if (typ == cgtk_orientation_vertical) t = GTK_ORIENTATION_VERTICAL;
-    else return error_rt1("orientation must be 'horizontal or 'vertical", typ);
-    cell_unref(typ);
-    button_box = gtk_button_box_new(t);
-    return cell_special(magic_gtk_widget, (void *)button_box);
-}
+FROMSET_GET_WIDGET(button_box_new, cgtk_orientation)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -907,9 +1017,9 @@ WIDGET_GET_CSTRING(widget_get_name, GTK_WIDGET)
 // TODO widget_set_sensitive
 // TODO gtk_widget_set_parent_window
 // TODO gtk_widget_get_parent_window
-WIDGET_SET_INT(widget_set_events, GTK_WIDGET) // TODO mask, so needs to be smarter
-WIDGET_GET_INT(widget_get_events, GTK_WIDGET)
-WIDGET_SET_INT(widget_add_events, GTK_WIDGET)
+WIDGET_SET_MASKSET(widget_set_events, GTK_WIDGET, cgdk_event_mask)
+WIDGET_GET_MASKSET(widget_get_events, GTK_WIDGET, cgdk_event_mask)
+WIDGET_SET_MASKSET(widget_add_events, GTK_WIDGET, cgdk_event_mask)
 // TODO gtk_widget_set_device_events
 // TODO gtk_widget_get_device_events
 // TODO gtk_widget_add_device_events ()
@@ -1069,18 +1179,7 @@ WIDGET_VOID(widget_reset_style, GTK_WIDGET)
 //  https://developer.gnome.org/gtk3/stable/GtkWindow.html
 //
 
-static cell *cgtk_window_new(cell *typ) {
-    GtkWindowType t;
-    GtkWidget *window;
-
-    if (typ == cgtk_window_toplevel) t = GTK_WINDOW_TOPLEVEL;
-    else if (typ == cgtk_window_popup) t = GTK_WINDOW_POPUP;
-    else return error_rt1("window type must be 'toplevel or 'popup", typ);
-    cell_unref(typ);
-    window = gtk_window_new(t);
-    return cell_special(magic_gtk_widget, (void *)window);
-}
-
+FROMSET_GET_WIDGET(window_new, cgtk_window_type)
 WIDGET_SET_CSTRING(window_set_title, GTK_WINDOW)
 WIDGET_SET_BOOL(window_set_resizable, GTK_WINDOW)
 WIDGET_GET_BOOL(window_get_resizable, GTK_WINDOW)
@@ -1091,8 +1190,8 @@ WIDGET_GET_BOOL(window_activate_default, GTK_WINDOW)
 WIDGET_SET_BOOL(window_set_modal, GTK_WINDOW)
 WIDGET_SET_INT_INT(window_set_default_size, GTK_WINDOW)
 // TODO gtk_window_set_geometry_hints ()
-// TODO gtk_window_set_gravity ()
-// TODO gtk_window_get_gravity ()
+WIDGET_SET_FROMSET(window_set_gravity, GTK_WINDOW, cgdk_gravity)
+WIDGET_GET_FROMSET(window_get_gravity, GTK_WINDOW, cgdk_gravity)
 // TODO gtk_window_set_position ()
 // TODO gtk_window_set_transient_for
 // TODO gtk_window_set_attached_to
@@ -1166,7 +1265,7 @@ WIDGET_GET_BOOL(window_get_accept_focus, GTK_WINDOW)
 WIDGET_GET_BOOL(window_get_focus_on_map, GTK_WINDOW)
 // TODO gtk_window_get_group
 WIDGET_GET_BOOL(window_has_group, GTK_WINDOW)
-// TODO gtk_window_get_window_type
+WIDGET_GET_FROMSET(window_get_window_type, GTK_WINDOW, cgtk_window_type)
 WIDGET_SET_INT_INT(window_move, GTK_WINDOW)
 WIDGET_SET_INT_INT(window_resize, GTK_WINDOW)
 // TODO    window_set_default_icon_list
@@ -1284,7 +1383,7 @@ static cell *cell_gdkevent(GdkEvent *event) {
             GdkEventKey *ek = (GdkEventKey *)event;
             assoc_set(a, cell_symbol("time"), cell_real(ek->time/1000.0));
             assoc_set(a, cell_symbol("keyval"), cell_integer(ek->keyval));
-            assoc_set(a, cell_symbol("state"), cell_integer(ek->state)); // TODO bit mask, improve...
+            assoc_set(a, cell_symbol("state"), cell_maskset(cgdk_modifier_type, ek->state));
 
             // TODO depreceated, use gdk_unicode_to_keyval() instead to get UTF8
             assoc_set(a, cell_symbol("string"), cell_nastring(ek->string, ek->length));
@@ -1495,8 +1594,8 @@ cell *module_gtk() {
     DEFINE_CFUN2(application_run)
     DEFINE_CFUN1(application_window_new)
     DEFINE_CFUNN(button_new)
-    DEFINE_CFUNN(button_new_with_label)
-    DEFINE_CFUNN(button_box_new)
+    DEFINE_CFUN1(button_new_with_label)
+    DEFINE_CFUN1(button_box_new)
     DEFINE_CFUN1(button_clicked)
     DEFINE_CFUN1(button_get_label)
     DEFINE_CFUN2(button_set_label)
@@ -1666,8 +1765,8 @@ cell *module_gtk() {
     DEFINE_CFUN2(window_set_modal)
     DEFINE_CFUNN(window_set_default_size)
     // TODO window_set_geometry_hints
-    // TODO window_set_gravity
-    // TODO window_get_gravity
+    DEFINE_CFUN2(window_set_gravity)
+    DEFINE_CFUN1(window_get_gravity)
     // TODO window_set_position
     // TODO window_set_transient_for
     // TODO window_set_attached_to
@@ -1741,7 +1840,7 @@ cell *module_gtk() {
     DEFINE_CFUN1(window_get_focus_on_map)
     // TODO window_get_group
     DEFINE_CFUN1(window_has_group)
-    // TODO window_get_window_type
+    DEFINE_CFUN1(window_get_window_type)
     DEFINE_CFUNN(window_move)
     DEFINE_CFUNN(window_resize)
     // TODO window_set_default_icon_list
@@ -1764,20 +1863,12 @@ cell *module_gtk() {
     DEFINE_CFUN1(window_get_titlebar)
     DEFINE_CFUN1(window_set_interactive_debugging)
 
-    // TODO make this smarter
-    assoc_set(a, cell_symbol("exposure_mask"),            cell_integer(GDK_EXPOSURE_MASK));
-    assoc_set(a, cell_symbol("leave_notify_mask"),        cell_integer(GDK_LEAVE_NOTIFY_MASK));
-    assoc_set(a, cell_symbol("button_press_mask"),        cell_integer(GDK_BUTTON_PRESS_MASK));
-    assoc_set(a, cell_symbol("key_press_mask"),           cell_integer(GDK_KEY_PRESS_MASK));
-    assoc_set(a, cell_symbol("key_release_mask"),         cell_integer(GDK_KEY_RELEASE_MASK));
-    assoc_set(a, cell_symbol("pointer_motion_mask"),      cell_integer(GDK_POINTER_MOTION_MASK));
-    assoc_set(a, cell_symbol("pointer_motion_hint_mask"), cell_integer(GDK_POINTER_MOTION_HINT_MASK));
-
-    // Gtk enums
-    cgtk_orientation_horizontal  = symbol_peek("horizontal");
-    cgtk_orientation_vertical    = symbol_peek("vertical");
-    cgtk_window_toplevel         = symbol_peek("toplevel");
-    cgtk_window_popup            = symbol_peek("popup");
+    // Gtk enums and masks
+    set_init(cgtk_orientation);
+    set_init(cgtk_window_type);
+    set_init(cgdk_gravity);
+    set_init(cgdk_modifier_type);
+    set_init(cgdk_event_mask);
 
     return a;
 }

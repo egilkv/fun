@@ -3,7 +3,6 @@
 
 gtk = #use("gtk3");
 
-/*
 app = gtk.application_new("org.gtk.example");
 
 gtk.signal_connect(app, 'activate, () {
@@ -13,7 +12,8 @@ gtk.signal_connect(app, 'activate, () {
     gtk.window_set_default_size(window, 200, 200);
     gtk.widget_show_all(window)
 });
-*/
+
+/*
 app = gtk.application_new("org.gtk.example"
     connect:    ['activate, (){
 	gtk.print("***callback***\n");
@@ -23,7 +23,7 @@ app = gtk.application_new("org.gtk.example"
 		 show:          #t);
     }]
 );
-/*
+
     window = app.window(
 		 title:         "Window",
 		 dfl_size:      [200, 200],
