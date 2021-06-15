@@ -5,8 +5,11 @@
 
 void oblist_init();
 
-cell *oblistv(const char *sym, cell *val);
-cell *oblista(char *sym);
+cell *symbol_set(const char *sym, cell *val);
+cell *asymbol_find(char *sym);
+
+cell *symbol_self(const char *sym);
+cell *symbol_peek(const char *sym);
 
 void oblist_set(cell *sym, cell *val);
 

@@ -901,53 +901,50 @@ void cfun_args(int argc, char * const argv[]) {
 	    vector->_.vector.table[i] = cell_astring(s, strlen(s));
         }
     }
-    hash_args = oblistv("#args", vector);
+    hash_args = symbol_set("#args", vector);
 }
 
 void cfun_init() {
+
+    // these values are themselves
+    hash_undef   = symbol_self("#undefined");
+    hash_f       = symbol_self("#f");
+    hash_t       = symbol_self("#t");
+    hash_void    = symbol_self("#void");
+
+    // TODO remove...
+    hash_ellip   = symbol_set("...",   cell_ref(hash_void));
+
+    atexit(cfun_exit);
+
     // TODO hash_and etc are unrefferenced, and depends on oblist
     // TODO #include and #exit is not pure, possibly also #use
     //      to keep symbols in play
-    hash_assoc    = oblistv("#assoc",    cell_cfunN(cfunN_assoc));
-    hash_cat      = oblistv("#cat",      cell_cfunN(cfunN_cat));
-                    oblistv("#count",    cell_cfun1(cfun1_count));
-    hash_eq       = oblistv("#eq",       cell_cfunN(cfunN_eq));
-                    oblistv("#error",    cell_cfunN(cfunN_error));
-                    oblistv("#exit",     cell_cfunN(cfunN_exit));
-                    oblistv("#getenv",   cell_cfun1(cfun1_getenv));
-    hash_ge       = oblistv("#ge",       cell_cfunN(cfunN_ge));
-    hash_gt       = oblistv("#gt",       cell_cfunN(cfunN_gt));
-                    oblistv("#include",  cell_cfun1(cfun1_include));
-    hash_le       = oblistv("#le",       cell_cfunN(cfunN_le));
-    hash_lt       = oblistv("#lt",       cell_cfunN(cfunN_lt));
-    hash_list     = oblistv("#list",     cell_cfunN(cfunN_list));
-    hash_minus    = oblistv("#minus",    cell_cfunN(cfunN_minus));
-    hash_not      = oblistv("#not",      cell_cfun1(cfun1_not));
-    hash_noteq    = oblistv("#noteq",    cell_cfunN(cfunN_noteq));
-    hash_plus     = oblistv("#plus",     cell_cfunN(cfunN_plus));
-    hash_quotient = oblistv("#quotient", cell_cfunN(cfunN_quotient));
-    hash_ref      = oblistv("#ref",      cell_cfun2(cfun2_ref));
-    hash_times    = oblistv("#times",    cell_cfunN(cfunN_times));
-                    oblistv("#type",     cell_cfun1(cfun1_type));
-		    oblistv("#use",      cell_cfun1(cfun1_use));
+    hash_assoc    = symbol_set("#assoc",    cell_cfunN(cfunN_assoc));
+    hash_cat      = symbol_set("#cat",      cell_cfunN(cfunN_cat));
+                    symbol_set("#count",    cell_cfun1(cfun1_count));
+    hash_eq       = symbol_set("#eq",       cell_cfunN(cfunN_eq));
+                    symbol_set("#error",    cell_cfunN(cfunN_error));
+                    symbol_set("#exit",     cell_cfunN(cfunN_exit));
+                    symbol_set("#getenv",   cell_cfun1(cfun1_getenv));
+    hash_ge       = symbol_set("#ge",       cell_cfunN(cfunN_ge));
+    hash_gt       = symbol_set("#gt",       cell_cfunN(cfunN_gt));
+                    symbol_set("#include",  cell_cfun1(cfun1_include));
+    hash_le       = symbol_set("#le",       cell_cfunN(cfunN_le));
+    hash_lt       = symbol_set("#lt",       cell_cfunN(cfunN_lt));
+    hash_list     = symbol_set("#list",     cell_cfunN(cfunN_list));
+    hash_minus    = symbol_set("#minus",    cell_cfunN(cfunN_minus));
+    hash_not      = symbol_set("#not",      cell_cfun1(cfun1_not));
+    hash_noteq    = symbol_set("#noteq",    cell_cfunN(cfunN_noteq));
+    hash_plus     = symbol_set("#plus",     cell_cfunN(cfunN_plus));
+    hash_quotient = symbol_set("#quotient", cell_cfunN(cfunN_quotient));
+    hash_ref      = symbol_set("#ref",      cell_cfun2(cfun2_ref));
+    hash_times    = symbol_set("#times",    cell_cfunN(cfunN_times));
+                    symbol_set("#type",     cell_cfun1(cfun1_type));
+                    symbol_set("#use",      cell_cfun1(cfun1_use));
 
-                    oblistv("#gc",       cell_cfunN(cfunN_gc)); // debugging
-                    oblistv("#trace",    cell_cfun1(cfun1_trace)); // debugging
-
-    // values
-    hash_f       = oblistv("#f",       NIL);
-    hash_t       = oblistv("#t",       NIL);
-    hash_void    = oblistv("#void",    NIL);
-    hash_undef   = oblistv("#undefined", NIL); // TODO should it be visible?
-    hash_ellip   = oblistv("...",      cell_ref(hash_void));
-
-    // these values are themselves
-    oblist_set(hash_f,         cell_ref(hash_f));
-    oblist_set(hash_t,         cell_ref(hash_t));
-    oblist_set(hash_void,      cell_ref(hash_void));
-    oblist_set(hash_undef,     cell_ref(hash_undef));
-
-    atexit(cfun_exit);
+                    symbol_set("#gc",       cell_cfunN(cfunN_gc)); // debugging
+                    symbol_set("#trace",    cell_cfun1(cfun1_trace)); // debugging
 }
 
 static void cfun_exit(void) {

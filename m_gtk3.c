@@ -17,6 +17,7 @@
 #include "number.h"
 #include "compile.h"
 #include "oblist.h"
+#include "node.h" // newnode
 #include "run.h"
 #include "err.h"
 
@@ -722,8 +723,11 @@ static cell *cgtk_println(cell *args) {
 
 //
 
-// callback, no extra argument provided is program to run
-static void do_callback_none(GtkApplication* gp, gpointer data) {
+// callback, no extra argument provided
+static void do_callback_none(GtkWidget* gp, gpointer data) {
+    // for activate, gp is GtkApplication *
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
 
  // assert(cell_is_func((cell *)data));
  // assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app)
@@ -731,17 +735,29 @@ static void do_callback_none(GtkApplication* gp, gpointer data) {
  // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
  // printf("\n***callback***\n");
 
-    run_async(cell_ref((cell *)data));
+    run_async(cell_ref(prog));
 }
 
 // callback, argument provided is an int
-static void do_callback_int(GtkApplication* gp, gint extra, gpointer data) {
- // printf("\n***callback int***\n");
+static void do_callback_int(GtkWidget* gp, gint extra, gpointer data) {
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
 
     // TODO this function is in principle async
-    // TODO the extra data should be provided to the program somehow
 
-    run_async(cell_ref((cell *)data));
+    // provide the extra data as an argument via some black magic
+    // TODO improve this
+    if (prog && prog->type == c_DOQPUSH) {
+        // "patch" the program
+        cell *newprog = newnode(c_DOQPUSH);
+        newprog->_.cons.car = cell_integer(extra);
+        newprog->_.cons.cdr = cell_ref(prog->_.cons.cdr);
+        prog = newprog;
+    } else {
+        // should not happen
+        prog = cell_ref(prog);
+    }
+    run_async(prog);
 }
 
 static cell *cgtk_signal_connect(cell *args) {
@@ -776,26 +792,39 @@ static cell *cgtk_signal_connect(cell *args) {
     cell *callbackprog = NIL;
 
     // TODO be more efficient
-    if (strcmp(signal, "activate") == 0 || strcmp(signal, "clicked") == 0) {
+    if (strcmp(signal, "activate") == 0 
+     || strcmp(signal, "clicked") == 0
+     || strcmp(signal, "enter") == 0
+     || strcmp(signal, "destroy") == 0) {
         // no extra data provided
         // connect where data is the function with one argument, the current argument (app or widget)
-        callbackprog = compile(cell_func(callback, cell_list(app, NIL)));
+        callbackprog = compile(cell_func(callback, NIL));
 
+        // TODO gulong tag =
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_none), callbackprog);
-
 
     } else if (strcmp(signal, "response") == 0) {
         // extra parameter: integer response_id
         // TODO do something smarter here
-        callbackprog = compile(cell_func(callback, cell_list(app, NIL)));
+        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)));
 
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_int), callbackprog);
     } else {
+        // TODO
+        // https://developer.gnome.org/gtk-tutorial/stable/x182.html
+        // everything ending in "event" has a GdkEvent as extra, eg "button_press_event" "delete_event"
+        // the GdkEVent is a complex type
+        // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
+
         cell_unref(app);
         return error_rt1("signal not (yet) supported", hook);
     }
 
     // cell_unref(callbackprog); // TODO when to unref callbackprog ???
+    // void g_signal_handler_disconnect( gp, tag );
+
+
+
 
     cell_unref(app);
     cell_unref(hook);
@@ -1412,10 +1441,10 @@ cell *module_gtk() {
     DEFINE_CFUN1(window_set_interactive_debugging)
 
     // Gtk enums
-    cgtk_orientation_horizontal  = oblistv("horizontal", cell_ref(hash_undef));
-    cgtk_orientation_vertical    = oblistv("vertical", cell_ref(hash_undef));
-    cgtk_window_toplevel         = oblistv("toplevel", cell_ref(hash_undef));
-    cgtk_window_popup            = oblistv("popup", cell_ref(hash_undef));
+    cgtk_orientation_horizontal  = symbol_peek("horizontal");
+    cgtk_orientation_vertical    = symbol_peek("vertical");
+    cgtk_window_toplevel         = symbol_peek("toplevel");
+    cgtk_window_popup            = symbol_peek("popup");
 
     return a;
 }

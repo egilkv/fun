@@ -57,28 +57,18 @@ static cell *cfunQ_traceoff(cell *args) {
 static void qfun_exit(void);
 
 void qfun_init() {
-    // these are mere placeholders
-    hash_and      = oblistv("#and",      NIL);
-    hash_apply    = oblistv("#apply",    NIL);
-    hash_defq     = oblistv("#defq",     NIL);
-    hash_if       = oblistv("#if",       NIL);
-    hash_lambda   = oblistv("#lambda",   NIL);
-    hash_or       = oblistv("#or",       NIL);
-    hash_quote    = oblistv("#quote",    NIL);
-    hash_refq     = oblistv("#refq",     NIL);
-
-                    oblistv("#traceoff", cell_cfunN(cfunQ_traceoff)); // debugging TODO args must be quoted
-                    oblistv("#traceon",  cell_cfunN(cfunQ_traceon)); // debugging  TODO args must be quoted
+    symbol_set("#traceoff", cell_cfunN(cfunQ_traceoff)); // debugging TODO args must be quoted
+    symbol_set("#traceon", cell_cfunN(cfunQ_traceon)); // debugging TODO args must be quoted
 
     // these values should be themselves
-    oblist_set(hash_and,       cell_ref(hash_and));
-    oblist_set(hash_apply,     cell_ref(hash_apply));
-    oblist_set(hash_defq,      cell_ref(hash_defq));
-    oblist_set(hash_if,        cell_ref(hash_if));
-    oblist_set(hash_lambda,    cell_ref(hash_lambda));
-    oblist_set(hash_or,        cell_ref(hash_or));
-    oblist_set(hash_quote,     cell_ref(hash_quote));
-    oblist_set(hash_refq,      cell_ref(hash_refq));
+    hash_and      = symbol_self("#and");
+    hash_apply    = symbol_self("#apply");
+    hash_defq     = symbol_self("#defq");
+    hash_if       = symbol_self("#if");
+    hash_lambda   = symbol_self("#lambda");
+    hash_or       = symbol_self("#or");
+    hash_quote    = symbol_self("#quote");
+    hash_refq     = symbol_self("#refq");
 
     atexit(qfun_exit);
 }

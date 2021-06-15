@@ -4,23 +4,23 @@
 #include("gtk3.fun");
 
 app = gtk_application("org.gtk.example",
-    signal_connect:         'activate, (a){
+    signal_connect:         'activate, (){
 
     window = #undefined;
 
     button1 = gtk_button(
         label:              "Button",
-        signal_connect:     'clicked, (w){ gtk.println("Hello World") }
+        signal_connect:     'clicked, (){ gtk.println("Hello World") }
     );
 
     button2 = gtk_button(
         label:              "Dialog",
-        signal_connect:     'clicked, (w){ popup_dialog() }
+        signal_connect:     'clicked, (){ popup_dialog() }
     );
 
     button = gtk_button(
         label:              "Quit",
-        signal_connect:     'clicked, (w){ gtk.widget_destroy(window) }
+        signal_connect:     'clicked, (){ gtk.widget_destroy(window) }
     );
 
     label1 = gtk_label("The Quick Brown Fox Jumps Over a Lazy Dog"

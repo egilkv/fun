@@ -36,16 +36,30 @@ static unsigned int hash_string(const char *sym) {
 // add symbol to oblist, with value
 // symbol is alloc'd as needed
 // val is consumed
-cell *oblistv(const char *sym, cell *val) {
-    cell *ob = oblista(strdup(sym));
+cell *symbol_set(const char *sym, cell *val) {
+    cell *ob = asymbol_find(strdup(sym)); // TODO strdup not required if symbol exists already
     oblist_set(ob, val);
     return ob;
+}
+
+// add symbol to oblist, no value
+// symbol is alloc'd as needed
+cell *symbol_peek(const char *sym) {
+    return asymbol_find(strdup(sym)); // TODO strdup not required if symbol exists already
+}
+
+// add symbol to oblist, value is itself
+// symbol is alloc'd as needed
+cell *symbol_self(const char *sym) {
+    cell *def = symbol_set(sym, NIL); // set NIL value initially
+    oblist_set(def, cell_ref(def)); // TODO consider weak binding, if possible
+    return def;
 }
 
 // find or create symbol
 // assume symbol is malloc()'d already
 // return unreffed symbol
-cell *oblista(char *sym) {
+cell *asymbol_find(char *sym) {
     struct ob_entry **pp;
     int hash = hash_string(sym);
     pp = &(ob_table[hash]);

@@ -249,7 +249,7 @@ cell *cell_symbol(const char *symbol) {
 
 // symbol that is malloc'd already
 cell *cell_asymbol(char *symbol) {
-    return cell_ref(oblista(symbol));
+    return cell_ref(asymbol_find(symbol));
 }
 
 cell *cell_astring(char_t *string, index_t length) {
@@ -537,6 +537,7 @@ cell *cell_oblist_item(char_t *asym) {
     cell *node = newnode(c_SYMBOL);
     // TODO should create error message is reffed
     if (hash_undef) {
+        // define as undefined, once hash_undef is established
         node->_.symbol.val = cell_ref(hash_undef);
     }
     node->_.symbol.nam = asym; // allocated already
