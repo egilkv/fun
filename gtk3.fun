@@ -20,7 +20,8 @@ gtk_application_window = (app, ...) {
 	    border_width:   (){ gtk.container_set_border_width(win, a[0][1]); args(a[1..]) },
             add:            (){ gtk.container_add(win, a[0][1]); args(a[1..]) },
             show:           (){ a[0][1] ? gtk.widget_show(win) : gtk.widget_hide(win); args(a[1..]) },
-            show_all:       (){ a[0][1] ? gtk.widget_show_all(win); args(a[1..]) }
+            show_all:       (){ a[0][1] ? gtk.widget_show_all(win); args(a[1..]) },
+            signal_connect: (){ gtk.signal_connect(app, a[0][1], a[1]); args(a[2..]) }
 	}[a[0][0]]()
     };
     args(...)
@@ -42,7 +43,7 @@ gtk_grid = (...) {
     grid = gtk.grid_new();
     args = (a) {
 	a == [] ? grid : {
-            attach:         (){ gtk.grid_attach(grid, a[1], a[0][1]); args(a[2..]) }     // note: attach: [,,,], what,
+            attach:         (){ gtk.grid_attach(grid, a[0][1], a[1]); args(a[2..]) } // note: attach: [,,,], what,
 	}[a[0][0]]()
     };
     args(...)

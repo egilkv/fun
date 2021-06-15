@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h> // isfinite
 #include <assert.h>
 
 #include <gtk/gtk.h>
@@ -20,6 +21,8 @@
 #include "node.h" // newnode
 #include "run.h"
 #include "err.h"
+
+static cell *cell_gdkevent(GdkEvent *event);
 
 ////////////////////////////////////////////////////////////////
 //
@@ -760,6 +763,28 @@ static void do_callback_int(GtkWidget* gp, gint extra, gpointer data) {
     run_async(prog);
 }
 
+// callback, argument provided is an int
+static void do_callback_event(GtkWidget* gp, GdkEvent *extra, gpointer data) {
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
+
+    // TODO this function is in principle async
+
+    // provide the extra data as an argument via some black magic
+    // TODO improve this
+    if (prog && prog->type == c_DOQPUSH) {
+        // "patch" the program
+        cell *newprog = newnode(c_DOQPUSH);
+        newprog->_.cons.car = cell_gdkevent(extra);
+        newprog->_.cons.cdr = cell_ref(prog->_.cons.cdr);
+        prog = newprog;
+    } else {
+        // should not happen
+        prog = cell_ref(prog);
+    }
+    run_async(prog);
+}
+
 static cell *cgtk_signal_connect(cell *args) {
     cell *app;
     cell *hook;
@@ -807,14 +832,23 @@ static cell *cgtk_signal_connect(cell *args) {
         // extra parameter: integer response_id
         // TODO do something smarter here
         callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)));
-
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_int), callbackprog);
+
+    } else if (strcmp(signal, "key_press_event") == 0
+            || strcmp(signal, "key_release_event") == 0
+            || strcmp(signal, "button_press_event") == 0
+            || strcmp(signal, "configure_event") == 0
+            || strcmp(signal, "expose_event") == 0
+            || strcmp(signal, "motion_notify_event") == 0) {
+        // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
+        // extra parameter: GdkEvent *event
+        // TODO do something smarter here
+        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)));
+        g_signal_connect(gp, signal, G_CALLBACK(do_callback_event), callbackprog);
+
     } else {
         // TODO
         // https://developer.gnome.org/gtk-tutorial/stable/x182.html
-        // everything ending in "event" has a GdkEvent as extra, eg "button_press_event" "delete_event"
-        // the GdkEVent is a complex type
-        // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
 
         cell_unref(app);
         return error_rt1("signal not (yet) supported", hook);
@@ -873,7 +907,7 @@ WIDGET_GET_CSTRING(widget_get_name, GTK_WIDGET)
 // TODO widget_set_sensitive
 // TODO gtk_widget_set_parent_window
 // TODO gtk_widget_get_parent_window
-WIDGET_SET_INT(widget_set_events, GTK_WIDGET)
+WIDGET_SET_INT(widget_set_events, GTK_WIDGET) // TODO mask, so needs to be smarter
 WIDGET_GET_INT(widget_get_events, GTK_WIDGET)
 WIDGET_SET_INT(widget_add_events, GTK_WIDGET)
 // TODO gtk_widget_set_device_events
@@ -1161,8 +1195,7 @@ VOID_SET_BOOL(window_set_interactive_debugging)
 //  https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html
 //
 
-// TODO static
-cell * cell_gdkevent(GdkEvent *event) {
+static cell *cell_gdkevent(GdkEvent *event) {
     cell *a = cell_assoc();
     cell *type = cell_symbol("type");
     // TODO ignore type->send_event
@@ -1190,27 +1223,52 @@ cell * cell_gdkevent(GdkEvent *event) {
 
     case GDK_MOTION_NOTIFY: // the pointer (usually a mouse) has moved.
         assoc_set(a, type, cell_symbol("motion_notify"));
+        {
+            // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventMotion
+            GdkEventMotion *em = (GdkEventMotion *)event;
+            // TODO device
+            assoc_set(a, cell_symbol("time"), cell_real(em->time/1000.0)); // TODO see also #use("time"), coordinate
+            assoc_set(a, cell_symbol("x"), cell_real(em->x));
+            assoc_set(a, cell_symbol("y"), cell_real(em->y));
+            assoc_set(a, cell_symbol("state"), cell_integer(em->state)); // TODO https://developer.gnome.org/gdk3/stable/gdk3-Windows.html#GdkModifierType
+            assoc_set(a, cell_symbol("is_hint"), cell_boolean(em->is_hint));
+            assoc_set(a, cell_symbol("x_root"), cell_real(em->x_root));
+            assoc_set(a, cell_symbol("y_root"), cell_real(em->y_root));
+            if (em->axes && isfinite(em->axes[0])) {
+                assoc_set(a, cell_symbol("x_axes"), cell_real(em->axes[0]));
+                assoc_set(a, cell_symbol("y_axes"), cell_real(em->axes[1]));
+            }
+        }
         break;
 
     case GDK_BUTTON_PRESS: // a mouse button has been pressed.
         assoc_set(a, type, cell_symbol("button_press"));
       buttonevent:
-        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventButton
-        // TODO axes, device, x_root, y_root
-        assoc_set(a, cell_symbol("time"), cell_integer(((GdkEventButton *)event)->time)); // TODO see also #use("time"), coordinate
-        assoc_set(a, cell_symbol("x"), cell_real(((GdkEventButton *)event)->x));
-        assoc_set(a, cell_symbol("y"), cell_real(((GdkEventButton *)event)->y));
-        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventButton *)event)->state)); // TODO https://developer.gnome.org/gdk3/stable/gdk3-Windows.html#GdkModifierType
-        assoc_set(a, cell_symbol("button"), cell_integer(((GdkEventButton *)event)->button)); // usually 1 to 5
+        {
+            // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventButton
+            // TODO device
+            GdkEventButton *eb = (GdkEventButton *)event;
+            assoc_set(a, cell_symbol("time"), cell_real(eb->time/1000.0));
+            assoc_set(a, cell_symbol("x"), cell_real(eb->x));
+            assoc_set(a, cell_symbol("y"), cell_real(eb->y));
+            assoc_set(a, cell_symbol("state"), cell_integer(eb->state)); // TODO https://developer.gnome.org/gdk3/stable/gdk3-Windows.html#GdkModifierType
+            assoc_set(a, cell_symbol("button"), cell_integer(eb->button)); // usually 1 to 5
+            assoc_set(a, cell_symbol("x_root"), cell_real(eb->x_root));
+            assoc_set(a, cell_symbol("y_root"), cell_real(eb->y_root));
+            if (eb->axes && isfinite(eb->axes[0])) {
+                assoc_set(a, cell_symbol("x_axes"), cell_real(eb->axes[0]));
+                assoc_set(a, cell_symbol("y_axes"), cell_real(eb->axes[1]));
+            }
+        }
         break;
 
-    case GDK_2BUTTON_PRESS: // a mouse button has been double-clicked (clicked twice within a short period of time). Note that each click also generates a GDK_BUTTON_PRESS event.
-    // alias: GDK_DOUBLE_BUTTON_PRESS
+    case GDK_DOUBLE_BUTTON_PRESS: // a mouse button has been double-clicked (clicked twice within a short period of time). Note that each click also generates a GDK_BUTTON_PRESS event.
+    // alias: GDK_2BUTTON_PRESS
         assoc_set(a, type, cell_symbol("double_button_press"));
         goto buttonevent;
 
-    case GDK_3BUTTON_PRESS: // a mouse button has been clicked 3 times in a short period of time. Note that each click also generates a GDK_BUTTON_PRESS event.
-    // alias: GDK_TRIPLE_BUTTON_PRESS
+    case GDK_TRIPLE_BUTTON_PRESS: // a mouse button has been clicked 3 times in a short period of time. Note that each click also generates a GDK_BUTTON_PRESS event.
+    // alias: GDK_3BUTTON_PRESS
         assoc_set(a, type, cell_symbol("triple_button_press"));
         goto buttonevent;
 
@@ -1220,14 +1278,21 @@ cell * cell_gdkevent(GdkEvent *event) {
 
     case GDK_KEY_PRESS: // a key has been pressed.
         assoc_set(a, type, cell_symbol("key_press"));
-        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventKey
       keyevent:
-        // TODO hardware_keycode, group, is_modifier
-        assoc_set(a, cell_symbol("time"), cell_integer(((GdkEventKey *)event)->time)); // TODO see also #use("time"), coordinate
-        assoc_set(a, cell_symbol("keyval"), cell_integer(((GdkEventKey *)event)->keyval));
-        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventKey *)event)->state)); // TODO bit mask, improve...
-        assoc_set(a, cell_symbol("string"), cell_nastring(((GdkEventKey *)event)->string,
-                                                            ((GdkEventKey *)event)->length));
+        {
+            // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventKey
+            GdkEventKey *ek = (GdkEventKey *)event;
+            assoc_set(a, cell_symbol("time"), cell_real(ek->time/1000.0));
+            assoc_set(a, cell_symbol("keyval"), cell_integer(ek->keyval));
+            assoc_set(a, cell_symbol("state"), cell_integer(ek->state)); // TODO bit mask, improve...
+
+            // TODO depreceated, use gdk_unicode_to_keyval() instead to get UTF8
+            assoc_set(a, cell_symbol("string"), cell_nastring(ek->string, ek->length));
+
+            assoc_set(a, cell_symbol("group"), cell_integer(ek->group));
+            assoc_set(a, cell_symbol("hardware_keycode"), cell_integer(ek->hardware_keycode));
+            assoc_set(a, cell_symbol("is_modifier"), cell_boolean(ek->is_modifier));
+        }
         break;
 
     case GDK_KEY_RELEASE: // a key has been released.
@@ -1244,17 +1309,23 @@ cell * cell_gdkevent(GdkEvent *event) {
 
     case GDK_FOCUS_CHANGE: // the keyboard focus has entered or left the window.
         assoc_set(a, type, cell_symbol("focus_change"));
-        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventFocus
-        assoc_set(a, cell_symbol("in"), cell_boolean(((GdkEventFocus *)event)->in));
+        {
+            // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventFocus
+            GdkEventFocus *ef = (GdkEventFocus *)event;
+            assoc_set(a, cell_symbol("in"), cell_boolean(ef->in));
+        }
         break;
 
     case GDK_CONFIGURE: // the size, position or stacking order of the window has changed. Note that GTK+ discards these events for GDK_WINDOW_CHILD windows.
         assoc_set(a, type, cell_symbol("configure"));
-        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventConfigure
-        assoc_set(a, cell_symbol("x"), cell_integer(((GdkEventConfigure *)event)->x));
-        assoc_set(a, cell_symbol("y"), cell_integer(((GdkEventConfigure *)event)->y));
-        assoc_set(a, cell_symbol("width"), cell_integer(((GdkEventConfigure *)event)->width));
-        assoc_set(a, cell_symbol("height"), cell_integer(((GdkEventConfigure *)event)->height));
+        {
+            // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventConfigure
+            GdkEventConfigure *ec = (GdkEventConfigure *)event;
+            assoc_set(a, cell_symbol("x"),      cell_integer(ec->x));
+            assoc_set(a, cell_symbol("y"),      cell_integer(ec->y));
+            assoc_set(a, cell_symbol("width"),  cell_integer(ec->width));
+            assoc_set(a, cell_symbol("height"), cell_integer(ec->height));
+        }
         break;
 
     case GDK_MAP: // the window has been mapped.
@@ -1349,12 +1420,20 @@ cell * cell_gdkevent(GdkEvent *event) {
     case GDK_TOUCH_BEGIN: // A new touch event sequence has just started.
         assoc_set(a, type, cell_symbol("touch_begin"));
       touchevent:
-        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventTouch
-        // TODO time, axes, sequence, emulation_pointer, device, x_root, y_root
-        assoc_set(a, cell_symbol("x"), cell_real(((GdkEventButton *)event)->x));
-        assoc_set(a, cell_symbol("y"), cell_real(((GdkEventButton *)event)->y));
-        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventButton *)event)->button));
-        assoc_set(a, cell_symbol("button"), cell_integer(((GdkEventButton *)event)->button));
+        {
+            GdkEventTouch *et = (GdkEventTouch *)event;
+            // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventTouch
+            // TODO sequence, emulation_pointer, device
+            assoc_set(a, cell_symbol("time"), cell_real(et->time/1000.0));
+            assoc_set(a, cell_symbol("x"), cell_real(et->x)); 
+            assoc_set(a, cell_symbol("y"), cell_real(et->y));
+            assoc_set(a, cell_symbol("x_root"), cell_real(et->x_root));
+            assoc_set(a, cell_symbol("y_root"), cell_real(et->y_root));
+            if (et->axes && isfinite(et->axes[0])) {
+                assoc_set(a, cell_symbol("x_axes"), cell_real(et->axes[0]));
+                assoc_set(a, cell_symbol("y_axes"), cell_real(et->axes[1]));
+            }
+        }
         break;
 
     case GDK_TOUCH_UPDATE: // A touch event sequence has been updated.
@@ -1684,6 +1763,15 @@ cell *module_gtk() {
     DEFINE_CFUN2(window_set_titlebar)
     DEFINE_CFUN1(window_get_titlebar)
     DEFINE_CFUN1(window_set_interactive_debugging)
+
+    // TODO make this smarter
+    assoc_set(a, cell_symbol("exposure_mask"),            cell_integer(GDK_EXPOSURE_MASK));
+    assoc_set(a, cell_symbol("leave_notify_mask"),        cell_integer(GDK_LEAVE_NOTIFY_MASK));
+    assoc_set(a, cell_symbol("button_press_mask"),        cell_integer(GDK_BUTTON_PRESS_MASK));
+    assoc_set(a, cell_symbol("key_press_mask"),           cell_integer(GDK_KEY_PRESS_MASK));
+    assoc_set(a, cell_symbol("key_release_mask"),         cell_integer(GDK_KEY_RELEASE_MASK));
+    assoc_set(a, cell_symbol("pointer_motion_mask"),      cell_integer(GDK_POINTER_MOTION_MASK));
+    assoc_set(a, cell_symbol("pointer_motion_hint_mask"), cell_integer(GDK_POINTER_MOTION_HINT_MASK));
 
     // Gtk enums
     cgtk_orientation_horizontal  = symbol_peek("horizontal");
