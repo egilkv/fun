@@ -65,6 +65,14 @@ static set cgtk_window_type[] = {
     { NULL,                NIL, 0 }
 };
 
+// enum GtkTextDirection
+static set cgtk_text_direction[] = {
+    { "none",              NIL, GTK_TEXT_DIR_NONE },
+    { "ltr",               NIL, GTK_TEXT_DIR_LTR },
+    { "rtl",               NIL, GTK_TEXT_DIR_RTL },
+    { NULL,                NIL, 0 }
+};
+
 // enum GdkGravity
 static set cgdk_gravity[] = {
     { "north_west",        NIL, GDK_GRAVITY_NORTH_WEST },
@@ -102,7 +110,7 @@ static set cgdk_modifier_type[] = {
 
 // GdkEventMask
 // https://developer.gnome.org/gdk3/stable/gdk3-Events.html#GdkEventMask
-set cgdk_event_mask[] = {
+static set cgdk_event_mask[] = {
     { "exposure",          NIL, GDK_EXPOSURE_MASK },
     { "pointer_motion",    NIL, GDK_POINTER_MOTION_MASK },
     // deprecated:              GDK_POINTER_MOTION_HINT_MASK
@@ -128,6 +136,83 @@ set cgdk_event_mask[] = {
     { "touchpad_gesture",  NIL, GDK_TOUCHPAD_GESTURE_MASK },
     { "tablet_pad",        NIL, GDK_TABLET_PAD_MASK },
     { "all_events",        NIL, GDK_ALL_EVENTS_MASK }, // TODO special
+    { NULL,                NIL, 0 }
+};
+
+// set of signals and types
+// 0 is no extra, 1 is integer extra, 2. is event extra
+// https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget-accel-closures-changed
+// https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
+static set cgdk_signals[] = {
+    { "activate",          NIL, 0 },
+    { "clicked",           NIL, 0 },
+    { "enter",             NIL, 0 },
+    { "leave",             NIL, 0 },
+    { "pressed",           NIL, 0 },
+    { "released",          NIL, 0 },
+    { "destroy",           NIL, 0 },
+    { "hide",              NIL, 0 },
+    { "map",               NIL, 0 },
+    { "unmap",             NIL, 0 },
+    { "grab_focus",        NIL, 0 },
+    { "popup_menu",        NIL, 0 },
+    { "realize",           NIL, 0 },
+    { "unrealize",         NIL, 0 },
+    { "show",              NIL, 0 },
+    { "response",          NIL, 1 },
+    { "event",             NIL, 2 },
+    { "button_press_event", NIL, 2 },
+    { "button_release_event", NIL, 2 },
+    { "scroll_event",      NIL, 2 },
+    { "motion_notify_event", NIL, 2 },
+    { "delete_event",      NIL, 2 },
+    { "destroy_event",     NIL, 2 },
+    { "expose_event",      NIL, 2 },
+    { "key_press_event",   NIL, 2 },
+    { "key_release_event", NIL, 2 },
+    { "enter_notify_event", NIL, 2 },
+    { "leave_notify_event", NIL, 2 },
+    { "configure_event",   NIL, 2 },
+    { "focus_in_event",    NIL, 2 },
+    { "focus_out_event",   NIL, 2 },
+    { "map_event",         NIL, 2 },
+    { "unmap_event",       NIL, 2 },
+    { "property_notify_event", NIL, 2 },
+    { "selection_clear_event", NIL, 2 },
+    { "selection_request_event", NIL, 2 },
+    { "selection_notify_event", NIL, 2 },
+    { "proximity_in_event", NIL, 2 },
+    { "proximity_out_event", NIL, 2 },
+    { "visibility_notify_event", NIL, 2 },
+    { "client_event",      NIL, 2 },
+    { "no_expose_event",   NIL, 2 },
+    { "window_state_event", NIL, 2 },
+    // TODO boolean
+    // "grab_notify"
+    // TODO widget
+    // "parent_set"
+    // TODO gtkdirectiontype
+    // "focus"
+    // "keynav_failed"
+    // "move_focus"
+    // TODO gtktestdirection
+    // "direction_changed"
+    // TODO cairocontext
+    // "draw"
+    // TODO gparamspec
+    // "child-notify"
+    // TODO dragcontext
+    // "drag_begin"
+    // "drag_data_delete"
+    // "drag_end"
+    // TODO dragcontext, x, y, t
+    // "drag_data_get"
+    // "drag_drop"
+    // TODO dragcontext, seldata, info, t
+    // "drag_motion"
+    // TODO dragcontext, x, y, seldata, info, t
+    // "drag_data_received"
+    // TODO and more...
     { NULL,                NIL, 0 }
 };
 
@@ -916,7 +1001,6 @@ static cell *cgtk_signal_connect(cell *args) {
         cell_unref(app);
         return cell_error();
     }
-
     if (app->_.special.magic != magic_gtk_app
      && app->_.special.magic != magic_gtk_widget) {
         cell_unref(error_rt1("not a widget nor application", cell_ref(app)));
@@ -925,50 +1009,44 @@ static cell *cgtk_signal_connect(cell *args) {
         return cell_error();
     }
     cell *callbackprog = NIL;
+    integer_t type;
 
-    // TODO be more efficient
-    if (strcmp(signal, "activate") == 0 
-     || strcmp(signal, "clicked") == 0
-     || strcmp(signal, "enter") == 0
-     || strcmp(signal, "destroy") == 0) {
-        // no extra data provided
+    if (!get_fromset(cgdk_signals, hook, &type)) {
+        cell_unref(app);
+        return cell_error();
+    }
+    // TODO hook should be retained to know string??
+
+    switch (type) {
+    case 0: // no extra data provided
         // connect where data is the function with one argument, the current argument (app or widget)
         callbackprog = compile(cell_func(callback, NIL));
 
         // TODO gulong tag =
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_none), callbackprog);
+        break;
 
-    } else if (strcmp(signal, "response") == 0) {
-        // extra parameter: integer response_id
+    case 1: // extra parameter: integer response_id
         // TODO do something smarter here
         callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)));
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_int), callbackprog);
+        break;
 
-    } else if (strcmp(signal, "key_press_event") == 0
-            || strcmp(signal, "key_release_event") == 0
-            || strcmp(signal, "button_press_event") == 0
-            || strcmp(signal, "configure_event") == 0
-            || strcmp(signal, "expose_event") == 0
-            || strcmp(signal, "motion_notify_event") == 0) {
+    case 2: // extra parameter: GdkEvent *event
         // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
-        // extra parameter: GdkEvent *event
         // TODO do something smarter here
         callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)));
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_event), callbackprog);
+        break;
 
-    } else {
-        // TODO
-        // https://developer.gnome.org/gtk-tutorial/stable/x182.html
-
-        cell_unref(app);
-        return error_rt1("signal not (yet) supported", hook);
+    default:
+        assert(0);
     }
 
     // cell_unref(callbackprog); // TODO when to unref callbackprog ???
     // void g_signal_handler_disconnect( gp, tag );
 
     cell_unref(app);
-    cell_unref(hook);
     return cell_void();
 }
 
@@ -1032,10 +1110,10 @@ WIDGET_GET_WIDGET(widget_get_toplevel, GTK_WIDGET)
 // TODO gtk_widget_is_ancestor
 // TODO gtk_widget_translate_coordinates
 WIDGET_GET_BOOL(widget_hide_on_delete, GTK_WIDGET)
-// TODO gtk_widget_set_direction
-// TODO gtk_widget_get_direction
-// TODO gtk_widget_set_default_direction
-// TODO gtk_widget_get_default_direction
+WIDGET_SET_FROMSET(widget_set_direction, GTK_WIDGET, cgtk_text_direction)
+WIDGET_GET_FROMSET(widget_get_direction, GTK_WIDGET, cgtk_text_direction)
+//VOID_SET_FROMSET(widget_set_default_direction, GTK_WIDGET, cgtk_text_direction)
+//VOID_GET_FROMSET(widget_get_default_direction, GTK_WIDGET, cgtk_text_direction)
 // TODO gtk_widget_shape_combine_region
 // TODO gtk_widget_input_shape_combine_region
 // TODO gtk_widget_create_pango_context
@@ -1707,6 +1785,10 @@ cell *module_gtk() {
     DEFINE_CFUN2(widget_add_events)
     DEFINE_CFUN1(widget_get_toplevel)
     DEFINE_CFUN1(widget_hide_on_delete)
+    DEFINE_CFUN2(widget_set_direction)
+    DEFINE_CFUN1(widget_get_direction)
+    // DEFINE_CFUN1(widget_set_default_direction)
+    // DEFINE_CFUNN(widget_get_default_direction)
     DEFINE_CFUN2(widget_set_redraw_on_allocate)
     DEFINE_CFUN1(widget_get_parent)
     DEFINE_CFUN1(widget_has_screen)
@@ -1863,12 +1945,15 @@ cell *module_gtk() {
     DEFINE_CFUN1(window_get_titlebar)
     DEFINE_CFUN1(window_set_interactive_debugging)
 
+#if 0
     // Gtk enums and masks
     set_init(cgtk_orientation);
     set_init(cgtk_window_type);
     set_init(cgdk_gravity);
     set_init(cgdk_modifier_type);
     set_init(cgdk_event_mask);
+    set_init(cgdk_signals);
+#endif
 
     return a;
 }
