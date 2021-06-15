@@ -14,7 +14,6 @@
 #include "number.h"
 #include "err.h"
 #include "parse.h" // chomp_file
-#include "debug.h"
 #if HAVE_MATH
 #include "m_math.h"
 #endif
@@ -839,20 +838,6 @@ static cell *cfun1_include(cell *a) {
     return result;
 }
 
-// debugging, trace value being passed
-static cell *cfun1_trace(cell *a) {
-    debug_trace(a);
-    return a;
-}
-
-// debugging, run garbage collection
-static cell *cfunN_gc(cell *args) {
-    integer_t nodes;
-    arg0(args);
-    nodes = oblist_sweep();
-    return cell_integer(nodes);
-}
-
 // get from OS environment
 static cell *cfun1_getenv(cell *a) {
     extern char **environ;
@@ -921,31 +906,28 @@ void cfun_init() {
     // TODO hash_and etc are unrefferenced, and depends on oblist
     // TODO #include and #exit is not pure, possibly also #use
     //      to keep symbols in play
-    hash_assoc    = symbol_set("#assoc",    cell_cfunN(cfunN_assoc));
-    hash_cat      = symbol_set("#cat",      cell_cfunN(cfunN_cat));
-                    symbol_set("#count",    cell_cfun1(cfun1_count));
-    hash_eq       = symbol_set("#eq",       cell_cfunN(cfunN_eq));
-                    symbol_set("#error",    cell_cfunN(cfunN_error));
-                    symbol_set("#exit",     cell_cfunN(cfunN_exit));
-                    symbol_set("#getenv",   cell_cfun1(cfun1_getenv));
-    hash_ge       = symbol_set("#ge",       cell_cfunN(cfunN_ge));
-    hash_gt       = symbol_set("#gt",       cell_cfunN(cfunN_gt));
-                    symbol_set("#include",  cell_cfun1(cfun1_include));
-    hash_le       = symbol_set("#le",       cell_cfunN(cfunN_le));
-    hash_lt       = symbol_set("#lt",       cell_cfunN(cfunN_lt));
-    hash_list     = symbol_set("#list",     cell_cfunN(cfunN_list));
-    hash_minus    = symbol_set("#minus",    cell_cfunN(cfunN_minus));
-    hash_not      = symbol_set("#not",      cell_cfun1(cfun1_not));
-    hash_noteq    = symbol_set("#noteq",    cell_cfunN(cfunN_noteq));
-    hash_plus     = symbol_set("#plus",     cell_cfunN(cfunN_plus));
-    hash_quotient = symbol_set("#quotient", cell_cfunN(cfunN_quotient));
-    hash_ref      = symbol_set("#ref",      cell_cfun2(cfun2_ref));
-    hash_times    = symbol_set("#times",    cell_cfunN(cfunN_times));
-                    symbol_set("#type",     cell_cfun1(cfun1_type));
-                    symbol_set("#use",      cell_cfun1(cfun1_use));
-
-                    symbol_set("#gc",       cell_cfunN(cfunN_gc)); // debugging
-                    symbol_set("#trace",    cell_cfun1(cfun1_trace)); // debugging
+    hash_assoc    = symbol_set("#assoc",    cell_cfunN_pure(cfunN_assoc));
+    hash_cat      = symbol_set("#cat",      cell_cfunN_pure(cfunN_cat));
+                    symbol_set("#count",    cell_cfun1_pure(cfun1_count));
+    hash_eq       = symbol_set("#eq",       cell_cfunN_pure(cfunN_eq));
+                    symbol_set("#error",    cell_cfunN_pure(cfunN_error));
+                    symbol_set("#exit",     cell_cfunN_pure(cfunN_exit));
+                    symbol_set("#getenv",   cell_cfun1_pure(cfun1_getenv));
+    hash_ge       = symbol_set("#ge",       cell_cfunN_pure(cfunN_ge));
+    hash_gt       = symbol_set("#gt",       cell_cfunN_pure(cfunN_gt));
+                    symbol_set("#include",  cell_cfun1(cfun1_include)); // TODO pure?
+    hash_le       = symbol_set("#le",       cell_cfunN_pure(cfunN_le));
+    hash_lt       = symbol_set("#lt",       cell_cfunN_pure(cfunN_lt));
+    hash_list     = symbol_set("#list",     cell_cfunN_pure(cfunN_list));
+    hash_minus    = symbol_set("#minus",    cell_cfunN_pure(cfunN_minus));
+    hash_not      = symbol_set("#not",      cell_cfun1_pure(cfun1_not));
+    hash_noteq    = symbol_set("#noteq",    cell_cfunN_pure(cfunN_noteq));
+    hash_plus     = symbol_set("#plus",     cell_cfunN_pure(cfunN_plus));
+    hash_quotient = symbol_set("#quotient", cell_cfunN_pure(cfunN_quotient));
+    hash_ref      = symbol_set("#ref",      cell_cfun2_pure(cfun2_ref));
+    hash_times    = symbol_set("#times",    cell_cfunN_pure(cfunN_times));
+                    symbol_set("#type",     cell_cfun1_pure(cfun1_type));
+                    symbol_set("#use",      cell_cfun1_pure(cfun1_use));
 }
 
 static void cfun_exit(void) {

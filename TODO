@@ -3,6 +3,9 @@ GTK callback should not provide a value. Instead we do this ourselves as needed
 However, 'response will provide the response, as an integer.
 
 Add debugger and #breakpoint(). Option to switch to debugger on error.
+Debugger should have functions to look at locals in run_environment->env
+Also show what is in run_environment->prog and run_environment->save
+even run_environment->stack
 
 The argument to the GTK3 callback is not handled right. E.g. response
 
@@ -27,6 +30,8 @@ How to deal with back and forth local refs? Maybe this:
 	a = (){ something(b) };
 
 Do not allow run(), instead insert another level or another tread...
+
+All print/write functions generate strings which are then channeled to files
 
 Parsing of code {} within {} is pretty broken, see qsort-new.fun
 

@@ -44,6 +44,8 @@ app = gtk_application("org.gtk.example",
         show_all:     #t
     );
 
+    #bp();
+
     demo_events(window)
 });
 

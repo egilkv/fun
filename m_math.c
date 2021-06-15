@@ -184,26 +184,26 @@ cell *module_math() {
     // TODO consider cache
     cell *a = cell_assoc();
 
-    assoc_set(a, cell_symbol("abs"),    cell_cfun1(cmath_abs));
-    assoc_set(a, cell_symbol("div"),    cell_cfun2(cmath_div));
+    assoc_set(a, cell_symbol("abs"),    cell_cfun1_pure(cmath_abs));
+    assoc_set(a, cell_symbol("div"),    cell_cfun2_pure(cmath_div));
     assoc_set(a, cell_symbol("e"),      cell_real(M_E));
-    assoc_set(a, cell_symbol("int"),    cell_cfun1(cmath_int));
-    assoc_set(a, cell_symbol("mod"),    cell_cfun2(cmath_mod));
+    assoc_set(a, cell_symbol("int"),    cell_cfun1_pure(cmath_int));
+    assoc_set(a, cell_symbol("mod"),    cell_cfun2_pure(cmath_mod));
     assoc_set(a, cell_symbol("pi"),     cell_real(M_PI));
 #if HAVE_MATH
-    assoc_set(a, cell_symbol("acos"),   cell_cfun1(cmath_acos));
-    assoc_set(a, cell_symbol("asin"),   cell_cfun1(cmath_asin));
-    assoc_set(a, cell_symbol("atan"),   cell_cfun1(cmath_atan));
-    assoc_set(a, cell_symbol("atan2"),  cell_cfun2(cmath_atan2));
-    assoc_set(a, cell_symbol("ceil"),   cell_cfun1(cmath_ceil));
-    assoc_set(a, cell_symbol("cos"),    cell_cfun1(cmath_cos));
-    assoc_set(a, cell_symbol("floor"),  cell_cfun1(cmath_floor));
-    assoc_set(a, cell_symbol("log"),    cell_cfun1(cmath_log));
-    assoc_set(a, cell_symbol("log10"),  cell_cfun1(cmath_log10));
-    assoc_set(a, cell_symbol("pow"),    cell_cfun2(cmath_pow));
-    assoc_set(a, cell_symbol("sin"),    cell_cfun1(cmath_sin));
-    assoc_set(a, cell_symbol("sqrt"),   cell_cfun1(cmath_sqrt));
-    assoc_set(a, cell_symbol("tan"),    cell_cfun1(cmath_tan));
+    assoc_set(a, cell_symbol("acos"),   cell_cfun1_pure(cmath_acos));
+    assoc_set(a, cell_symbol("asin"),   cell_cfun1_pure(cmath_asin));
+    assoc_set(a, cell_symbol("atan"),   cell_cfun1_pure(cmath_atan));
+    assoc_set(a, cell_symbol("atan2"),  cell_cfun2_pure(cmath_atan2));
+    assoc_set(a, cell_symbol("ceil"),   cell_cfun1_pure(cmath_ceil));
+    assoc_set(a, cell_symbol("cos"),    cell_cfun1_pure(cmath_cos));
+    assoc_set(a, cell_symbol("floor"),  cell_cfun1_pure(cmath_floor));
+    assoc_set(a, cell_symbol("log"),    cell_cfun1_pure(cmath_log));
+    assoc_set(a, cell_symbol("log10"),  cell_cfun1_pure(cmath_log10));
+    assoc_set(a, cell_symbol("pow"),    cell_cfun2_pure(cmath_pow));
+    assoc_set(a, cell_symbol("sin"),    cell_cfun1_pure(cmath_sin));
+    assoc_set(a, cell_symbol("sqrt"),   cell_cfun1_pure(cmath_sqrt));
+    assoc_set(a, cell_symbol("tan"),    cell_cfun1_pure(cmath_tan));
 #endif // HAVE_MATH
 
     return a;

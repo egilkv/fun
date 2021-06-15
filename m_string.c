@@ -80,10 +80,10 @@ cell *module_string() {
     // TODO consider cache
     cell *a = cell_assoc();
 
-    assoc_set(a, cell_symbol("length"),  cell_cfun1(cstr_length));
-    assoc_set(a, cell_symbol("lower"),   cell_cfun1(cstr_lower));
-    assoc_set(a, cell_symbol("ordinal"), cell_cfun1(cstr_ordinal));
-    assoc_set(a, cell_symbol("upper"),   cell_cfun1(cstr_upper));
+    assoc_set(a, cell_symbol("length"),  cell_cfun1_pure(cstr_length)); // TODO already covered?
+    assoc_set(a, cell_symbol("lower"),   cell_cfun1_pure(cstr_lower));
+    assoc_set(a, cell_symbol("ordinal"), cell_cfun1_pure(cstr_ordinal));
+    assoc_set(a, cell_symbol("upper"),   cell_cfun1_pure(cstr_upper));
 
     return a;
 }

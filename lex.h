@@ -53,7 +53,7 @@ struct file_s {
     short is_terminal;
     short is_eof;
     short show_parse;
-    short show_prompt;
+    const char *show_prompt;
     int lineno;
     ssize_t index; // index of next character, starting at 0
     char *linebuf; // for terminal, allocated, NUL terminated

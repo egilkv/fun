@@ -127,7 +127,7 @@ static int lxgetc(lxfile *in) {
 #ifdef HAVE_READLINE
             if (!opt_noreadline) {
                 in->linelen = 0;
-                in->linebuf = readline(in->show_prompt ? "\n--> " : "    ");
+                in->linebuf = readline(in->show_prompt ? in->show_prompt : "    ");
                 if (!(in->linebuf)) {
                     in->is_eof = 1;
                     return -1; // end of file
@@ -140,7 +140,7 @@ static int lxgetc(lxfile *in) {
 #endif
             {
                 // prompt
-                fprintf(stdout, in->show_prompt ? "\n--> " : "    ");
+                fprintf(stdout, "%s", in->show_prompt ? in->show_prompt : "    ");
                 fflush(stdout);
                 in->linebuf = lex_getline(in->f, &(in->linelen));
                 if (!(in->linebuf)) {

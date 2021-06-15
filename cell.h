@@ -49,6 +49,7 @@ enum cell_t {
 
 struct cell_s {
     unsigned ref     : 32; // TODO will limit total # of cells; 64bit
+    unsigned pure    : 1;  // for constant folding and so on
     unsigned mark    : 1;  // for garbage collect
     unsigned pmark   : 1;  // for printing TODO needed?
     enum cell_t type : 6;
@@ -130,10 +131,12 @@ void cell_unref(cell *cp);
 
 #endif
 
-cell *cell_cfunQ(cell *(*fun)(cell *, cell **));
 cell *cell_cfunN(cell *(*fun)(cell *));
 cell *cell_cfun1(cell *(*fun)(cell *));
 cell *cell_cfun2(cell *(*fun)(cell *, cell *));
+cell *cell_cfunN_pure(cell *(*fun)(cell *));
+cell *cell_cfun1_pure(cell *(*fun)(cell *));
+cell *cell_cfun2_pure(cell *(*fun)(cell *, cell *));
 
 cell *cell_list(cell *car, cell *cdr);
 cell *cell_elist(cell *car, cell *cdr);

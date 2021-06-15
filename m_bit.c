@@ -75,11 +75,11 @@ cell *module_bit() {
     // TODO consider cache
     cell *a = cell_assoc();
 
-    assoc_set(a, cell_symbol("and"),    cell_cfunN(cbit_and));
-    assoc_set(a, cell_symbol("not"),    cell_cfun1(cbit_not));
-    assoc_set(a, cell_symbol("or"),     cell_cfunN(cbit_or));
-    assoc_set(a, cell_symbol("xor"),    cell_cfunN(cbit_xor));
-    assoc_set(a, cell_symbol("shift"),  cell_cfun2(cbit_shift));
+    assoc_set(a, cell_symbol("and"),    cell_cfunN_pure(cbit_and));
+    assoc_set(a, cell_symbol("not"),    cell_cfun1_pure(cbit_not));
+    assoc_set(a, cell_symbol("or"),     cell_cfunN_pure(cbit_or));
+    assoc_set(a, cell_symbol("xor"),    cell_cfunN_pure(cbit_xor));
+    assoc_set(a, cell_symbol("shift"),  cell_cfun2_pure(cbit_shift));
 
     return a;
 }

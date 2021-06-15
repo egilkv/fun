@@ -6,7 +6,11 @@
 #include <stdio.h>
 
 #include "cfun.h"
+#include "oblist.h"
+#include "number.h"
+#include "parse.h"
 #include "m_io.h"
+#include "err.h"
 
 // for use in debugger
 void debug_prints(const char *msg) {
@@ -90,3 +94,70 @@ int debug_traceoff(cell *a) {
     return 0;
 }
 
+// debugging, trace value being passed
+static cell *cfun1_trace(cell *a) {
+    debug_trace(a);
+    return a;
+}
+
+// debugging, run garbage collection
+static cell *cfunN_gc(cell *args) {
+    integer_t nodes;
+    arg0(args);
+    nodes = oblist_sweep();
+    return cell_integer(nodes);
+}
+
+// debugging, breakpoint
+static cell *cfunN_bp(cell *args) {
+    arg0(args);
+    // TODO check if terminal is connected
+    // TODO 1st argument is returned here...
+    interactive_mode("*breakpoint*", "\nbp> ");
+    return cell_void();
+}
+
+// debugging, enable trace, return first (valid) argument
+static cell *cfunQ_traceon(cell *args) {
+    cell *result = cell_void();
+    cell *arg;
+    while (list_pop(&args, &arg)) {
+        if (!debug_traceon(arg)) {
+            arg = error_rt1("cannot enable trace for", arg);
+        }
+        if (result == hash_void) {
+            cell_unref(result);
+            result = arg;
+        } else {
+            cell_unref(arg);
+        }
+    }
+    return result;
+}
+
+// debugging, disable trace, return first (valid) argument
+static cell *cfunQ_traceoff(cell *args) {
+    cell *result = cell_void();
+    cell *arg;
+    while (list_pop(&args, &arg)) {
+        if (!debug_traceoff(arg)) {
+            arg = error_rt1("cannot disable trace for", arg);
+        }
+        if (result == hash_void) {
+            cell_unref(result);
+            result = arg;
+        } else {
+            cell_unref(arg);
+        }
+    }
+    return result;
+}
+
+void debug_init() {
+    symbol_set("#gc",       cell_cfunN(cfunN_gc)); // debugging
+    symbol_set("#trace",    cell_cfun1(cfun1_trace)); // debugging
+    symbol_set("#bp",       cell_cfunN(cfunN_bp)); // debugging
+    symbol_set("#traceoff", cell_cfunN(cfunQ_traceoff)); // debugging TODO args must be quoted
+    symbol_set("#traceon",  cell_cfunN(cfunQ_traceon)); // debugging TODO args must be quoted
+
+}

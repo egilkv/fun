@@ -223,10 +223,10 @@ cell *module_time() {
 
     assoc_set(a, cell_symbol("seconds"),   cell_cfunN(ctime_seconds));
     assoc_set(a, cell_symbol("sleep"),     cell_cfun1(ctime_sleep));
-    assoc_set(a, cell_symbol("localtime"), cell_cfun1(ctime_localtime));
-    assoc_set(a, cell_symbol("mktime"),    cell_cfun1(ctime_mktime));
-    assoc_set(a, cell_symbol("time"),      cell_cfunN(ctime_time)); // TODO args must be quoted
-    assoc_set(a, cell_symbol("utctime"),   cell_cfun1(ctime_utctime));
+    assoc_set(a, cell_symbol("localtime"), cell_cfun1_pure(ctime_localtime)); // TODO purish
+    assoc_set(a, cell_symbol("mktime"),    cell_cfun1_pure(ctime_mktime));    // TODO purish
+    assoc_set(a, cell_symbol("time"),      cell_cfunN(ctime_time));
+    assoc_set(a, cell_symbol("utctime"),   cell_cfun1_pure(ctime_utctime));
 
     return a;
 }

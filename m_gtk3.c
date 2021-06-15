@@ -1945,16 +1945,6 @@ cell *module_gtk() {
     DEFINE_CFUN1(window_get_titlebar)
     DEFINE_CFUN1(window_set_interactive_debugging)
 
-#if 0
-    // Gtk enums and masks
-    set_init(cgtk_orientation);
-    set_init(cgtk_window_type);
-    set_init(cgdk_gravity);
-    set_init(cgdk_modifier_type);
-    set_init(cgdk_event_mask);
-    set_init(cgdk_signals);
-#endif
-
     return a;
 }
 

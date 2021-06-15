@@ -417,9 +417,13 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
                     cell_unref(funs);
                     return 0;
                 }
-                // TODO assume all of these functions are pure
-                // TODO #include and #exit is not pure, possibly also #use
+                if (!fun->pure) {
+                    // cannot fold impure function
+                    cell_unref(fun);
+                    return 0;
+                }
                 // TODO for #plus and #times (and others) it is possible to order and make some constants
+                // TODO check also each variable for purity
 
                 if ((n = compile2constant_args(cell_ref(args), &argdef, cep)) < 0) {
                     cell_unref(fun);

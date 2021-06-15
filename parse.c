@@ -16,6 +16,7 @@
 #include "m_io.h" // cell_write
 #include "compile.h"
 #include "run.h"
+#include "opt.h"
 
 #include "oblist.h"
 
@@ -29,13 +30,23 @@ static cell *badeof() {
     return 0;
 }
 
+void interactive_mode(const char *greeting, const char *prompt) {
+    lxfile infile;
+    lxfile_init(&infile, stdin, NULL);
+    infile.show_parse = (opt_showparse ? 1:0) | (opt_showcode ? 2:0);
+    if (infile.is_terminal) {
+        fprintf(stdout, "%s", greeting);
+    }
+    cell_unref(chomp_lx(&infile, prompt));
+}
+
 // return last item, or void if none
-cell *chomp_lx(lxfile *lxf) {
+cell *chomp_lx(lxfile *lxf, const char *prompt) {
     cell *result = cell_void();
     cell *ct;
 
     for (;;) {
-        lxf->show_prompt = 1;
+        lxf->show_prompt = prompt;
         ct = expression(lxf);
 	if (!ct) break; // eof
 
@@ -82,7 +93,7 @@ int chomp_file(const char *name, cell **resultp) {
         return 0;
     }
     lxfile_init(&cfile, f, name);
-    result = chomp_lx(&cfile);
+    result = chomp_lx(&cfile, NULL);
     if (resultp) *resultp = result;
     else cell_unref(result);
     fclose(cfile.f);

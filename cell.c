@@ -287,21 +287,39 @@ cell *cell_number(number *np) {
     return node;
 }
 
-cell *cell_cfunN(struct cell_s *(*fun)(cell *)) {
+cell *cell_cfunN(cell *(*fun)(cell *)) {
     cell *node = newnode(c_CFUNN);
     node->_.cfun1.def = fun;
     return node;
 }
 
-cell *cell_cfun1(struct cell_s *(*fun)(cell *)) {
+cell *cell_cfun1(cell *(*fun)(cell *)) {
     cell *node = newnode(c_CFUN1);
     node->_.cfun1.def = fun;
     return node;
 }
 
-cell *cell_cfun2(struct cell_s *(*fun)(cell *, cell *)) {
+cell *cell_cfun2(cell *(*fun)(cell *, cell *)) {
     cell *node = newnode(c_CFUN2);
     node->_.cfun2.def = fun;
+    return node;
+}
+
+cell *cell_cfunN_pure(cell *(*fun)(cell *)) {
+    cell *node = cell_cfunN(fun);
+    node->pure = 1;
+    return node;
+}
+
+cell *cell_cfun1_pure(cell *(*fun)(cell *)) {
+    cell *node = cell_cfun1(fun);
+    node->pure = 1;
+    return node;
+}
+
+cell *cell_cfun2_pure(cell *(*fun)(cell *, cell *)) {
+   cell *node = cell_cfun2(fun);
+    node->pure = 1;
     return node;
 }
 

@@ -19,6 +19,12 @@ struct run_env {
     struct run_env *save; // TODO probably remoce
 } ;
 
+// the one run environment
+struct run_env *run_environment = 0;
+
+// the one run environment
+struct run_env *debug_environment = 0;
+
 static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_env *rep);
 
 // advance program pointer to anywhere
@@ -193,9 +199,6 @@ static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_e
     cell_unref(rep->prog);
     rep->prog = body;
 }
-
-// the one run environment
-struct run_env *run_environment = 0;
 
 // run a program from anywhere
 void run_async(cell *prog) {

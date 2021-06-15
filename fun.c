@@ -13,6 +13,7 @@
 #include "cfun.h"
 #include "qfun.h"
 #include "m_io.h"
+#include "debug.h"
 #include "err.h"
 
 int main(int argc, char * const argv[]) {
@@ -22,6 +23,7 @@ int main(int argc, char * const argv[]) {
     oblist_init();
     cfun_init();
     qfun_init();
+    debug_init();
 
     opterr = 0;
     while ((opt = getopt(argc, argv, "+:CGOPRS")) >= 0) switch (opt) {
@@ -58,17 +60,9 @@ int main(int argc, char * const argv[]) {
 	exit(stop);
     }
 
-    if (optind >= argc) { // filename on command line?
-        // interactive mode
-        lxfile infile;
-        lxfile_init(&infile, stdin, NULL);
-        infile.show_parse = (opt_showparse ? 1:0) | (opt_showcode ? 2:0);
-        if (infile.is_terminal) {
-            fprintf(stdout, "Have fun");
-        }
+    if (optind >= argc) { // no filename on command line?
         cfun_args(0, NULL);
-
-        cell_unref(chomp_lx(&infile));
+        interactive_mode("Have fun", "\n--> ");
     } else {
         cfun_args(argc-optind, &argv[optind]); // argv[0] is program name
         // TODO consider setting linux program name too
