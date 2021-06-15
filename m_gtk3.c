@@ -167,7 +167,7 @@ static cell *cgtk_##gname(cell *widget) { \
     const char *cstr; \
     if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
     cstr = gtk_##gname(gtype(wp)); \
-    return cell_astring(strdup(cstr), strlen(cstr)); \
+    return cell_cstring(cstr); \
 }
 
 #define WIDGET_SET_CSTRING(gname, gtype) \
@@ -239,7 +239,7 @@ static cell *cgtk_##gname(cell *args) { \
     const char *cstr; \
     arg0(args); \
     cstr = gtk_##gname(); \
-    return cell_astring(strdup(cstr), strlen(cstr)); \
+    return cell_cstring(cstr); \
 }
 
 #define CSTRING_GET_WIDGET(gname) \
@@ -1157,6 +1157,252 @@ WIDGET_SET_BOOL(window_set_has_user_ref_count, GTK_WINDOW)
 WIDGET_SET_WIDGET(window_set_titlebar, GTK_WINDOW)
 WIDGET_GET_WIDGET(window_get_titlebar, GTK_WINDOW)
 VOID_SET_BOOL(window_set_interactive_debugging)
+
+////////////////////////////////////////////////////////////////
+//
+//  GdkEvent
+//  https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html
+//
+
+// TODO static
+cell * cell_gdkevent(GdkEvent *event) {
+    cell *a = cell_assoc();
+    cell *type = cell_symbol("type");
+    // TODO ignore type->send_event
+    assert(event);
+    if (((GdkEventAny *)event)->window) {
+        assoc_set(a, cell_symbol("window"), cell_special(magic_gtk_widget, (void *)((GdkEventAny *)event)->window));
+    }
+    switch (event->type) {
+    case GDK_NOTHING: // a special code to indicate a null event.
+      nullevent:
+        assoc_set(a, type, cell_symbol("null"));
+        break;
+
+    case GDK_DELETE: // the window manager has requested that the toplevel window be hidden or destroyed, usually when the user clicks on a special icon in the title bar.
+        assoc_set(a, type, cell_symbol("delete"));
+        break;
+
+    case GDK_DESTROY: // the window has been destroyed.
+        assoc_set(a, type, cell_symbol("destroy"));
+        break;
+
+    case GDK_EXPOSE: // all or part of the window has become visible and needs to be redrawn.
+        assoc_set(a, type, cell_symbol("expose"));
+        break;
+
+    case GDK_MOTION_NOTIFY: // the pointer (usually a mouse) has moved.
+        assoc_set(a, type, cell_symbol("motion_notify"));
+        break;
+
+    case GDK_BUTTON_PRESS: // a mouse button has been pressed.
+        assoc_set(a, type, cell_symbol("button_press"));
+      buttonevent:
+        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventButton
+        // TODO time, axes, device, x_root, y_root
+        assoc_set(a, cell_symbol("x"), cell_real(((GdkEventButton *)event)->x));
+        assoc_set(a, cell_symbol("y"), cell_real(((GdkEventButton *)event)->y));
+        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventButton *)event)->button));
+        assoc_set(a, cell_symbol("button"), cell_integer(((GdkEventButton *)event)->button));
+        break;
+
+    case GDK_2BUTTON_PRESS: // a mouse button has been double-clicked (clicked twice within a short period of time). Note that each click also generates a GDK_BUTTON_PRESS event.
+    // alias: GDK_DOUBLE_BUTTON_PRESS
+        assoc_set(a, type, cell_symbol("2button_press"));
+        goto buttonevent;
+
+    case GDK_3BUTTON_PRESS: // a mouse button has been clicked 3 times in a short period of time. Note that each click also generates a GDK_BUTTON_PRESS event.
+    // alias: GDK_TRIPLE_BUTTON_PRESS
+        assoc_set(a, type, cell_symbol("3button_press"));
+        goto buttonevent;
+
+    case GDK_BUTTON_RELEASE: // a mouse button has been released.
+        assoc_set(a, type, cell_symbol("button_release"));
+        goto buttonevent;
+
+    case GDK_KEY_PRESS: // a key has been pressed.
+        assoc_set(a, type, cell_symbol("key_press"));
+        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventKey
+      keyevent:
+        // TODO time, hardware_keycode, group, is_modifier
+        assoc_set(a, cell_symbol("keyval"), cell_integer(((GdkEventKey *)event)->keyval));
+        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventKey *)event)->state));
+        assoc_set(a, cell_symbol("string"), cell_nastring(((GdkEventKey *)event)->string,
+                                                            ((GdkEventKey *)event)->length));
+        break;
+
+    case GDK_KEY_RELEASE: // a key has been released.
+        assoc_set(a, type, cell_symbol("key_release"));
+        goto keyevent;
+
+    case GDK_ENTER_NOTIFY: // the pointer has entered the window.
+        assoc_set(a, type, cell_symbol("enter_notify"));
+        break;
+
+    case GDK_LEAVE_NOTIFY: // the pointer has left the window.
+        assoc_set(a, type, cell_symbol("leave_notify"));
+        break;
+
+    case GDK_FOCUS_CHANGE: // the keyboard focus has entered or left the window.
+        assoc_set(a, type, cell_symbol("focus_change"));
+        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventFocus
+        assoc_set(a, cell_symbol("in"), cell_ref(((GdkEventFocus *)event)->in ? hash_t:hash_f));
+        break;
+
+    case GDK_CONFIGURE: // the size, position or stacking order of the window has changed. Note that GTK+ discards these events for GDK_WINDOW_CHILD windows.
+        assoc_set(a, type, cell_symbol("configure"));
+        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventConfigure
+        assoc_set(a, cell_symbol("x"), cell_integer(((GdkEventConfigure *)event)->x));
+        assoc_set(a, cell_symbol("y"), cell_integer(((GdkEventConfigure *)event)->y));
+        assoc_set(a, cell_symbol("width"), cell_integer(((GdkEventConfigure *)event)->width));
+        assoc_set(a, cell_symbol("height"), cell_integer(((GdkEventConfigure *)event)->height));
+        break;
+
+    case GDK_MAP: // the window has been mapped.
+        assoc_set(a, type, cell_symbol("map"));
+        break;
+
+    case GDK_UNMAP: // the window has been unmapped.
+        assoc_set(a, type, cell_symbol("unmap"));
+        break;
+
+    case GDK_PROPERTY_NOTIFY: // a property on the window has been changed or deleted.
+        assoc_set(a, type, cell_symbol("property_notify"));
+        break;
+
+    case GDK_SELECTION_CLEAR: // the application has lost ownership of a selection.
+        assoc_set(a, type, cell_symbol("selection_clear"));
+        break;
+
+    case GDK_SELECTION_REQUEST: // another application has requested a selection.
+        assoc_set(a, type, cell_symbol("selection_request"));
+        break;
+
+    case GDK_SELECTION_NOTIFY: // a selection has been received.
+        assoc_set(a, type, cell_symbol("selection_notify"));
+        break;
+
+    case GDK_PROXIMITY_IN: // an input device has moved into contact with a sensing surface (e.g. a touchscreen or graphics tablet).
+        assoc_set(a, type, cell_symbol("proximity_in"));
+        break;
+
+    case GDK_PROXIMITY_OUT: // an input device has moved out of contact with a sensing surface.
+        assoc_set(a, type, cell_symbol("proximity_out"));
+        break;
+
+    case GDK_DRAG_ENTER: // the mouse has entered the window while a drag is in progress.
+        assoc_set(a, type, cell_symbol("drag_enter"));
+        break;
+
+    case GDK_DRAG_LEAVE: // the mouse has left the window while a drag is in progress.
+        assoc_set(a, type, cell_symbol("drag_leave"));
+        break;
+
+    case GDK_DRAG_MOTION: // the mouse has moved in the window while a drag is in progress.
+        assoc_set(a, type, cell_symbol("drag_motion"));
+        break;
+
+    case GDK_DRAG_STATUS: // the status of the drag operation initiated by the window has changed.
+        assoc_set(a, type, cell_symbol("drag_status"));
+        break;
+
+    case GDK_DROP_START: // a drop operation onto the window has started.
+        assoc_set(a, type, cell_symbol("drop_start"));
+        break;
+
+    case GDK_DROP_FINISHED: // the drop operation initiated by the window has completed.
+        assoc_set(a, type, cell_symbol("drop_finished"));
+        break;
+
+    case GDK_CLIENT_EVENT: // a message has been received from another application.
+        assoc_set(a, type, cell_symbol("client_event"));
+        break;
+
+    case GDK_VISIBILITY_NOTIFY: // the window visibility status has changed.
+        assoc_set(a, type, cell_symbol("visibility_notify"));
+        // NOTE depreceated
+        break;
+
+    case GDK_SCROLL: // the scroll wheel was turned
+        assoc_set(a, type, cell_symbol("scroll"));
+        break;
+
+    case GDK_WINDOW_STATE: // the state of a window has changed. See GdkWindowState for the possible window states
+        assoc_set(a, type, cell_symbol("window_state"));
+        break;
+
+    case GDK_SETTING: // a setting has been modified.
+        assoc_set(a, type, cell_symbol("setting"));
+        break;
+
+    case GDK_OWNER_CHANGE: // the owner of a selection has changed. This event type was added in 2.6
+        assoc_set(a, type, cell_symbol("owner_change"));
+        break;
+
+    case GDK_GRAB_BROKEN: // a pointer or keyboard grab was broken.
+        assoc_set(a, type, cell_symbol("grab_broken"));
+        break;
+
+    case GDK_DAMAGE: // the content of the window has been changed.
+        assoc_set(a, type, cell_symbol("damage"));
+        break;
+
+    case GDK_TOUCH_BEGIN: // A new touch event sequence has just started.
+        assoc_set(a, type, cell_symbol("touch_begin"));
+      touchevent:
+        // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventTouch
+        // TODO time, axes, sequence, emulation_pointer, device, x_root, y_root
+        assoc_set(a, cell_symbol("x"), cell_real(((GdkEventButton *)event)->x));
+        assoc_set(a, cell_symbol("y"), cell_real(((GdkEventButton *)event)->y));
+        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventButton *)event)->button));
+        assoc_set(a, cell_symbol("button"), cell_integer(((GdkEventButton *)event)->button));
+        break;
+
+    case GDK_TOUCH_UPDATE: // A touch event sequence has been updated.
+        assoc_set(a, type, cell_symbol("touch_update"));
+        goto touchevent;
+
+    case GDK_TOUCH_END: // A touch event sequence has finished.
+        assoc_set(a, type, cell_symbol("touch_end"));
+        goto touchevent;
+
+    case GDK_TOUCH_CANCEL: // A touch event sequence has been canceled.
+        assoc_set(a, type, cell_symbol("touch_cancel"));
+        goto touchevent;
+
+    case GDK_TOUCHPAD_SWIPE: // A touchpad swipe gesture event, the current state is determined by its phase field.
+        assoc_set(a, type, cell_symbol("touchpad_swipe"));
+        goto touchevent;
+
+    case GDK_TOUCHPAD_PINCH: // A touchpad pinch gesture event, the current state is determined by its phase field.
+        assoc_set(a, type, cell_symbol("touchpad_pinch"));
+        goto touchevent;
+
+    case GDK_PAD_BUTTON_PRESS: // A tablet pad button press event.
+        assoc_set(a, type, cell_symbol("pad_button_press"));
+        break;
+
+    case GDK_PAD_BUTTON_RELEASE: // A tablet pad button release event.
+        assoc_set(a, type, cell_symbol("pad_button_release"));
+        break;
+
+    case GDK_PAD_RING: // A tablet pad axis event from a "ring".
+        assoc_set(a, type, cell_symbol("pad_ring"));
+        break;
+
+    case GDK_PAD_STRIP: // A tablet pad axis event from a "strip".
+        assoc_set(a, type, cell_symbol("pad_strip"));
+        break;
+
+    case GDK_PAD_GROUP_MODE: // A tablet pad group mode change.
+        assoc_set(a, type, cell_symbol("pad_group_mode"));
+        break;
+
+    case GDK_EVENT_LAST: // marks the end of the GdkEventType enumeration
+        goto nullevent;
+    }
+    return a;
+}
 
 ////////////////////////////////////////////////////////////////
 //
