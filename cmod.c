@@ -315,11 +315,7 @@ cell *ref_index(cell *a, index_t index) {
 
     case c_STRING:
 	if (index < a->_.string.len) {
-	    char_t *s = malloc(1 + 1);
-	    assert(s);
-	    s[0] = a->_.string.ptr[index];
-	    s[1] = '\0';
-            return cell_astring(s, 1);
+            return cell_nastring(&(a->_.string.ptr[index]), 1);
         } else {
             return error_rti("string index out of bounds", index);
 	}
@@ -375,7 +371,6 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
 
     case c_STRING:
         {
-            char_t *s;
             if (index > a->_.string.len) {
                 return error_rti("string range out of bounds", index);
             }
@@ -383,10 +378,7 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
                 return error_rti("string range out of bounds", index+len-1);
             }
             // TODO special case if whole string
-            s = malloc((len+1) * sizeof(char_t));
-	    assert(s);
-            memcpy(s, &(a->_.string.ptr[index]), (len+1) * sizeof(char_t)); // including '\0'
-            return cell_astring(s, len);
+            return cell_nastring(&(a->_.string.ptr[index]), len);
 	}
 
     case c_VECTOR:

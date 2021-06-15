@@ -36,6 +36,7 @@ static unsigned int hash_string(const char *sym) {
 // add symbol to oblist, with value
 // symbol is alloc'd as needed
 // val is consumed
+// not reffed
 cell *symbol_set(const char *sym, cell *val) {
     cell *ob = asymbol_find(strdup(sym)); // TODO strdup not required if symbol exists already
     oblist_set(ob, val);
@@ -44,12 +45,14 @@ cell *symbol_set(const char *sym, cell *val) {
 
 // add symbol to oblist, no value
 // symbol is alloc'd as needed
+// not reffed
 cell *symbol_peek(const char *sym) {
     return asymbol_find(strdup(sym)); // TODO strdup not required if symbol exists already
 }
 
 // add symbol to oblist, value is itself
 // symbol is alloc'd as needed
+// not reffed
 cell *symbol_self(const char *sym) {
     cell *def = symbol_set(sym, NIL); // set NIL value initially
     oblist_set(def, cell_ref(def)); // TODO consider weak binding, if possible

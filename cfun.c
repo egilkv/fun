@@ -896,9 +896,7 @@ void cfun_args(int argc, char * const argv[]) {
         vector = cell_vector_nil(argc);
         for (i = 0; i < argc; ++i) {
             // TODO can optimize by not allocating fixed string here and in cfun_init
-	    char_t *s = strdup(argv[i]);
-	    assert(s);
-	    vector->_.vector.table[i] = cell_astring(s, strlen(s));
+            vector->_.vector.table[i] = cell_cstring(argv[i]);
         }
     }
     hash_args = symbol_set("#args", vector);

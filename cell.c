@@ -242,7 +242,7 @@ void label_split(cell *cp, cell **carp, cell **cdrp) {
 }
 
 // symbol that is not malloc'd
-// TODO should optimze wrt constant symbols
+// TODO could optimze wrt constant symbols
 cell *cell_symbol(const char *symbol) {
     return cell_asymbol(strdup(symbol));
 }
@@ -252,11 +252,33 @@ cell *cell_asymbol(char *symbol) {
     return cell_ref(asymbol_find(symbol));
 }
 
+// strong that is malloc'd already
 cell *cell_astring(char_t *string, index_t length) {
     cell *node = newnode(c_STRING);
     node->_.string.ptr = string;
     node->_.string.len = length;
     return node;
+}
+
+// string that is not malloc'd already
+cell *cell_nastring(char_t *na_string, index_t length) {
+    char_t *string = malloc(length+1);
+    assert(string);
+    if (length > 0) memcpy(string, na_string, length);
+    string[length] = '\0'; // make C string also
+    return cell_astring(string, length);
+}
+
+// C string that is not malloc'd already
+cell *cell_cstring(const char *cstring) {
+    index_t length;
+    if (cstring) {
+        length = strlen(cstring);
+    } else {
+        cstring = "";
+        length = 0;
+    }
+    return cell_nastring((char_t *)cstring, length);
 }
 
 cell *cell_number(number *np) {

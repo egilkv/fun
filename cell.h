@@ -179,6 +179,8 @@ int cell_is_symbol(cell *cp);
 cell *cell_oblist_item(char_t *asym);
 
 cell *cell_astring(char_t *string, index_t length);
+cell *cell_nastring(char_t *na_string, index_t length);
+cell *cell_cstring(const char *cstring);
 int cell_is_string(cell *cp);
 
 cell *cell_assoc();
