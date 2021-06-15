@@ -469,3 +469,7 @@ cell *defq(cell *nam, cell *val, cell **envp) {
     }
     return val;
 }
+
+cell *cell_boolean(int bool) {
+    return cell_ref(bool ? hash_t : hash_f);
+}

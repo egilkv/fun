@@ -101,7 +101,7 @@ static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
     }
     if (!list_pop(&args, &iftrue)) {
         if (bool >= 0) {
-            add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
+            add2prog(c_DOQPUSH, cell_boolean(bool), nextpp);
         }
         // leave value from if-test
         cell_unref(error_rt0("missing value if true for if"));
@@ -147,7 +147,7 @@ static int compile1_and(cell *args, cell ***nextpp, struct compile_env *cep) {
             compilenc1void(test, nextpp, cep);
         }
         if (args == NIL) { // last item can be left as is
-            if (bool >= 0) add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
+            if (bool >= 0) add2prog(c_DOQPUSH, cell_boolean(bool), nextpp);
             break;
         }
         if (bool == 0) {
@@ -193,7 +193,7 @@ static int compile1_or(cell *args, cell ***nextpp, struct compile_env *cep) {
             compilenc1void(test, nextpp, cep);
         }
         if (args == NIL) { // last item does not need to be read
-            if (bool >= 0) add2prog(c_DOQPUSH, cell_ref(bool ? hash_t:hash_f), nextpp);
+            if (bool >= 0) add2prog(c_DOQPUSH, cell_boolean(bool), nextpp);
             break;
         }
         if (bool == 1) {

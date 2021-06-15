@@ -35,6 +35,8 @@ cell *ref_range2(cell *a, index_t index, integer_t len);
 cell *cell_void();
 cell *cell_error();
 
+cell *cell_boolean(int bool);
+
 cell *cfun2_ref(cell *a, cell *b);
 
 int exists_on_list(cell *list, cell *item);

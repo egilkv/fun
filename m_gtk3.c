@@ -129,7 +129,7 @@ static cell *cgtk_##gname(cell *widget) { \
     gboolean bval; \
     if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
     bval = gtk_##gname(gtype(wp)); \
-    return cell_ref(bval ? hash_t : hash_f); \
+    return cell_boolean(bval); \
 }
 
 #define WIDGET_SET_BOOL(gname, gtype) \
@@ -222,7 +222,7 @@ static cell *cgtk_##gname(cell *args) { \
     gboolean bval; \
     arg0(args); \
     bval = gtk_##gname(); \
-    return cell_ref(bval ? hash_t : hash_f); \
+    return cell_boolean(bval); \
 }
 
 #define VOID_SET_CSTRING(gname) \
@@ -823,9 +823,6 @@ static cell *cgtk_signal_connect(cell *args) {
     // cell_unref(callbackprog); // TODO when to unref callbackprog ???
     // void g_signal_handler_disconnect( gp, tag );
 
-
-
-
     cell_unref(app);
     cell_unref(hook);
     return cell_void();
@@ -1199,21 +1196,22 @@ cell * cell_gdkevent(GdkEvent *event) {
         assoc_set(a, type, cell_symbol("button_press"));
       buttonevent:
         // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventButton
-        // TODO time, axes, device, x_root, y_root
+        // TODO axes, device, x_root, y_root
+        assoc_set(a, cell_symbol("time"), cell_integer(((GdkEventButton *)event)->time)); // TODO see also #use("time"), coordinate
         assoc_set(a, cell_symbol("x"), cell_real(((GdkEventButton *)event)->x));
         assoc_set(a, cell_symbol("y"), cell_real(((GdkEventButton *)event)->y));
-        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventButton *)event)->button));
-        assoc_set(a, cell_symbol("button"), cell_integer(((GdkEventButton *)event)->button));
+        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventButton *)event)->state)); // TODO https://developer.gnome.org/gdk3/stable/gdk3-Windows.html#GdkModifierType
+        assoc_set(a, cell_symbol("button"), cell_integer(((GdkEventButton *)event)->button)); // usually 1 to 5
         break;
 
     case GDK_2BUTTON_PRESS: // a mouse button has been double-clicked (clicked twice within a short period of time). Note that each click also generates a GDK_BUTTON_PRESS event.
     // alias: GDK_DOUBLE_BUTTON_PRESS
-        assoc_set(a, type, cell_symbol("2button_press"));
+        assoc_set(a, type, cell_symbol("double_button_press"));
         goto buttonevent;
 
     case GDK_3BUTTON_PRESS: // a mouse button has been clicked 3 times in a short period of time. Note that each click also generates a GDK_BUTTON_PRESS event.
     // alias: GDK_TRIPLE_BUTTON_PRESS
-        assoc_set(a, type, cell_symbol("3button_press"));
+        assoc_set(a, type, cell_symbol("triple_button_press"));
         goto buttonevent;
 
     case GDK_BUTTON_RELEASE: // a mouse button has been released.
@@ -1224,9 +1222,10 @@ cell * cell_gdkevent(GdkEvent *event) {
         assoc_set(a, type, cell_symbol("key_press"));
         // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventKey
       keyevent:
-        // TODO time, hardware_keycode, group, is_modifier
+        // TODO hardware_keycode, group, is_modifier
+        assoc_set(a, cell_symbol("time"), cell_integer(((GdkEventKey *)event)->time)); // TODO see also #use("time"), coordinate
         assoc_set(a, cell_symbol("keyval"), cell_integer(((GdkEventKey *)event)->keyval));
-        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventKey *)event)->state));
+        assoc_set(a, cell_symbol("state"), cell_integer(((GdkEventKey *)event)->state)); // TODO bit mask, improve...
         assoc_set(a, cell_symbol("string"), cell_nastring(((GdkEventKey *)event)->string,
                                                             ((GdkEventKey *)event)->length));
         break;
@@ -1246,7 +1245,7 @@ cell * cell_gdkevent(GdkEvent *event) {
     case GDK_FOCUS_CHANGE: // the keyboard focus has entered or left the window.
         assoc_set(a, type, cell_symbol("focus_change"));
         // https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html#GdkEventFocus
-        assoc_set(a, cell_symbol("in"), cell_ref(((GdkEventFocus *)event)->in ? hash_t:hash_f));
+        assoc_set(a, cell_symbol("in"), cell_boolean(((GdkEventFocus *)event)->in));
         break;
 
     case GDK_CONFIGURE: // the size, position or stacking order of the window has changed. Note that GTK+ discards these events for GDK_WINDOW_CHILD windows.

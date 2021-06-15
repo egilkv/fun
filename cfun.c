@@ -33,7 +33,7 @@ static cell *cfun1_not(cell *a) {
     if (!get_boolean(a, &bool, NIL)) {
         return cell_error();
     }
-    return bool ? cell_ref(hash_f) : cell_ref(hash_t);
+    return cell_boolean(!bool);
 }
 
 static cell *cfunN_plus(cell *args) {
@@ -642,14 +642,17 @@ static cell *cfunN_eq(cell *args) {
     }
     cell_unref(first);
     cell_unref(args);
-    return cell_ref(eq ? hash_t : hash_f);
+    return cell_boolean(eq);
 }
 
 static cell *cfunN_noteq(cell *args) {
+    int bool;
     cell *eq = cfunN_eq(args);
-    cell *result = cell_ref((eq == hash_t) ? hash_f : hash_t);
-    cell_unref(eq);
-    return result;
+    if (peek_boolean(eq, &bool)) {
+        cell_unref(eq);
+        eq = cell_boolean(!bool);
+    }
+    return eq;
 }
 
 static cell *cfun1_count(cell *a) {

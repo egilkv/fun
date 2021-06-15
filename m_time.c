@@ -99,7 +99,7 @@ static cell *tm2assoc(struct tm *tp, integer_t usec) {
     assoc_set(result, cell_symbol("wday"),  cell_integer(tp->tm_wday)); // 0 .. 6, 0=sunday
     assoc_set(result, cell_symbol("yday"),  cell_integer(tp->tm_yday)); // 0 .. 365
     if (tp->tm_isdst >= 0)
-      assoc_set(result, cell_symbol("isdst"), cell_ref(tp->tm_isdst > 0 ? hash_t:hash_f));
+      assoc_set(result, cell_symbol("isdst"), cell_boolean(tp->tm_isdst > 0));
     return result;
 }
 
