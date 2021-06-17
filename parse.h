@@ -34,11 +34,9 @@ enum prec_ {
 
 typedef enum prec_ precedence;
 
-void interactive_mode(const char *greeting, const char *prompt);
+void interactive_mode(const char *greeting, const char *prompt, cell *env0);
 
 cell *expression(lxfile *in);
-
-cell *chomp_lx(lxfile *lxf, const char *prompt);
 
 int chomp_file(const char *name, cell **resultp);
 

@@ -62,7 +62,7 @@ int main(int argc, char * const argv[]) {
 
     if (optind >= argc) { // no filename on command line?
         cfun_args(0, NULL);
-        interactive_mode("Have fun", "\n--> ");
+        interactive_mode("Have fun", "\n--> ", NIL);
     } else {
         cfun_args(argc-optind, &argv[optind]); // argv[0] is program name
         // TODO consider setting linux program name too

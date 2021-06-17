@@ -10,6 +10,7 @@
 #include "number.h"
 #include "parse.h"
 #include "m_io.h"
+#include "run.h"
 #include "err.h"
 
 // for use in debugger
@@ -110,10 +111,20 @@ static cell *cfunN_gc(cell *args) {
 
 // debugging, breakpoint
 static cell *cfunN_bp(cell *args) {
+    cell *run_env = current_run_env();
+    cell *env0;
     arg0(args);
     // TODO check if terminal is connected
     // TODO 1st argument is returned here...
-    interactive_mode("*breakpoint*", "\nbp> ");
+
+    if (run_env == NIL) {
+        cell_unref(error_rt0("breakpoint in global env")); // TODO remove message
+        env0 = NIL;
+    } else {
+        // prevenv and prog are both NIL
+        env0 = cell_env(NIL, NIL, cell_ref(env_assoc(run_env)), cell_ref(env_cont_env(run_env)));
+    }
+    interactive_mode("*breakpoint*", "\nbp> ", env0);
     return cell_void();
 }
 

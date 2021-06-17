@@ -3,4 +3,4 @@
  *
  */
 
-cell *compile(cell *prog);
+cell *compile(cell *item, cell *env0);

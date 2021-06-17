@@ -1020,7 +1020,7 @@ static cell *cgtk_signal_connect(cell *args) {
     switch (type) {
     case 0: // no extra data provided
         // connect where data is the function with one argument, the current argument (app or widget)
-        callbackprog = compile(cell_func(callback, NIL));
+        callbackprog = compile(cell_func(callback, NIL), NIL);
 
         // TODO gulong tag =
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_none), callbackprog);
@@ -1028,14 +1028,14 @@ static cell *cgtk_signal_connect(cell *args) {
 
     case 1: // extra parameter: integer response_id
         // TODO do something smarter here
-        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)));
+        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)), NIL);
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_int), callbackprog);
         break;
 
     case 2: // extra parameter: GdkEvent *event
         // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
         // TODO do something smarter here
-        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)));
+        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)), NIL);
         g_signal_connect(gp, signal, G_CALLBACK(do_callback_event), callbackprog);
         break;
 

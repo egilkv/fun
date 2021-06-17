@@ -261,6 +261,16 @@ static int compile1_refq(cell *args, cell ***nextpp, struct compile_env *cep) {
     return 1;
 }
 
+// prepare a new level of compile environment
+static struct compile_env *new_compile_env(struct compile_env *cep, cell *assoc) {
+    struct compile_env *newenv = malloc(sizeof(struct compile_env));
+    assert(newenv);
+    memset(newenv, 0, sizeof(struct compile_env));
+    newenv->prev = cep;
+    newenv->vars = assoc;
+    return newenv;
+}
+
 // return 1 if something was pushed, 0 otherwise
 static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) {
     cell *prog;
@@ -272,14 +282,7 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
     }
 
     // prepare a new level of compile environment
-    {
-        struct compile_env *newenv = malloc(sizeof(struct compile_env));
-        assert(newenv);
-        memset(newenv, 0, sizeof(struct compile_env));
-        newenv->prev = cep;
-        newenv->vars = cell_assoc();
-        cep = newenv;
-    }
+    cep = new_compile_env(cep, cell_assoc());
 
     // TODO consider moving to parser
     // check for proper and for duplicate parameters
@@ -773,9 +776,18 @@ static cell *compile_list(cell *tree, struct compile_env *cep) {
 
 // if total failure, result is NIL
 // TODO deal with that
-cell *compile(cell *item) {
+cell *compile(cell *item, cell *env0) {
     cell *result = NIL;
     cell **nextp = &result;
-    compile1(item, &nextp, NULL);
+    struct compile_env *cep = NULL;
+    if (env0) {
+        // prepare a level of compile environment for the one supplied
+        // TODO loop to also include any continuations
+        cep = new_compile_env(cep, cell_ref(env_assoc(env0)));
+    }
+    compile1(item, &nextp, cep);
     return result; 
 }
+
+
+

@@ -16,14 +16,22 @@ struct run_env {
     cell *prog;
     cell *stack;
     cell *env;
-    struct run_env *save; // TODO probably remoce
+    struct run_env *save; // TODO probably remove??
 } ;
 
 // the one run environment
-struct run_env *run_environment = 0;
+static struct run_env *run_environment = 0;
 
-// the one run environment
-struct run_env *debug_environment = 0;
+// for debugging
+cell *current_run_env() {
+    if (!run_environment) {
+        cell_unref(error_rt0("breakpoint without run")); // TODO should not happen
+        return NIL;
+    } else {
+        // prevenv and prog are both NIL
+        return run_environment->env;
+    }
+}
 
 static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_env *rep);
 
@@ -203,17 +211,19 @@ static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct run_e
 // run a program from anywhere
 void run_async(cell *prog) {
     // TODO implement async
-    cell_unref(run_main(prog));
+    cell_unref(run_main(prog, NIL));
 }
 
 #if 0
 // insert a program
-// TODO not used, may ont work
+// TODO not used, may not work
 void run_also(cell *prog) {
     if (run_environment) {
+        // TODO or:
+        // cell_unref(run_main(prog), cell_ref(run_environment->???));
         run_pushprog(prog, NIL, NIL, run_environment);
     } else {
-        cell_unref(run_main(prog));
+        cell_unref(run_main(prog, NIL));
     }
 }
 #endif
@@ -240,18 +250,18 @@ void run_main_apply(cell *lambda, cell *args) {
 
         *pp = newnode(c_DOAPPLY);
 
-        cell_unref(run_main(prog));
+        cell_unref(run_main(prog, NIL));
     }
 }
 
 // main run program facility, return result
-cell *run_main(cell *prog) {
+cell *run_main(cell *prog, cell *env0) {
     struct run_env re;
 
     re.prog = prog;
     re.stack = NIL;
-    re.env = NIL;
-    re.save = run_environment; // mostly NULL
+    re.env = env0;
+    re.save = run_environment; // should usually be NULL
     run_environment = &re;
 
     for (;;) {

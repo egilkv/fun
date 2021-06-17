@@ -20,6 +20,7 @@
 
 #include "oblist.h"
 
+static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0);
 static cell *expr(precedence lv, lxfile *in);
 static cell *getlist(item *op, token sep_token, token end_token, 
                      precedence blv, lxfile *in);
@@ -30,18 +31,18 @@ static cell *badeof() {
     return 0;
 }
 
-void interactive_mode(const char *greeting, const char *prompt) {
+void interactive_mode(const char *greeting, const char *prompt, cell *env0) {
     lxfile infile;
     lxfile_init(&infile, stdin, NULL);
     infile.show_parse = (opt_showparse ? 1:0) | (opt_showcode ? 2:0);
     if (infile.is_terminal) {
         fprintf(stdout, "%s", greeting);
     }
-    cell_unref(chomp_lx(&infile, prompt));
+    cell_unref(chomp_lx(&infile, prompt, env0));
 }
 
 // return last item, or void if none
-cell *chomp_lx(lxfile *lxf, const char *prompt) {
+static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
     cell *result = cell_void();
     cell *ct;
 
@@ -59,7 +60,8 @@ cell *chomp_lx(lxfile *lxf, const char *prompt) {
 	    }
 	}
 
-        ct = compile(ct);
+        // TODO should also provide env0 to compile
+        ct = compile(ct, env0);
         if (lxf->f == stdin) {
             if (lxf->show_parse & 2) {
                 cell_write(stdout, ct);
@@ -67,7 +69,7 @@ cell *chomp_lx(lxfile *lxf, const char *prompt) {
 	    }
 	}
 
-        ct = run_main(ct);
+        ct = run_main(ct, cell_ref(env0));
 
         if (lxf->f == stdin) {
             if (ct != hash_void) { // write result if not void
@@ -82,6 +84,7 @@ cell *chomp_lx(lxfile *lxf, const char *prompt) {
     if (lxf->is_terminal) {
         printf("\n");
     }
+    cell_unref(env0); // consume it
     return result;
 }
 
@@ -93,7 +96,7 @@ int chomp_file(const char *name, cell **resultp) {
         return 0;
     }
     lxfile_init(&cfile, f, name);
-    result = chomp_lx(&cfile, NULL);
+    result = chomp_lx(&cfile, NULL, NIL);
     if (resultp) *resultp = result;
     else cell_unref(result);
     fclose(cfile.f);

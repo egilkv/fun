@@ -1,30 +1,44 @@
 
-GTK callback should not provide a value. Instead we do this ourselves as needed
-However, 'response will provide the response, as an integer.
+GTK callback should probably return widget as 1st argument.
 
 Add debugger and #breakpoint(). Option to switch to debugger on error.
 Debugger should have functions to look at locals in run_environment->env
 Also show what is in run_environment->prog and run_environment->save
 even run_environment->stack
+Maybe make #breakpoint() a special opcode debug opcode, that halts operation.
+Can be used for conditional trace and breakpoints, gets rid of closure0t.
+One other option is to make a new frame for breakpoint that essentially is a copy of
+the current one, with pointer to same assoc and continuation.
+#trace(a,b,c) should print a,b,c and return value of c ????
 
-The argument to the GTK3 callback is not handled right. E.g. response
+Add line number and filename info to each program node.
+23 bits?
+10 bits lineno, 1000 lines
+7 bits colno, 128 columns
+6 bits fileno, 64 files?
+Alternatively, have large array of locations, and an increasing index# to that-
+Uses lots of memory, but super capacity. or use 64 bits in cell.
+Each location is e.g. 32 bits, with lineno, colno, fileno
+Or even with file index, for lazy random access.
 
 '[1, 2]   becomes  #list(1, 2).  Really?
 '1+2      becomes  #plus(1, 2).  Really?
 
-Optimize away globals that are immutable. Plus locals
+Stack in run should be conventional stack, i.e. vector that may be reallocated?
+Much faster, presumably
+
+Optimize away globals that are immutable. Plus locals?
 
 This really, really should yield void if A2 is unknown
 A2 == B2 ? "same":"not";
-
-Do not recurse if args produced errors. Fix to if mayy help a lot.
+Do not recurse if args produced errors. Fix to if mayy help a lot,
+see above.
 
 Printing label stuff, add parens:
 	[ a: 2, b: 3 ]
 	[ (a: 2), (b: 3) ]
 
 How to deal with back and forth local refs? Maybe this:
-
 	a = #undefined;
 	b = (){ something(a) };
 	a = (){ something(b) };
@@ -36,7 +50,6 @@ All print/write functions generate strings which are then channeled to files
 Parsing of code {} within {} is pretty broken, see qsort-new.fun
 
 Variadic function cannot be mixed with labels?
-
 What about ... = Also ... cannot be used as labels
 For variadic functions, Python uses this, which is better
 	function variadic_function($a, $b, ...$other) {
@@ -55,20 +68,15 @@ How to make weak bindings for local closures.
 keyval -> keyweak
 HAVE_WEAK for now disabled
 
-list[1..] 
-list(0..0)
-
-trace(a,b,c) should print a,b,c and return value of c
-
 Div and mod as operators, e.g. /% and %
 
 2^;
 
 get_integer() -> get_anyinteger()
 
-Suggest |-operator for replacements, so somewhat related to &.
-
 <something> is also a syntax to consider
+
+Suggest |-operator for replacements, so somewhat related to &.
 
 If ++ is catenation, then +- could be replacements for vectors and assocs
 Then -- could be to remove whatever...
@@ -76,6 +84,8 @@ Then -- could be to remove whatever...
 How to deal with duplicate keys on ++)
 Alternative is & for catenation | for replacements, perhaps ~ for removals;
 
+list(1..)
+list(0..0)
 Array indexing can also be done by (), as a function arg. Maybe skip [] altogether.
 b = [1, 2, 3];
 b(1);
@@ -101,8 +111,6 @@ Ranges as function arguments does not work. Maybe they should.
 Enable in-line for #if
 #if 0 // TODO enable...
 
-Returning arg in m_gtk, is that really smart?
-
 Clojure:
 Quotient is that called a ratio? Assoc is that a map
 #doc(func) shows documentation
@@ -112,7 +120,7 @@ Catenate is called conjoin
 
 Modules. Namespaces?
 
-These are the same:
+These are the same, not currently supported (and needless, catenate is easy)
 #apply(f, [1, 2, 3, 4])
 #apply(f, 1, 2, [3, 4])
 #apply(f, 1, 2, 3, 4, [])
@@ -161,8 +169,6 @@ Try to nullify it. So in addition to { a : b }, we can also have { a }
 which means? And { a ; b }
 
 Vector/list and function subscript is the same? So fib(0..10) returns a vector??
-
-Fully implement function call without use of C stack
 
 c_STRING8
 c_STRING16
@@ -255,8 +261,6 @@ Proposal:
 	1..100[1..] ==> 2..100
 	100.100[1..] ==> []
 
-Add #eval
+Add #eval? Or not
 
-Should have #error() to signal own errors
-
-Also #assert()
+Have #assert()
