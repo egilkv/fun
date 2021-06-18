@@ -1,6 +1,4 @@
 
-GTK callback should probably return widget as 1st argument.
-
 Add debugger and #breakpoint(). Option to switch to debugger on error.
 Debugger should have functions to look at locals in run_environment->env
 Also show what is in run_environment->prog and run_environment->save

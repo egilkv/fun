@@ -35,6 +35,26 @@ static void compile1void(cell *item, cell ***nextpp, struct compile_env *cep);
 static void compilenc1void(cell *item, cell ***nextpp, struct compile_env *cep);
 static cell *compile_list(cell *tree, struct compile_env *cep);
 
+// prepare a new level of compile environment
+static struct compile_env *new_compile_env(struct compile_env *cep, cell *assoc) {
+    struct compile_env *newenv = malloc(sizeof(struct compile_env));
+    assert(newenv);
+    memset(newenv, 0, sizeof(struct compile_env));
+    newenv->prev = cep;
+    newenv->vars = assoc;
+    return newenv;
+}
+
+// drop a level of compile environment
+static void drop_compile_env(struct compile_env **cepp) {
+    struct compile_env *prevenv = (*cepp)->prev;
+    assert(cepp && *cepp);
+    prevenv = (*cepp)->prev;
+    cell_unref((*cepp)->vars);
+    free(*cepp);
+    *cepp = prevenv;
+}
+
 // return unreffed node if needed
 static cell *add2prog(enum cell_t type, cell *car, cell ***nextpp) {
     cell *node = newnode(type);
@@ -261,16 +281,6 @@ static int compile1_refq(cell *args, cell ***nextpp, struct compile_env *cep) {
     return 1;
 }
 
-// prepare a new level of compile environment
-static struct compile_env *new_compile_env(struct compile_env *cep, cell *assoc) {
-    struct compile_env *newenv = malloc(sizeof(struct compile_env));
-    assert(newenv);
-    memset(newenv, 0, sizeof(struct compile_env));
-    newenv->prev = cep;
-    newenv->vars = assoc;
-    return newenv;
-}
-
 // return 1 if something was pushed, 0 otherwise
 static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) {
     cell *prog;
@@ -339,18 +349,13 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
         add2prog(c_DOQPUSH, cp, nextpp);
     }
 
-    // drop locals
-    {
-        struct compile_env *prevenv = cep->prev;
-        if (opt_showcode) { // debug?
-            printf("\nlambda: params=%d, locals=%d, refs: local=%d, closure=%d, global=%d\nprog=",
-                    cep->params, cep->locals, cep->ref_local, cep->ref_closure, cep->ref_global);
-            debug_writeln(prog);
-        }
-        cell_unref(cep->vars);
-        free(cep);
-        cep = prevenv;
+    if (opt_showcode) { // debug?
+        printf("\nlambda: params=%d, locals=%d, refs: local=%d, closure=%d, global=%d\nprog=",
+                 cep->params, cep->locals, cep->ref_local, cep->ref_closure, cep->ref_global);
+        debug_writeln(prog);
     }
+
+    drop_compile_env(&cep);
 
     return 1;
 }
@@ -781,13 +786,19 @@ cell *compile(cell *item, cell *env0) {
     cell **nextp = &result;
     struct compile_env *cep = NULL;
     if (env0) {
-        // prepare a level of compile environment for the one supplied
-        // TODO loop to also include any continuations
-        cep = new_compile_env(cep, cell_ref(env_assoc(env0)));
+        // prepare a level of compile environment for 
+        // any pre-existing runtime environment
+        struct compile_env **pp = &cep;
+        do {
+            *pp = new_compile_env(NULL, cell_ref(env_assoc(env0)));
+            pp = &((*pp)->prev);
+            // also include any continuations
+        } while ((env0 = env_cont_env(env0)));
     }
     compile1(item, &nextp, cep);
+    // release any environments
+    while (cep) drop_compile_env(&cep);
+
     return result; 
 }
-
-
 
