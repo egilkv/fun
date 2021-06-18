@@ -12,15 +12,33 @@
 #include "err.h"
 #include "debug.h"
 
-struct run_env {
-    cell *prog;
-    cell *stack;
-    cell *env;
-    struct run_env *save; // TODO probably remove??
-} ;
-
 // the one run environment
 static struct run_env *run_environment = 0;
+
+// list of other ready processes
+// static struct run_env *ready_list = 0;
+
+// free up all run environment resources
+void run_environment_drop(struct run_env *rep) {
+    while (rep) {
+        cell_unref(rep->prog);
+        cell_unref(rep->stack);
+        cell_unref(rep->env);
+	run_environment_drop(rep->save);
+        rep = rep->next;
+    }
+}
+
+// sweep run environment resources
+void run_environment_sweep(struct run_env *rep) {
+    while (rep) {
+        cell_sweep(rep->prog);
+        cell_sweep(rep->stack);
+        cell_sweep(rep->env);
+	run_environment_sweep(rep->save);
+        rep = rep->next;
+    }
+}
 
 // for debugging
 cell *current_run_env() {

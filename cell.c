@@ -11,6 +11,7 @@
 #include "oblist.h"
 #include "node.h"
 #include "cmod.h" // hash_undef
+#include "run.h"
 
 cell *cell_list(cell *car, cell *cdr) {
     cell *node = newnode(c_LIST);
@@ -124,6 +125,10 @@ int cell_is_assoc(cell *cp) {
 
 int cell_is_special(cell *cp, const char *magic) {
     return cp && cp->type == c_SPECIAL && (!magic || cp->_.special.magic == magic);
+}
+
+int cell_is_channel(cell *cp) {
+    return cp && cp->type == c_CHANNEL;
 }
 
 // TODO inline
@@ -413,6 +418,11 @@ cell *cell_assoc() {
     return node;
 }
 
+cell *cell_channel() {
+    cell *node = newnode(c_CHANNEL);
+    return node;
+}
+
 cell *cell_special(const char *magic, void *ptr) {
     cell *node = newnode(c_SPECIAL);
     node->_.special.ptr = ptr;
@@ -476,6 +486,10 @@ void cell_sweep(cell *node) {
             }
         }
         break;
+    case c_CHANNEL:
+        run_environment_sweep(node->_.channel.readers);
+        run_environment_sweep(node->_.channel.writers);
+	break;
     case c_SYMBOL: 
         // TODO these should exist only on oblist ?
         cell_sweep(node->_.symbol.val);
@@ -560,6 +574,10 @@ void cell_free1(cell *node) {
     case c_ASSOC:
         assoc_drop(node);
         break;
+    case c_CHANNEL:
+        run_environment_drop(node->_.channel.readers);
+        run_environment_drop(node->_.channel.writers);
+	break;
     case c_SPECIAL:
         // TODO invoke magic free function
         break;

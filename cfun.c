@@ -758,6 +758,14 @@ static cell *cfun1_type(cell *a) {
         t = "label";
         break;
 
+    case c_CHANNEL:
+        t = "channel";
+        break;
+
+    case c_SPECIAL:
+        t = a->_.special.magic ? a->_.special.magic : "special";
+        break;
+
     case c_CLOSURE:
     case c_CLOSURE0: // TODO are closures at global level really closures?
     case c_CLOSURE0T:
@@ -774,7 +782,6 @@ static cell *cfun1_type(cell *a) {
     case c_ELIST: // internal use only
     case c_PAIR:  // cannot be seen in the flesh
     case c_ENV:
-    case c_SPECIAL:
     case c_STOP:
     case c_KEYVAL:
     case c_DOQPUSH:

@@ -26,6 +26,7 @@ enum cell_t {
    c_NUMBER,
    c_VECTOR,
    c_ASSOC,
+   c_CHANNEL,
    c_SPECIAL,
    c_CFUN1,     // builtin, 1 arg
    c_CFUN2,     // builtin, 2 arg
@@ -88,6 +89,10 @@ struct cell_s {
         struct {
             struct cell_s *(*def)(struct cell_s *, struct cell_s *);
         } cfun2;
+        struct {
+            struct run_env *readers;
+            struct run_env *writers;
+        } channel; // for c_CHANNEL
         struct {
             integer_t narg;
             struct cell_s *cdr;
@@ -188,6 +193,9 @@ int cell_is_string(cell *cp);
 
 cell *cell_assoc();
 int cell_is_assoc(cell *cp);
+
+cell *cell_channel();
+int cell_is_channel(cell *cp);
 
 cell *cell_special(const char *magic, void *ptr);
 int cell_is_special(cell *cp, const char *magic);

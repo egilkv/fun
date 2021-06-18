@@ -112,15 +112,12 @@ static cell *cfunN_gc(cell *args) {
 // debugging, breakpoint
 static cell *cfunN_bp(cell *args) {
     cell *run_env = current_run_env();
-    cell *env0;
+    cell *env0 = NIL;
     arg0(args);
     // TODO check if terminal is connected
     // TODO 1st argument is returned here...
 
-    if (run_env == NIL) {
-        cell_unref(error_rt0("breakpoint in global env")); // TODO remove message
-        env0 = NIL;
-    } else {
+    if (run_env == NIL) { // breakpoint in a function?
         // prevenv and prog are both NIL
         env0 = cell_env(NIL, NIL, cell_ref(env_assoc(run_env)), cell_ref(env_cont_env(run_env)));
     }

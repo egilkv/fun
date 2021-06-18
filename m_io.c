@@ -357,8 +357,12 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "\n%*s)", indent+2,"");
         break;
 
+    case c_CHANNEL:
+        fprintf(out, "#channel(%s%s)", ct->_.channel.readers ? "R":"", ct->_.channel.readers ? "W":""); // TODO R/W is debug
+        break;
+
     case c_SPECIAL:
-        fprintf(out, "#special_%s()", ct->_.special.magic);
+        fprintf(out, "#special(%s)", ct->_.special.magic);
         break;
 
     case c_STOP:

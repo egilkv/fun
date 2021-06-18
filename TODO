@@ -27,6 +27,10 @@ Much faster, presumably
 
 Optimize away globals that are immutable. Plus locals?
 
+During garbage collect, do not forget:
+	run_environment_sweep(run_environment);
+	run_environment_sweep(ready_list);
+
 This really, really should yield void if A2 is unknown
 A2 == B2 ? "same":"not";
 Do not recurse if args produced errors. Fix to if mayy help a lot,
@@ -262,3 +266,5 @@ Proposal:
 Add #eval? Or not
 
 Have #assert()
+
+Optimize #type
