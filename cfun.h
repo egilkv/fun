@@ -11,6 +11,7 @@ cell *hash_cat;
 cell *hash_do;
 cell *hash_eq;
 cell *hash_ge;
+cell *hash_go;
 cell *hash_gt;
 cell *hash_le;
 cell *hash_lt;

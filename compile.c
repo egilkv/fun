@@ -36,7 +36,7 @@ static void compilenc1void(cell *item, cell ***nextpp, struct compile_env *cep);
 static cell *compile_list(cell *tree, struct compile_env *cep);
 
 // prepare a new level of compile environment
-static struct compile_env *new_compile_env(struct compile_env *cep, cell *assoc) {
+static struct compile_env *compile_env_new(struct compile_env *cep, cell *assoc) {
     struct compile_env *newenv = malloc(sizeof(struct compile_env));
     assert(newenv);
     memset(newenv, 0, sizeof(struct compile_env));
@@ -46,7 +46,7 @@ static struct compile_env *new_compile_env(struct compile_env *cep, cell *assoc)
 }
 
 // drop a level of compile environment
-static void drop_compile_env(struct compile_env **cepp) {
+static void compile_env_drop(struct compile_env **cepp) {
     struct compile_env *prevenv = (*cepp)->prev;
     assert(cepp && *cepp);
     prevenv = (*cepp)->prev;
@@ -292,7 +292,7 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
     }
 
     // prepare a new level of compile environment
-    cep = new_compile_env(cep, cell_assoc());
+    cep = compile_env_new(cep, cell_assoc());
 
     // TODO consider moving to parser
     // check for proper and for duplicate parameters
@@ -355,7 +355,7 @@ static int compile1_lambda(cell *args, cell ***nextpp, struct compile_env *cep) 
         debug_writeln(prog);
     }
 
-    drop_compile_env(&cep);
+    compile_env_drop(&cep);
 
     return 1;
 }
@@ -790,14 +790,14 @@ cell *compile(cell *item, cell *env0) {
         // any pre-existing runtime environment
         struct compile_env **pp = &cep;
         do {
-            *pp = new_compile_env(NULL, cell_ref(env_assoc(env0)));
+            *pp = compile_env_new(NULL, cell_ref(env_assoc(env0)));
             pp = &((*pp)->prev);
             // also include any continuations
         } while ((env0 = env_cont_env(env0)));
     }
     compile1(item, &nextp, cep);
     // release any environments
-    while (cep) drop_compile_env(&cep);
+    while (cep) compile_env_drop(&cep);
 
     return result; 
 }

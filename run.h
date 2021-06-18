@@ -2,16 +2,19 @@
  *
  */
 
-struct run_env {
-    cell *prog;             // program being run TODO also in env, but here for efficiency
+struct proc_run_env {
+    cell *env;              // current environment, including program pointer
     cell *stack;            // current runtime stack
-    cell *env;              // current environment
-    struct run_env *save;   // previous runtime environments, used when debugging primarily
-    struct run_env *next;   // next in line, for ready_list and such
+    int is_main;            // main thread
+    struct proc_run_env *next; // next in line
 } ;
 
-void run_environment_drop(struct run_env *rep);
-void run_environment_sweep(struct run_env *rep);
+extern struct proc_run_env *ready_list;
+
+struct proc_run_env *run_environment_new(cell *env, cell *stack);
+void run_environment_drop(struct proc_run_env *rep);
+void run_environment_sweep(struct proc_run_env *rep);
+void append_ready_list(struct proc_run_env *rep);
 
 // only one invokation:
 cell *run_main(cell *prog, cell *env0);

@@ -90,8 +90,8 @@ struct cell_s {
             struct cell_s *(*def)(struct cell_s *, struct cell_s *);
         } cfun2;
         struct {
-            struct run_env *readers;
-            struct run_env *writers;
+            struct proc_run_env *readers;
+            struct proc_run_env *writers;
         } channel; // for c_CHANNEL
         struct {
             integer_t narg;

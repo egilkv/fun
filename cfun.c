@@ -1,6 +1,6 @@
 /*  TAB-P
  *
- *  TODO should evaluation happen in functions? perhaps
+ *
  */
 
 #include <stdio.h>
@@ -14,6 +14,7 @@
 #include "number.h"
 #include "err.h"
 #include "parse.h" // chomp_file
+#include "run.h"
 #if HAVE_MATH
 #include "m_math.h"
 #endif
@@ -845,6 +846,45 @@ static cell *cfun1_include(cell *a) {
     return result;
 }
 
+// start coroutine
+static cell *cfun1_go(cell *arg) {
+    cell *prog;
+    cell *prog_args;
+    cell *cont_env;
+    cell *env;
+    struct proc_run_env *pe;
+
+    switch (arg ? arg->type : c_LIST) {
+    default:
+        return error_rt1("not a function thunk", arg);
+
+    case c_CLOSURE:
+        prog = arg->_.cons.car;
+        cont_env = arg->_.cons.cdr;
+        break;
+
+    case c_CLOSURE0:
+    case c_CLOSURE0T:
+        prog = arg;
+        cont_env = NIL;
+        break;
+
+    }
+    // TODO cannot have params, better errormsg?
+    prog_args = cell_ref(prog->_.cons.car);
+    arg0(prog_args);
+    prog = arg->_.cons.cdr;
+
+    env = cell_env(NIL /*prevenv*/, cell_ref(prog), NIL /*assoc*/, cell_ref(cont_env));
+    cell_unref(arg);
+
+    pe = run_environment_new(env, NIL);  // TODO could transfer prog_args to stack
+
+    append_ready_list(pe);
+
+    return cell_void();
+}
+
 // get from OS environment
 static cell *cfun1_getenv(cell *a) {
     extern char **environ;
@@ -921,6 +961,7 @@ void cfun_init() {
                     symbol_set("#exit",     cell_cfunN_pure(cfunN_exit));
                     symbol_set("#getenv",   cell_cfun1_pure(cfun1_getenv));
     hash_ge       = symbol_set("#ge",       cell_cfunN_pure(cfunN_ge));
+    hash_go       = symbol_set("#go",       cell_cfun1(cfun1_go)); // TODO pure?
     hash_gt       = symbol_set("#gt",       cell_cfunN_pure(cfunN_gt));
                     symbol_set("#include",  cell_cfun1(cfun1_include)); // TODO pure?
     hash_le       = symbol_set("#le",       cell_cfunN_pure(cfunN_le));
