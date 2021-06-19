@@ -1,4 +1,6 @@
 
+Rewrite debugger so that it places main on the ready list instead of the save thing.
+
 Add debugger and #breakpoint(). Option to switch to debugger on error.
 Debugger should have functions to look at locals in run_environment->env
 Also show what is in run_environment->prog and run_environment->save
@@ -27,9 +29,10 @@ Much faster, presumably
 
 Optimize away globals that are immutable. Plus locals?
 
+Have defq for globals and defq for locals
+
 During garbage collect, do not forget:
 	run_environment_sweep(run_environment);
-	run_environment_sweep(ready_list);
 
 This really, really should yield void if A2 is unknown
 A2 == B2 ? "same":"not";

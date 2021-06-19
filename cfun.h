@@ -8,6 +8,7 @@
 cell *hash_args;
 cell *hash_assoc;
 cell *hash_cat;
+cell *hash_channel;
 cell *hash_do;
 cell *hash_eq;
 cell *hash_ge;
@@ -21,8 +22,12 @@ cell *hash_not;
 cell *hash_noteq;
 cell *hash_plus;
 cell *hash_quotient;
+cell *hash_read;
 cell *hash_ref;
 cell *hash_times;
+cell *hash_write;
+
+cell *push_nothing;
 
 void cfun_init();
 void cfun_args(int argc, char * const argv[]);

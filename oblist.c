@@ -11,6 +11,7 @@
 
 #include "oblist.h"
 #include "node.h"
+#include "run.h" // ready_list
 #include "opt.h"
 
 #define OBLIST_HASH_SIZE 256
@@ -133,6 +134,10 @@ integer_t oblist_sweep() {
             p = p->next;
 	}
     }
+    // don't forget ready list
+    run_environment_sweep(ready_list);
+    // TODO also do things under run_main()
+
     // then sweep up
     return node_gc_cleanup();
 }
@@ -164,6 +169,11 @@ static void oblist_exit() {
 	}
     }
     oblist_teardown = 0;
+
+    run_environment_drop(ready_list);
+    ready_list = NULL;
+    // TODO also do things under run_main()
+
     if (opt_showoblist) printf("\n");
 
     // thereafter, clean up chunks

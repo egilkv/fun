@@ -849,10 +849,10 @@ static cell *cfun1_include(cell *a) {
 // start coroutine
 static cell *cfun1_go(cell *arg) {
     cell *prog;
-    cell *prog_args;
+    cell *params;
     cell *cont_env;
     cell *env;
-    struct proc_run_env *pe;
+    struct proc_run_env *pre;
 
     switch (arg ? arg->type : c_LIST) {
     default:
@@ -860,7 +860,7 @@ static cell *cfun1_go(cell *arg) {
 
     case c_CLOSURE:
         prog = arg->_.cons.car;
-        cont_env = arg->_.cons.cdr;
+        cont_env = cell_ref(arg->_.cons.cdr);
         break;
 
     case c_CLOSURE0:
@@ -868,21 +868,81 @@ static cell *cfun1_go(cell *arg) {
         prog = arg;
         cont_env = NIL;
         break;
-
     }
-    // TODO cannot have params, better errormsg?
-    prog_args = cell_ref(prog->_.cons.car);
-    arg0(prog_args);
-    prog = arg->_.cons.cdr;
-
-    env = cell_env(NIL /*prevenv*/, cell_ref(prog), NIL /*assoc*/, cell_ref(cont_env));
+    params = cell_ref(prog->_.cons.car);
+    prog = cell_ref(arg->_.cons.cdr);
     cell_unref(arg);
 
-    pe = run_environment_new(env, NIL);  // TODO could transfer prog_args to stack
+    env = cell_env(NIL /*prevenv*/, NIL /*prog*/, cell_assoc(), cont_env);
+    if (params) {
+        // TODO could transfer args to assoc...
+        // TODO cannot have params, better errormsg?
+        arg0(params);
+    }
+    pre = run_environment_new(prog, env, NIL); 
 
-    append_ready_list(pe);
+    append_proc_list(&ready_list, pre);
 
     return cell_void();
+}
+
+// start coroutine
+static cell *cfunN_channel(cell *args) {
+    arg0(args);
+    return cell_channel();
+}
+
+// start coroutine
+static cell *cfun1_read(cell *chan) {
+    cell *result;
+    struct proc_run_env *pre;
+    if (!cell_is_channel(chan)) {
+        return error_rt1("not a channel", chan);
+    }
+    if ((pre = chan->_.channel.writers)) {
+        // a writer is waiting, pick up argument from its stack
+        if (!list_pop(&(pre->stack), &result)) {
+            // TODO can this happen?
+            assert(0);
+        }
+        // and push back writer's result
+        pre->stack = cell_list(cell_void(), pre->stack);
+        // move to top of ready list
+        chan->_.channel.writers = pre->next;
+        pre->next = NULL;
+        prepend_proc_list(&ready_list, pre);
+    } else {
+        append_proc_list(&(chan->_.channel.readers), suspend());
+        result = push_nothing; // no result on stack
+    }
+    cell_unref(chan);
+    return result;
+}
+
+// start coroutine
+static cell *cfun2_write(cell *chan, cell *arg) {
+    cell *result;
+    struct proc_run_env *pre;
+    if (!cell_is_channel(chan)) {
+        cell_unref(arg);
+        return error_rt1("not a channel", chan);
+    }
+    if ((pre = chan->_.channel.readers)) {
+        // a reader is waiting, push read result directly on its stack
+        pre->stack = cell_list(arg, pre->stack);
+        // and move to top of ready list
+        chan->_.channel.readers = pre->next;
+        pre->next = NULL;
+        prepend_proc_list(&ready_list, pre);
+        result = cell_void();
+    } else {
+        // no reader waiting, push the argument on our own stack, then suspend
+        push_stack_current_run_env(arg);
+        append_proc_list(&(chan->_.channel.writers), suspend());
+        result = push_nothing; // no result on stack
+    }
+    cell_unref(chan);
+    return result;
 }
 
 // get from OS environment
@@ -918,7 +978,6 @@ static cell *cfun1_getenv(cell *a) {
     }
     cell_unref(a);
     return cell_void();
-
 }
 
 // set #args
@@ -948,6 +1007,9 @@ void cfun_init() {
     // TODO remove...
     hash_ellip   = symbol_set("...",   cell_ref(hash_void));
 
+    // special thing
+    push_nothing = cell_special(NULL, NIL);
+
     atexit(cfun_exit);
 
     // TODO hash_and etc are unrefferenced, and depends on oblist
@@ -955,6 +1017,7 @@ void cfun_init() {
     //      to keep symbols in play
     hash_assoc    = symbol_set("#assoc",    cell_cfunN_pure(cfunN_assoc));
     hash_cat      = symbol_set("#cat",      cell_cfunN_pure(cfunN_cat));
+    hash_channel  = symbol_set("#channel",  cell_cfunN_pure(cfunN_channel));
                     symbol_set("#count",    cell_cfun1_pure(cfun1_count));
     hash_eq       = symbol_set("#eq",       cell_cfunN_pure(cfunN_eq));
                     symbol_set("#error",    cell_cfunN_pure(cfunN_error));
@@ -972,16 +1035,22 @@ void cfun_init() {
     hash_noteq    = symbol_set("#noteq",    cell_cfunN_pure(cfunN_noteq));
     hash_plus     = symbol_set("#plus",     cell_cfunN_pure(cfunN_plus));
     hash_quotient = symbol_set("#quotient", cell_cfunN_pure(cfunN_quotient));
+    hash_read     = symbol_set("#read",     cell_cfun1(cfun1_read));
     hash_ref      = symbol_set("#ref",      cell_cfun2_pure(cfun2_ref));
     hash_times    = symbol_set("#times",    cell_cfunN_pure(cfunN_times));
                     symbol_set("#type",     cell_cfun1_pure(cfun1_type));
                     symbol_set("#use",      cell_cfun1_pure(cfun1_use));
+    hash_write    = symbol_set("#write",    cell_cfun2(cfun2_write));
 }
 
 static void cfun_exit(void) {
+
     // loose circular definitions
     oblist_set(hash_f, NIL);
     oblist_set(hash_t, NIL);
     oblist_set(hash_void, NIL);
     oblist_set(hash_undef, NIL);
+
+    cell_unref(push_nothing);
+    push_nothing = NIL;
 }

@@ -10,6 +10,7 @@
 #include "cell.h"
 #include "run.h"
 #include "node.h" // newnode
+#include "cfun.h" // push_nothing
 #include "cmod.h" // get_boolean
 #include "err.h"
 #include "debug.h"
@@ -17,8 +18,8 @@
 // statically allocated run environment
 struct current_run_env {
     cell *prog;             // program being run TODO also in env, but here for efficiency
-    cell *stack;            // current runtime stack
     cell *env;              // current environment
+    cell *stack;            // current runtime stack
     int is_main;            // main thread
     struct current_run_env *save; // previous runtime environments, used when debugging primarily
 } ;
@@ -30,10 +31,10 @@ static struct current_run_env *run_environment = 0;
 struct proc_run_env *ready_list = 0;
 
 // prepare a new level of compile environment
-struct proc_run_env *run_environment_new(cell *env, cell *stack) {
+struct proc_run_env *run_environment_new(cell *prog, cell *env, cell *stack) {
     struct proc_run_env *newenv = malloc(sizeof(struct proc_run_env));
     assert(newenv);
-  //memset(newenv, 0, sizeof(struct proc_run_env));
+    newenv->prog = prog;
     newenv->env = env;
     newenv->stack = stack;
     newenv->next = NULL;
@@ -45,8 +46,9 @@ struct proc_run_env *run_environment_new(cell *env, cell *stack) {
 void run_environment_drop(struct proc_run_env *rep) {
     while (rep) {
         struct proc_run_env *next;
-        cell_unref(rep->stack);
+        cell_unref(rep->prog);
         cell_unref(rep->env);
+        cell_unref(rep->stack);
         next = rep->next;
         free(rep);
         rep = next;
@@ -56,20 +58,26 @@ void run_environment_drop(struct proc_run_env *rep) {
 // sweep run environment resources
 void run_environment_sweep(struct proc_run_env *rep) {
     while (rep) {
-        cell_sweep(rep->stack);
+        cell_sweep(rep->prog);
         cell_sweep(rep->env);
+        cell_sweep(rep->stack);
         rep = rep->next;
     }
 }
 
-// append process to ready list
-void append_ready_list(struct proc_run_env *rep) {
-    struct proc_run_env **pp = &ready_list;
-
+// append process to process list
+void append_proc_list(struct proc_run_env **pp, struct proc_run_env *rep) {
     while (*pp) {
         pp = &((*pp)->next);
     }
     *pp = rep;
+}
+
+// prepend process on process list
+void prepend_proc_list(struct proc_run_env **pp, struct proc_run_env *rep) {
+    struct proc_run_env *next = *pp;
+    *pp = rep;
+    rep->next = next;
 }
 
 // for debugging
@@ -99,10 +107,13 @@ static INLINE void advance_prog(struct current_run_env *rep) {
 }
 
 static INLINE void push_value_stackp(cell *val, cell **stackp) {
-    *stackp = cell_list(val, *stackp);
+    if (val != push_nothing) *stackp = cell_list(val, *stackp);
 }
 
 static INLINE void push_value(cell *val, struct current_run_env *rep) {
+    if (!rep) {
+        assert(0);
+    }
     push_value_stackp(val, &(rep->stack));
 }
 
@@ -112,6 +123,11 @@ static INLINE cell *pop_value(struct current_run_env *rep) {
         assert(0);
     }
     return val;
+}
+
+// for special cases
+void push_stack_current_run_env(cell *val) {
+    push_value(val, run_environment);
 }
 
 static void run_apply(cell *lambda, cell *args, cell *contenv, struct current_run_env *rep) {
@@ -279,12 +295,8 @@ void run_also(cell *prog) {
 #endif
 
 // apply a function from extern
+// TODO review
 void run_main_apply(cell *lambda, cell *args) {
-#if 0
-    if (run_environment) {
-        run_apply(lambda, args, NIL, run_environment);
-    } else 
-#endif
     {
         // TODO have to make silly program
         cell *prog = NIL;
@@ -304,48 +316,57 @@ void run_main_apply(cell *lambda, cell *args) {
     }
 }
 
-// make copy of environment with new program, unreffing the old one
-static cell *env_new_prog(cell *env, cell *newprog) {
-    // TODO make copy of env with new prog more efficiently
-    cell *newenv = cell_env(cell_ref(env_prev(env)), newprog,
-                            cell_ref(env_assoc(env)), cell_ref(env_cont_env(env)));
-    cell_unref(env);
-    return newenv;
+// set run_environment, return next
+static struct proc_run_env *set_run_environment(struct proc_run_env *newp) {
+    if (newp) {
+        struct proc_run_env *next = newp->next;
+        run_environment->prog = newp->prog;
+        run_environment->env = newp->env;
+        run_environment->stack = newp->stack;
+        run_environment->is_main = newp->is_main;
+        free(newp);
+        return next;
+    } else {
+        run_environment->prog = NIL;
+        run_environment->env = NIL;
+        run_environment->stack = NIL;
+        run_environment->is_main = 0;
+        return NULL;
+    }
+}
+
+// suspend running process, return descriptor
+struct proc_run_env *suspend() {
+    struct proc_run_env *susp;
+    if (run_environment == NULL) {
+        assert(0);
+    }
+    susp = run_environment_new(run_environment->prog, run_environment->env, run_environment->stack);
+    susp->is_main = run_environment->is_main;
+
+    if (ready_list != NULL) {
+        ready_list = set_run_environment(ready_list);
+    } else {
+        // nothing more to do
+        set_run_environment(NULL);
+    }
+    return susp;
 }
 
 // dispatch, rotate ready list
-// TODO use!
 int dispatch() {
     if (ready_list == NULL) return 0;
-    if (run_environment == NULL) {
-        assert(0);
-        return 0; // TODO can this happen?
+
+    if (run_environment->prog != NIL 
+     || run_environment->env != NIL 
+     || (run_environment->stack != NIL && run_environment->is_main)) {
+        // there is something of interest, so suspend it
+        struct proc_run_env *prev = suspend();
+        append_proc_list(&ready_list, prev);
+    } else {
+        // pop from top of ready list
+        ready_list = set_run_environment(ready_list);
     }
-    // pop from top of ready list
-    struct proc_run_env *next = ready_list;
-    ready_list = next->next;
-
-    if (run_environment->prog != NIL || run_environment->env != NIL || run_environment->stack != NIL) {
-        struct proc_run_env *prev;
-        cell *env;
-        if (!(env = run_environment->env)) {
-            // create a new environment
-            env = cell_env(NIL, run_environment->prog, NIL, NIL);
-        } else {
-            env = env_new_prog(env, run_environment->prog);
-        }
-        prev = run_environment_new(env, run_environment->stack);
-        prev->is_main = run_environment->is_main;
-
-        append_ready_list(prev);
-    }
-    run_environment->prog = cell_ref(env_prog(next->env));
-    run_environment->stack = next->stack;
-    run_environment->is_main = next->is_main;
-    // TODO make copy of env with new prog more efficiently
-    run_environment->env = env_new_prog(next->env, NIL);
-    free(next);
-
     return 1;
 }
 
@@ -422,7 +443,7 @@ cell *run_main(cell *prog, cell *env0) {
                     e = env_cont_env(e);
                 }
                 if (!e) {
-                    val = error_rt1("no local", cell_ref(sym));
+                    val = error_rt1("no such local", cell_ref(sym));
                 }
                 push_value(val, &re);
                 advance_prog(&re);
