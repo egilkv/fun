@@ -89,6 +89,40 @@ static set cgtk_window_type[] = {
     { NULL,                NIL, 0 }
 };
 
+// enum GtkBaselinePosition
+static set cgtk_baseline_position[] = {
+    { "top",               NIL, GTK_BASELINE_POSITION_TOP },
+    { "center",            NIL, GTK_BASELINE_POSITION_CENTER },
+    { "bottom",            NIL, GTK_BASELINE_POSITION_BOTTOM },
+    { NULL,                NIL, 0 }
+};
+
+// enum GtkJustification
+static set cgtk_justification[] = {
+    { "left",              NIL, GTK_JUSTIFY_LEFT },
+    { "right",             NIL, GTK_JUSTIFY_RIGHT },
+    { "center",            NIL, GTK_JUSTIFY_CENTER },
+    { "fill",              NIL, GTK_JUSTIFY_FILL },
+    { NULL,                NIL, 0 }
+};
+
+// enum GtkPositionType
+static set cgtk_position_type[] = {
+    { "left",              NIL, GTK_POS_LEFT },
+    { "right",             NIL, GTK_POS_RIGHT },
+    { "top",               NIL, GTK_POS_TOP },
+    { "bottom",            NIL, GTK_POS_BOTTOM },
+    { NULL,                NIL, 0 }
+};
+
+// enum GtkReliefStyle
+static set cgtk_relief_style[] = {
+    { "normal",            NIL, GTK_RELIEF_NORMAL },
+    { "half",              NIL, GTK_RELIEF_HALF },
+    { "none",              NIL, GTK_RELIEF_NONE },
+    { NULL,                NIL, 0 }
+};
+
 // enum GtkTextDirection
 static set cgtk_text_direction[] = {
     { "none",              NIL, GTK_TEXT_DIR_NONE },
@@ -391,19 +425,51 @@ static cell *cgtk_##gname(cell *args) { \
 #define WIDGET_GET_FROMSET(gname, gtype, gset) \
 static cell *cgtk_##gname(cell *widget) { \
     GtkWidget *wp; \
-    integer_t ival; \
+    integer_t sval; \
     if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
-    ival = gtk_##gname(gtype(wp)); \
-    return cell_fromset(gset, ival); \
+    sval = gtk_##gname(gtype(wp)); \
+    return cell_fromset(gset, sval); \
 }
 
 #define WIDGET_SET_FROMSET(gname, gtype, gset) \
 static cell *cgtk_##gname(cell *widget, cell *key) { \
     GtkWidget *wp; \
-    integer_t ival = 0; \
+    integer_t sval = 0; \
     if (!get_gtkwidget(widget, &wp, key) \
-     || !get_fromset(gset, key, &ival)) return cell_error(); \
-    gtk_##gname(gtype(wp), ival); \
+     || !get_fromset(gset, key, &sval)) return cell_error(); \
+    gtk_##gname(gtype(wp), sval); \
+    return cell_void(); \
+}
+
+#define WIDGET_INT_GET_FROMSET(gname, gtype, gset) \
+static cell *cgtk_##gname(cell *widget, cell *ival) { \
+    GtkWidget *wp; \
+    integer_t val; \
+    integer_t sval; \
+    if (!get_gtkwidget(widget, &wp, ival) \
+     || !get_integer(ival, &val, NIL)) return cell_error(); \
+    sval = gtk_##gname(gtype(wp), val); \
+    return cell_fromset(gset, sval); \
+}
+
+#define WIDGET_INT_SET_FROMSET(gname, gtype, gset) \
+static cell *cgtk_##gname(cell *args) { \
+    cell *widget; \
+    cell *ival; \
+    cell *key; \
+    GtkWidget *wp; \
+    integer_t val; \
+    integer_t sval = 0; \
+    if (!arg3(args, &widget, &ival, &key)) { \
+        return cell_error(); \
+    } \
+    if (!get_gtkwidget(widget, &wp, ival)) { \
+        cell_unref(key); \
+        return cell_error(); \
+    } \
+    if (!get_integer(ival, &val, key) \
+     || !get_fromset(gset, key, &sval)) return cell_error(); \
+    gtk_##gname(gtype(wp), val, sval); \
     return cell_void(); \
 }
 
@@ -566,15 +632,16 @@ CSTRING_GET_WIDGET_NEW(button_new_with_label)
 // gtk_button_new_from_icon_name (), use gtk_button_new() and gtk_button_set_image().instead
 WIDGET_VOID(button_clicked, GTK_BUTTON)
 // TODO gtk_button_set_relief(button, reliefstyle)
-// TODO gtk_button_get_relief(button)
+WIDGET_GET_FROMSET(button_get_relief, GTK_BUTTON, cgtk_relief_style)
+WIDGET_SET_FROMSET(button_set_relief, GTK_BUTTON, cgtk_relief_style)
 WIDGET_GET_CSTRING(button_get_label, GTK_BUTTON)
 WIDGET_SET_CSTRING(button_set_label, GTK_BUTTON)
 WIDGET_GET_BOOL(button_get_use_underline, GTK_BUTTON)
 WIDGET_SET_BOOL(button_set_use_underline, GTK_BUTTON)
 WIDGET_SET_WIDGET(button_set_image, GTK_BUTTON)
 WIDGET_GET_WIDGET(button_get_image, GTK_BUTTON)
-// TODO gtk_button_set_image_position(
-// TODO gtk_button_get_image_position(
+WIDGET_GET_FROMSET(button_get_image_position, GTK_BUTTON, cgtk_position_type)
+WIDGET_SET_FROMSET(button_set_image_position, GTK_BUTTON, cgtk_position_type)
 WIDGET_GET_BOOL(button_get_always_show_image, GTK_BUTTON)
 WIDGET_SET_BOOL(button_set_always_show_image, GTK_BUTTON)
 // TODO gtk_button_get_event_window
@@ -699,8 +766,8 @@ WIDGET_SET_INT(grid_set_column_spacing, GTK_GRID)
 WIDGET_GET_INT(grid_get_column_spacing, GTK_GRID)
 WIDGET_SET_INT(grid_set_baseline_row, GTK_GRID)
 WIDGET_GET_INT(grid_get_baseline_row, GTK_GRID)
-// TODO grid_set_row_baseline_position
-// TODO grid_get_row_baseline_position
+WIDGET_INT_GET_FROMSET(grid_get_row_baseline_position, GTK_GRID, cgtk_baseline_position)
+WIDGET_INT_SET_FROMSET(grid_set_row_baseline_position, GTK_GRID, cgtk_baseline_position)
 
 
 ////////////////////////////////////////////////////////////////
@@ -752,7 +819,7 @@ WIDGET_SET_CSTRING(label_set_text, GTK_LABEL)
 WIDGET_SET_CSTRING(label_set_markup, GTK_LABEL) // TODO g_markup_escape_text() or g_markup_printf_escaped():
 WIDGET_SET_CSTRING(label_set_markup_with_mnemonic, GTK_LABEL) // TODO ditto
 WIDGET_SET_CSTRING(label_set_pattern, GTK_LABEL)
-// TODO    label_set_justify
+WIDGET_SET_FROMSET(label_set_justify, GTK_LABEL, cgtk_justification)
 WIDGET_SET_FLOAT(label_set_xalign, GTK_LABEL)
 WIDGET_SET_FLOAT(label_set_yalign, GTK_LABEL)
 // TODO    label_set_ellipsize
@@ -765,13 +832,13 @@ WIDGET_SET_INT(label_set_lines, GTK_LABEL)
 WIDGET_GET_INT(label_get_mnemonic_keyval, GTK_LABEL)
 WIDGET_GET_BOOL(label_get_selectable, GTK_LABEL)
 WIDGET_GET_CSTRING(label_get_text, GTK_LABEL)
-// TODO label_new_with_mnemonic
+CSTRING_GET_WIDGET_NEW(label_new_with_mnemonic)
 WIDGET_SET_INT_INT(label_select_region, GTK_LABEL)
-// TODO label_set_mnemonic_widget
+WIDGET_SET_WIDGET(label_set_mnemonic_widget, GTK_LABEL)
 WIDGET_SET_BOOL(label_set_selectable, GTK_LABEL)
 WIDGET_SET_CSTRING(label_set_text_with_mnemonic, GTK_LABEL)
 // TODO gtk_label_get_attributes
-// TODO gtk_label_get_justify
+WIDGET_GET_FROMSET(label_get_justify, GTK_LABEL, cgtk_justification)
 WIDGET_GET_FLOAT(label_get_xalign, GTK_LABEL)
 WIDGET_GET_FLOAT(label_get_yalign, GTK_LABEL)
 // TODO gtk_label_get_ellipsize
@@ -1682,10 +1749,14 @@ cell *module_gtk() {
     DEFINE_CFUN1(button_clicked)
     DEFINE_CFUN1(button_get_label)
     DEFINE_CFUN2(button_set_label)
+    DEFINE_CFUN1(button_get_relief)
+    DEFINE_CFUN2(button_set_relief)
     DEFINE_CFUN1(button_get_use_underline)
     DEFINE_CFUN2(button_set_use_underline)
     DEFINE_CFUN2(button_set_image)
     DEFINE_CFUN1(button_get_image)
+    DEFINE_CFUN2(button_set_image_position)
+    DEFINE_CFUN1(button_get_image_position)
     DEFINE_CFUN1(button_get_always_show_image)
     DEFINE_CFUN2(button_set_always_show_image)
     DEFINE_CFUN2(container_add)
@@ -1719,8 +1790,8 @@ cell *module_gtk() {
     DEFINE_CFUN1(grid_get_column_spacing)
     DEFINE_CFUN2(grid_set_baseline_row)
     DEFINE_CFUN1(grid_get_baseline_row)
-    // TODO DEFINE_CFUNN(grid_set_row_baseline_position)
-    // TODO DEFINE_CFUN2(grid_get_row_baseline_position)
+    DEFINE_CFUNN(grid_set_row_baseline_position)
+    DEFINE_CFUN2(grid_get_row_baseline_position)
     DEFINE_CFUN1(image_new_from_file)
     DEFINE_CFUN2(image_set_from_file)
     DEFINE_CFUN2(image_set_from_resource)
@@ -1735,6 +1806,7 @@ cell *module_gtk() {
     DEFINE_CFUN2(label_set_markup)
     DEFINE_CFUN2(label_set_markup_with_mnemonic)
     DEFINE_CFUN2(label_set_pattern)
+    DEFINE_CFUN2(label_set_justify)
     DEFINE_CFUN2(label_set_xalign)
     DEFINE_CFUN2(label_set_yalign)
     DEFINE_CFUN2(label_set_width_chars)
@@ -1744,9 +1816,12 @@ cell *module_gtk() {
     DEFINE_CFUN1(label_get_mnemonic_keyval)
     DEFINE_CFUN1(label_get_selectable)
     DEFINE_CFUN1(label_get_text)
+    DEFINE_CFUN1(label_new_with_mnemonic)
     DEFINE_CFUNN(label_select_region)
+    DEFINE_CFUN2(label_set_mnemonic_widget)
     DEFINE_CFUN2(label_set_selectable)
     DEFINE_CFUN2(label_set_text_with_mnemonic)
+    DEFINE_CFUN1(label_get_justify)
     DEFINE_CFUN1(label_get_xalign)
     DEFINE_CFUN1(label_get_yalign)
     DEFINE_CFUN1(label_get_width_chars)
