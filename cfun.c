@@ -895,9 +895,11 @@ static cell *cfunN_channel(cell *args) {
 }
 
 // receive from channel
-static cell *cfun1_receive(cell *chan) {
+static cell *cfunN_receive(cell *args) {
+    cell *chan;
     cell *result;
     struct proc_run_env *pre;
+    if (!arg1(args, &chan)) return cell_error();
     if (!cell_is_channel(chan)) {
         return error_rt1("not a channel", chan);
     }
@@ -922,16 +924,19 @@ static cell *cfun1_receive(cell *chan) {
 }
 
 // send to channel
-static cell *cfun2_send(cell *chan, cell *arg) {
+static cell *cfunN_send(cell *args) {
+    cell *chan;
+    cell *val;
     cell *result;
     struct proc_run_env *pre;
+    if (!arg2(args, &chan, &val)) return cell_error();
     if (!cell_is_channel(chan)) {
-        cell_unref(arg);
+        cell_unref(val);
         return error_rt1("not a channel", chan);
     }
     if ((pre = chan->_.channel.readers)) {
         // a reader is waiting, push read result directly on its stack
-        pre->stack = cell_list(arg, pre->stack);
+        pre->stack = cell_list(val, pre->stack);
         // and move to top of ready list
         chan->_.channel.readers = pre->next;
         pre->next = NULL;
@@ -939,7 +944,7 @@ static cell *cfun2_send(cell *chan, cell *arg) {
         result = cell_void();
     } else {
         // no reader waiting, push the argument on our own stack, then suspend
-        push_stack_current_run_env(arg);
+        push_stack_current_run_env(val);
         append_proc_list(&(chan->_.channel.writers), suspend());
         result = push_nothing; // no result on stack
     }
@@ -1037,9 +1042,9 @@ void cfun_init() {
     hash_noteq    = symbol_set("#noteq",    cell_cfunN_pure(cfunN_noteq));
     hash_plus     = symbol_set("#plus",     cell_cfunN_pure(cfunN_plus));
     hash_quotient = symbol_set("#quotient", cell_cfunN_pure(cfunN_quotient));
-    hash_receive  = symbol_set("#receive",  cell_cfun1(cfun1_receive));
+    hash_receive  = symbol_set("#receive",  cell_cfunN(cfunN_receive));
     hash_ref      = symbol_set("#ref",      cell_cfun2_pure(cfun2_ref));
-    hash_send     = symbol_set("#send",     cell_cfun2(cfun2_send));
+    hash_send     = symbol_set("#send",     cell_cfunN(cfunN_send));
     hash_times    = symbol_set("#times",    cell_cfunN_pure(cfunN_times));
                     symbol_set("#type",     cell_cfun1_pure(cfun1_type));
                     symbol_set("#use",      cell_cfun1_pure(cfun1_use));

@@ -18,6 +18,7 @@ enum prec_ {
     l_RANGE,    // ..           TODO new
     l_DEF,      // =            right-to-left
     l_COND,     // ?            TODO right-to-left, in C ? : are same
+    l_LARROW,   // <-           TODO where?
     l_OR ,      // ||           TODO
     l_AND,      // &&
     l_BAR,      // |            TODO revise
@@ -27,7 +28,6 @@ enum prec_ {
     l_REL,      // < <= > >=
     l_ADD,      // + -
     l_MULT,     // * /
-    l_LARROW,   // <-           TODO where?
     l_UNARY,    // - ! '        TODO right-to-left
     l_POST,     // () []        as postfix operators
     l_STOP      // .            left-to-right, like C

@@ -11,6 +11,7 @@
 #include "cell.h"
 #include "compile.h"
 #include "node.h"
+#include "number.h"
 #include "cmod.h"
 #include "cfun.h"
 #include "qfun.h"
@@ -802,3 +803,21 @@ cell *compile(cell *item, cell *env0) {
     return result; 
 }
 
+// compile a function call, allowing for N arguments pushed on stack
+cell *compile_thunk(cell *func, int nargs) {
+    cell *prog = cell_func(func, NIL);
+    cell *args = NIL;
+    int n;
+    for (n = 0; n < nargs; ++n) { // add dummy args
+        args = cell_list(cell_integer(-1), args);
+    }
+    prog = compile(prog, NIL);
+    for (n = 0; n < nargs; ++n) { // strip off args
+        cell *np;
+        assert(prog && prog->type == c_DOQPUSH);
+        np = cell_ref(prog->_.cons.cdr);
+        cell_unref(prog);
+        prog = np;
+    }
+    return prog;
+}

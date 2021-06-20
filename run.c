@@ -274,31 +274,12 @@ static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct curre
     rep->prog = body;
 }
 
-// run a program from anywhere
-void run_async(cell *prog) {
-    // TODO implement async
-    cell_unref(run_main(prog, NIL));
-}
-
-#if 0
-// insert a program
-// TODO not used, may not work
-void run_also(cell *prog) {
-    if (run_environment) {
-        // TODO or:
-        // cell_unref(run_main(prog), cell_ref(run_environment->???));
-        run_pushprog(prog, NIL, NIL, run_environment);
-    } else {
-        cell_unref(run_main(prog, NIL));
-    }
-}
-#endif
-
 // apply a function from extern
 // TODO review
 void run_main_apply(cell *lambda, cell *args) {
     {
         // TODO have to make silly program
+        // TODO use stack instead...
         cell *prog = NIL;
         cell **pp = &prog;
 
@@ -312,7 +293,7 @@ void run_main_apply(cell *lambda, cell *args) {
 
         *pp = newnode(c_DOAPPLY);
 
-        cell_unref(run_main(prog, NIL));
+        cell_unref(run_main(prog, NIL, NIL));
     }
 }
 
@@ -335,7 +316,7 @@ static struct proc_run_env *set_run_environment(struct proc_run_env *newp) {
     }
 }
 
-// suspend running process, return descriptor
+// suspend running process, return its descriptor
 struct proc_run_env *suspend() {
     struct proc_run_env *susp;
     if (run_environment == NULL) {
@@ -351,6 +332,23 @@ struct proc_run_env *suspend() {
         set_run_environment(NULL);
     }
     return susp;
+}
+
+// interrupt running process, insert new process
+void interrupt(cell *prog, cell *env, cell *stack, int is_main) {
+    struct proc_run_env *susp;
+    if (run_environment == NULL) {
+        assert(0);
+    }
+    susp = run_environment_new(run_environment->prog, run_environment->env, run_environment->stack);
+    susp->is_main = run_environment->is_main;
+
+    run_environment->prog = prog;
+    run_environment->env = env;
+    run_environment->stack = stack;
+    run_environment->is_main = is_main;
+
+    prepend_proc_list(&ready_list, susp);
 }
 
 // dispatch, rotate ready list
@@ -371,14 +369,15 @@ int dispatch() {
 }
 
 // main run program facility, return result
-cell *run_main(cell *prog, cell *env0) {
+cell *run_main(cell *prog, cell *env0, cell *stack) {
     struct current_run_env re;
 
     re.prog = prog;
-    re.stack = NIL;
     re.env = env0;
+    re.stack = stack;
     re.is_main = 1;
     re.save = run_environment; // should usually be NULL
+
     run_environment = &re;
 
     for (;;) {

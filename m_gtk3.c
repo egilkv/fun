@@ -144,49 +144,49 @@ static set cgdk_event_mask[] = {
 // https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget-accel-closures-changed
 // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
 static set cgdk_signals[] = {
-    { "activate",          NIL, 0 },
-    { "clicked",           NIL, 0 },
-    { "enter",             NIL, 0 },
-    { "leave",             NIL, 0 },
-    { "pressed",           NIL, 0 },
-    { "released",          NIL, 0 },
-    { "destroy",           NIL, 0 },
-    { "hide",              NIL, 0 },
-    { "map",               NIL, 0 },
-    { "unmap",             NIL, 0 },
-    { "grab_focus",        NIL, 0 },
-    { "popup_menu",        NIL, 0 },
-    { "realize",           NIL, 0 },
-    { "unrealize",         NIL, 0 },
-    { "show",              NIL, 0 },
-    { "response",          NIL, 1 },
-    { "event",             NIL, 2 },
-    { "button_press_event", NIL, 2 },
-    { "button_release_event", NIL, 2 },
-    { "scroll_event",      NIL, 2 },
-    { "motion_notify_event", NIL, 2 },
-    { "delete_event",      NIL, 2 },
-    { "destroy_event",     NIL, 2 },
-    { "expose_event",      NIL, 2 },
-    { "key_press_event",   NIL, 2 },
-    { "key_release_event", NIL, 2 },
-    { "enter_notify_event", NIL, 2 },
-    { "leave_notify_event", NIL, 2 },
-    { "configure_event",   NIL, 2 },
-    { "focus_in_event",    NIL, 2 },
-    { "focus_out_event",   NIL, 2 },
-    { "map_event",         NIL, 2 },
-    { "unmap_event",       NIL, 2 },
-    { "property_notify_event", NIL, 2 },
-    { "selection_clear_event", NIL, 2 },
-    { "selection_request_event", NIL, 2 },
-    { "selection_notify_event", NIL, 2 },
-    { "proximity_in_event", NIL, 2 },
-    { "proximity_out_event", NIL, 2 },
-    { "visibility_notify_event", NIL, 2 },
-    { "client_event",      NIL, 2 },
-    { "no_expose_event",   NIL, 2 },
-    { "window_state_event", NIL, 2 },
+    { "activate",                   NIL, 0 },
+    { "clicked",                    NIL, 1 },
+    { "enter",                      NIL, 1 },
+    { "leave",                      NIL, 1 },
+    { "pressed",                    NIL, 1 },
+    { "released",                   NIL, 1 },
+    { "destroy",                    NIL, 1 },
+    { "hide",                       NIL, 1 },
+    { "map",                        NIL, 1 },
+    { "unmap",                      NIL, 1 },
+    { "grab_focus",                 NIL, 1 },
+    { "popup_menu",                 NIL, 1 },
+    { "realize",                    NIL, 1 },
+    { "unrealize",                  NIL, 1 },
+    { "show",                       NIL, 1 },
+    { "response",                   NIL, 2 },
+    { "event",                      NIL, 3 },
+    { "button_press_event",         NIL, 3 },
+    { "button_release_event",       NIL, 3 },
+    { "scroll_event",               NIL, 3 },
+    { "motion_notify_event",        NIL, 3 },
+    { "delete_event",               NIL, 3 },
+    { "destroy_event",              NIL, 3 },
+    { "expose_event",               NIL, 3 },
+    { "key_press_event",            NIL, 3 },
+    { "key_release_event",          NIL, 3 },
+    { "enter_notify_event",         NIL, 3 },
+    { "leave_notify_event",         NIL, 3 },
+    { "configure_event",            NIL, 3 },
+    { "focus_in_event",             NIL, 3 },
+    { "focus_out_event",            NIL, 3 },
+    { "map_event",                  NIL, 3 },
+    { "unmap_event",                NIL, 3 },
+    { "property_notify_event",      NIL, 3 },
+    { "selection_clear_event",      NIL, 3 },
+    { "selection_request_event",    NIL, 3 },
+    { "selection_notify_event",     NIL, 3 },
+    { "proximity_in_event",         NIL, 3 },
+    { "proximity_out_event",        NIL, 3 },
+    { "visibility_notify_event",    NIL, 3 },
+    { "client_event",               NIL, 3 },
+    { "no_expose_event",            NIL, 3 },
+    { "window_state_event",         NIL, 3 },
     // TODO boolean
     // "grab_notify"
     // TODO widget
@@ -921,8 +921,8 @@ static cell *cgtk_println(cell *args) {
 
 //
 
-// callback, no extra argument provided
-static void do_callback_none(GtkWidget* gp, gpointer data) {
+// callback, no extra argument provided, but need to wait untill finished
+static void cgtk_callback_wait(GtkWidget* gp, gpointer data) {
     // for activate, gp is GtkApplication *
     // ignore gp (for now)
     cell *prog = (cell *)data;
@@ -933,51 +933,39 @@ static void do_callback_none(GtkWidget* gp, gpointer data) {
  // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
  // printf("\n***callback***\n");
 
-    run_async(cell_ref(prog));
+ // TODO
+    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+ // interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
 }
 
-// callback, argument provided is an int
-static void do_callback_int(GtkWidget* gp, gint extra, gpointer data) {
+// callback, no extra argument provided
+static void cgtk_callback_none(GtkWidget* gp, gpointer data) {
+    // for activate, gp is GtkApplication *
     // ignore gp (for now)
     cell *prog = (cell *)data;
 
-    // TODO this function is in principle async
-
-    // provide the extra data as an argument via some black magic
-    // TODO improve this
-    if (prog && prog->type == c_DOQPUSH) {
-        // "patch" the program
-        cell *newprog = newnode(c_DOQPUSH);
-        newprog->_.cons.car = cell_integer(extra);
-        newprog->_.cons.cdr = cell_ref(prog->_.cons.cdr);
-        prog = newprog;
-    } else {
-        // should not happen
-        prog = cell_ref(prog);
-    }
-    run_async(prog);
+//  interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
+    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
 }
 
 // callback, argument provided is an int
-static void do_callback_event(GtkWidget* gp, GdkEvent *extra, gpointer data) {
+static void cgtk_callback_int(GtkWidget* gp, gint extra, gpointer data) {
     // ignore gp (for now)
     cell *prog = (cell *)data;
+    cell *stack = cell_list(cell_integer(extra), NIL);
 
-    // TODO this function is in principle async
+//  interrupt(cell_ref(prog), NIL /*env*/, stack, 0);
+    run_main(cell_ref(prog), NIL /*env*/, stack);
+}
 
-    // provide the extra data as an argument via some black magic
-    // TODO improve this
-    if (prog && prog->type == c_DOQPUSH) {
-        // "patch" the program
-        cell *newprog = newnode(c_DOQPUSH);
-        newprog->_.cons.car = cell_gdkevent(extra);
-        newprog->_.cons.cdr = cell_ref(prog->_.cons.cdr);
-        prog = newprog;
-    } else {
-        // should not happen
-        prog = cell_ref(prog);
-    }
-    run_async(prog);
+// callback, argument provided is a GdkEvent
+static void cgtk_callback_event(GtkWidget* gp, GdkEvent *extra, gpointer data) {
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
+    cell *stack = cell_list(cell_gdkevent(extra), NIL);
+
+//  interrupt(cell_ref(prog), NIL /*env*/, stack, 0);
+    run_main(cell_ref(prog), NIL /*env*/, stack);
 }
 
 static cell *cgtk_signal_connect(cell *args) {
@@ -1018,25 +1006,30 @@ static cell *cgtk_signal_connect(cell *args) {
     // TODO hook should be retained to know string??
 
     switch (type) {
-    case 0: // no extra data provided
-        // connect where data is the function with one argument, the current argument (app or widget)
-        callbackprog = compile(cell_func(callback, NIL), NIL);
+    case 0: // no extra data, needs to complete before we return
+        callbackprog = compile_thunk(callback, 0);
 
         // TODO gulong tag =
-        g_signal_connect(gp, signal, G_CALLBACK(do_callback_none), callbackprog);
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_wait), callbackprog);
         break;
 
-    case 1: // extra parameter: integer response_id
-        // TODO do something smarter here
-        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)), NIL);
-        g_signal_connect(gp, signal, G_CALLBACK(do_callback_int), callbackprog);
+    case 1: // no extra data provided
+        callbackprog = compile_thunk(callback, 0);
+
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_none), callbackprog);
         break;
 
-    case 2: // extra parameter: GdkEvent *event
+    case 2: // extra parameter: integer response_id
+        callbackprog = compile_thunk(callback, 1);
+
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_int), callbackprog);
+        break;
+
+    case 3: // extra parameter: GdkEvent *event
+        callbackprog = compile_thunk(callback, 1);
+
         // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
-        // TODO do something smarter here
-        callbackprog = compile(cell_func(callback, cell_list(cell_integer(-1), NIL)), NIL);
-        g_signal_connect(gp, signal, G_CALLBACK(do_callback_event), callbackprog);
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_event), callbackprog);
         break;
 
     default:
@@ -1044,7 +1037,7 @@ static cell *cgtk_signal_connect(cell *args) {
     }
 
     // cell_unref(callbackprog); // TODO when to unref callbackprog ???
-    // void g_signal_handler_disconnect( gp, tag );
+    // TODO void g_signal_handler_disconnect( gp, tag );
 
     cell_unref(app);
     return cell_void();

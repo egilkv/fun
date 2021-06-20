@@ -69,7 +69,7 @@ static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
 	    }
 	}
 
-        ct = run_main(ct, cell_ref(env0));
+        ct = run_main(ct, cell_ref(env0), NIL);
 
         if (lxf->f == stdin) {
             if (ct != hash_void) { // write result if not void

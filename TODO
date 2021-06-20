@@ -1,20 +1,22 @@
 
+Change push_nothing to a special class of function
+
 Channels can be buffered, with a certain length given.
 Senders can close a channel
 https://tour.golang.org/concurrency/4
 
 #go with arguments
 
-Send val to channel:
-ch <- v
-
-Receive from channel
-   <- ch
-
-ch := make(chan int)
-
-
 Rewrite debugger so that it places main on the ready list instead of the save thing.
+
+interrupt(), should really be protected
+
+interrupt and run_main_apply should be consolidated. Run_main_apply should probably be a
+program that creates a channel, suspends main on a receive, and adds a time send to the
+channel when done.
+
+We need some way of handling run_main being idle, and also have readline as a separate
+process probably transferring what we read through a channel?
 
 Add debugger and #breakpoint(). Option to switch to debugger on error.
 Debugger should have functions to look at locals in run_environment->env

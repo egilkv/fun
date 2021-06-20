@@ -8,3 +8,12 @@ different operators, e.g. 1 < a <= 5.
 Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
 && and || does lazy evaluation
+
+Send val to channel:
+ch <- v
+
+Receive from channel
+   <- ch
+
+ch := make(chan int)
+
