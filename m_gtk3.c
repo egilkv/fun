@@ -858,221 +858,14 @@ static cell *cgtk_text_view_new_with_buffer(cell *tb) {
 //
 //
 
-static cell *cgtk_init(cell *arglist) {
-    // TODO convert to argc, argv
-    // see also cgtk_application_run
-    gtk_init(0, NULL);
-    cell_unref(arglist);
-    return cell_void();
-}
-
-static cell *cgtk_main(cell *args) {
-    arg0(args);
-    gtk_main();
-    return cell_void();
-}
-
-static cell *cgtk_print(cell *args) {
-    cell *a;
-    // TODO sync with io and so on
-    while (list_pop(&args, &a)) {
-        if (a) switch (a->type) { // NIL prints as nothing
-        case c_STRING:
-            g_print("%s", a->_.string.ptr); // print to NUL
-            break;
-        case c_NUMBER:
-            switch (a->_.n.divisor) {
-            case 1:
-                g_print("%lld", a->_.n.dividend.ival); // 64bit
-                break;
-            case 0:
-                {
-                    char buf[FORMAT_REAL_LEN];
-                    format_real(a->_.n.dividend.fval, buf);
-                    g_print("%s", buf);
-                }
-                break;
-            default:
-                {
-                    char buf[FORMAT_REAL_LEN];
-                    format_real((1.0 * a->_.n.dividend.ival) / a->_.n.divisor, buf);
-                    g_print("%s", buf);
-                }
-                break;
-            }
-            break;
-        case c_SYMBOL:
-            g_print("%s", a->_.symbol.nam);
-	    break;
-        default:
-            // TODO error message??
-            break;
-        }
-        cell_unref(a);
-    }
-    assert(args == NIL);
-    return cell_void();
-}
-
-static cell *cgtk_println(cell *args) {
-    cell *result = cgtk_print(args);
-    g_print("\n");
-    return result;
-}
-
-////////////////////////////////////////////////////////////////
-//
-//  callbacks
-//
-//  TODO callbacks may be a separate thread?
-//
-//  TODO look at g_signal_handler_disconnect() or
-//       g_signal_handlers_disconnect_by_func() to manage memory
-//
-
-//
-
-// callback, no extra argument provided, but need to wait untill finished
-static void cgtk_callback_wait(GtkWidget* gp, gpointer data) {
-    // for activate, gp is GtkApplication *
-    // ignore gp (for now)
-    cell *prog = (cell *)data;
-
- // assert(cell_is_func((cell *)data));
- // assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app)
- //     || cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_widget));
- // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
- // printf("\n***callback***\n");
-
- // TODO
-    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
- // interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
-}
-
-// callback, no extra argument provided
-static void cgtk_callback_none(GtkWidget* gp, gpointer data) {
-    // for activate, gp is GtkApplication *
-    // ignore gp (for now)
-    cell *prog = (cell *)data;
-
-//  interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
-    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
-}
-
-// callback, argument provided is an int
-static void cgtk_callback_int(GtkWidget* gp, gint extra, gpointer data) {
-    // ignore gp (for now)
-    cell *prog = (cell *)data;
-    cell *stack = cell_list(cell_integer(extra), NIL);
-
-//  interrupt(cell_ref(prog), NIL /*env*/, stack, 0);
-    run_main(cell_ref(prog), NIL /*env*/, stack);
-}
-
-// callback, argument provided is a GdkEvent
-static void cgtk_callback_event(GtkWidget* gp, GdkEvent *extra, gpointer data) {
-    // ignore gp (for now)
-    cell *prog = (cell *)data;
-    cell *stack = cell_list(cell_gdkevent(extra), NIL);
-
-//  interrupt(cell_ref(prog), NIL /*env*/, stack, 0);
-    run_main(cell_ref(prog), NIL /*env*/, stack);
-}
-
-static cell *cgtk_signal_connect(cell *args) {
-    cell *app;
-    cell *hook;
-    cell *callback;
-    // TODO also works for widgets, any instance
-    // TODO signal names are separated by either - or _
-
-    //GtkApplication *gp;
-    gpointer *gp;
-    char_t *signal;
-    if (!arg3(args, &app, &hook, &callback)) {
-        return cell_error();
-    }
-    // match any type of special first
-    // TODO may be better to test the two at this point
-    if (!peek_special(NULL, app, (void **)&gp, callback)) {
-        cell_unref(hook); // TODO
-        return cell_error();
-    }
-    if (!peek_symbol(hook, &signal, callback)) {
-        cell_unref(app);
-        return cell_error();
-    }
-    if (app->_.special.magicf != magic_gtk_app
-     && app->_.special.magicf != magic_gtk_widget) {
-        cell_unref(error_rt1("not a widget nor application", cell_ref(app)));
-        cell_unref(app);
-        cell_unref(hook);
-        return cell_error();
-    }
-    cell *callbackprog = NIL;
-    integer_t type;
-
-    if (!get_fromset(cgdk_signals, hook, &type)) {
-        cell_unref(app);
-        return cell_error();
-    }
-    // TODO hook should be retained to know string??
-
-    switch (type) {
-    case 0: // no extra data, needs to complete before we return
-        callbackprog = compile_thunk(callback, 0);
-
-        // TODO gulong tag =
-        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_wait), callbackprog);
-        break;
-
-    case 1: // no extra data provided
-        callbackprog = compile_thunk(callback, 0);
-
-        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_none), callbackprog);
-        break;
-
-    case 2: // extra parameter: integer response_id
-        callbackprog = compile_thunk(callback, 1);
-
-        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_int), callbackprog);
-        break;
-
-    case 3: // extra parameter: GdkEvent *event
-        callbackprog = compile_thunk(callback, 1);
-
-        // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
-        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_event), callbackprog);
-        break;
-
-    default:
-        assert(0);
-    }
-
-    // cell_unref(callbackprog); // TODO when to unref callbackprog ???
-    // TODO void g_signal_handler_disconnect( gp, tag );
-
-    cell_unref(app);
-    return cell_void();
-}
-
-////////////////////////////////////////////////////////////////
-//
-//
-//
-
 static cell *cgtk_widget_destroy(cell *widget) {
     GtkWidget *wp;
     cell_ref(widget); // extra ref
     if (!get_gtkwidget(widget, &wp, widget)) {
         return cell_error();
     }
+    cell_unref(widget); // TODO may invoke a g_object_unref()
     gtk_widget_destroy(wp);
-    // properly invalidate widget to avoid future refs to dead gtk widget
-    // TODO sure?
-    // widget->_.special.ptr = NULL;
-    // widget->_.special.magic = NULL;
-    cell_unref(widget);
     return cell_void();
 }
 
@@ -1081,8 +874,8 @@ WIDGET_GET_BOOL(widget_in_destruction, GTK_WIDGET)
 WIDGET_VOID(widget_show, GTK_WIDGET)
 WIDGET_VOID(widget_show_now, GTK_WIDGET)
 WIDGET_VOID(widget_hide, GTK_WIDGET)
-// TODO gtk_widget_draw
-// TODO gtk_widget_queue_draw
+// TODO gtk_widget_draw  cairo
+WIDGET_VOID(widget_queue_draw, GTK_WIDGET)
 WIDGET_VOID(widget_show_all, GTK_WIDGET)
 // TODO gtk_widget_get_frame_clock
 WIDGET_GET_INT(widget_get_scale_factor, GTK_WIDGET)
@@ -1371,6 +1164,209 @@ WIDGET_SET_BOOL(window_set_has_user_ref_count, GTK_WINDOW)
 WIDGET_SET_WIDGET(window_set_titlebar, GTK_WINDOW)
 WIDGET_GET_WIDGET(window_get_titlebar, GTK_WINDOW)
 VOID_SET_BOOL(window_set_interactive_debugging)
+
+////////////////////////////////////////////////////////////////
+//
+//
+//
+
+static cell *cgtk_init(cell *arglist) {
+    // TODO convert to argc, argv
+    // see also cgtk_application_run
+    gtk_init(0, NULL);
+    cell_unref(arglist);
+    return cell_void();
+}
+
+static cell *cgtk_main(cell *args) {
+    arg0(args);
+    gtk_main();
+    return cell_void();
+}
+
+static cell *cgtk_print(cell *args) {
+    cell *a;
+    // TODO sync with io and so on
+    while (list_pop(&args, &a)) {
+        if (a) switch (a->type) { // NIL prints as nothing
+        case c_STRING:
+            g_print("%s", a->_.string.ptr); // print to NUL
+            break;
+        case c_NUMBER:
+            switch (a->_.n.divisor) {
+            case 1:
+                g_print("%lld", a->_.n.dividend.ival); // 64bit
+                break;
+            case 0:
+                {
+                    char buf[FORMAT_REAL_LEN];
+                    format_real(a->_.n.dividend.fval, buf);
+                    g_print("%s", buf);
+                }
+                break;
+            default:
+                {
+                    char buf[FORMAT_REAL_LEN];
+                    format_real((1.0 * a->_.n.dividend.ival) / a->_.n.divisor, buf);
+                    g_print("%s", buf);
+                }
+                break;
+            }
+            break;
+        case c_SYMBOL:
+            g_print("%s", a->_.symbol.nam);
+	    break;
+        default:
+            // TODO error message??
+            break;
+        }
+        cell_unref(a);
+    }
+    assert(args == NIL);
+    return cell_void();
+}
+
+static cell *cgtk_println(cell *args) {
+    cell *result = cgtk_print(args);
+    g_print("\n");
+    return result;
+}
+
+////////////////////////////////////////////////////////////////
+//
+//  callbacks
+//
+//  TODO callbacks may be a separate thread?
+//
+//  TODO look at g_signal_handler_disconnect() or
+//       g_signal_handlers_disconnect_by_func() to manage memory
+//
+
+//
+
+// callback, no extra argument provided, but need to wait untill finished
+static void cgtk_callback_wait(GtkWidget* gp, gpointer data) {
+    // for activate, gp is GtkApplication *
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
+
+ // assert(cell_is_func((cell *)data));
+ // assert(cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_app)
+ //     || cell_is_special(cell_car(cell_cdr((cell *)data)), magic_gtk_widget));
+ // assert((GtkApplication *) (cell_car(cell_cdr((cell *)data))->_.special.ptr) == gp);
+ // printf("\n***callback***\n");
+
+ // TODO seems like this one needs to finish its job before we return
+ // interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
+    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+}
+
+// callback, no extra argument provided
+static void cgtk_callback_none(GtkWidget* gp, gpointer data) {
+    // for activate, gp is GtkApplication *
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
+
+//  interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
+    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+}
+
+// callback, argument provided is an int
+static void cgtk_callback_int(GtkWidget* gp, gint extra, gpointer data) {
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
+    cell *stack = cell_list(cell_integer(extra), NIL);
+
+//  interrupt(cell_ref(prog), NIL /*env*/, stack, 0);
+    run_main(cell_ref(prog), NIL /*env*/, stack);
+}
+
+// callback, argument provided is a GdkEvent
+static void cgtk_callback_event(GtkWidget* gp, GdkEvent *extra, gpointer data) {
+    // ignore gp (for now)
+    cell *prog = (cell *)data;
+    cell *stack = cell_list(cell_gdkevent(extra), NIL);
+
+//  interrupt(cell_ref(prog), NIL /*env*/, stack, 0);
+    run_main(cell_ref(prog), NIL /*env*/, stack);
+}
+
+static cell *cgtk_signal_connect(cell *args) {
+    cell *app;
+    cell *hook;
+    cell *callback;
+    // TODO also works for widgets, any instance
+    // TODO signal names are separated by either - or _
+
+    //GtkApplication *gp;
+    gpointer *gp;
+    char_t *signal;
+    if (!arg3(args, &app, &hook, &callback)) {
+        return cell_error();
+    }
+    // match any type of special first
+    // TODO may be better to test the two at this point
+    if (!peek_special(NULL, app, (void **)&gp, callback)) {
+        cell_unref(hook); // TODO
+        return cell_error();
+    }
+    if (!peek_symbol(hook, &signal, callback)) {
+        cell_unref(app);
+        return cell_error();
+    }
+    if (app->_.special.magicf != magic_gtk_app
+     && app->_.special.magicf != magic_gtk_widget) {
+        cell_unref(error_rt1("not a widget nor application", cell_ref(app)));
+        cell_unref(app);
+        cell_unref(hook);
+        return cell_error();
+    }
+    cell *callbackprog = NIL;
+    integer_t type;
+
+    if (!get_fromset(cgdk_signals, hook, &type)) {
+        cell_unref(app);
+        return cell_error();
+    }
+    // TODO hook should be retained to know string??
+
+    switch (type) {
+    case 0: // no extra data, needs to complete before we return
+        callbackprog = compile_thunk(callback, 0);
+
+        // TODO gulong tag =
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_wait), callbackprog);
+        break;
+
+    case 1: // no extra data provided
+        callbackprog = compile_thunk(callback, 0);
+
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_none), callbackprog);
+        break;
+
+    case 2: // extra parameter: integer response_id
+        callbackprog = compile_thunk(callback, 1);
+
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_int), callbackprog);
+        break;
+
+    case 3: // extra parameter: GdkEvent *event
+        callbackprog = compile_thunk(callback, 1);
+
+        // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
+        g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_event), callbackprog);
+        break;
+
+    default:
+        assert(0);
+    }
+
+    // cell_unref(callbackprog); // TODO when to unref callbackprog ???
+    // TODO void g_signal_handler_disconnect( gp, tag );
+
+    cell_unref(app);
+    return cell_void();
+}
 
 ////////////////////////////////////////////////////////////////
 //
@@ -1783,6 +1779,7 @@ cell *module_gtk() {
     DEFINE_CFUN1(widget_show_now)
     DEFINE_CFUN1(widget_hide)
     DEFINE_CFUN1(widget_show_all)
+    DEFINE_CFUNN(widget_queue_draw)
     DEFINE_CFUN1(widget_get_scale_factor)
     DEFINE_CFUN1(widget_activate)
     DEFINE_CFUN1(widget_is_focus)
