@@ -123,8 +123,9 @@ int cell_is_assoc(cell *cp) {
     return cp && cp->type == c_ASSOC;
 }
 
-int cell_is_special(cell *cp, const char *magic) {
-    return cp && cp->type == c_SPECIAL && (!magic || cp->_.special.magic == magic);
+// if magicf is NULL, match any type of special
+int cell_is_special(cell *cp, const char *(*magicf)(void *)) {
+    return cp && cp->type == c_SPECIAL && (magicf == NULL || cp->_.special.magicf == magicf);
 }
 
 int cell_is_channel(cell *cp) {
@@ -429,10 +430,10 @@ cell *cell_channel() {
     return node;
 }
 
-cell *cell_special(const char *magic, void *ptr) {
+cell *cell_special(const char *(*magicf)(void *), void *ptr) {
     cell *node = newnode(c_SPECIAL);
     node->_.special.ptr = ptr;
-    node->_.special.magic = magic;
+    node->_.special.magicf = magicf;
     return node;
 }
 
@@ -587,7 +588,8 @@ void cell_free1(cell *node) {
         run_environment_drop(node->_.channel.senders);
 	break;
     case c_SPECIAL:
-        // TODO invoke magic free function
+        // invoke magic free function
+        node->_.special.magicf(node->_.special.ptr);
         break;
     case c_STOP:
         break;

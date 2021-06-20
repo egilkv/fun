@@ -202,9 +202,9 @@ int get_boolean(cell *a, int *boolp, cell *dump) {
 }
 
 // arg is unreffed, unless there is an error
-int peek_special(const char *magic, cell *arg, void **valuep, cell *dump) {
-    if (!cell_is_special(arg, magic)) {
-        const char *m = magic ? magic : "special";
+int peek_special(const char * (*magicf)(void *), cell *arg, void **valuep, cell *dump) {
+    if (!cell_is_special(arg, magicf)) {
+        const char *m = (*magicf)(NULL);
         char *errmsg = malloc(strlen(m) + 6);
         assert(errmsg);
         strcpy(errmsg, "not a ");
@@ -221,8 +221,8 @@ int peek_special(const char *magic, cell *arg, void **valuep, cell *dump) {
 
 // a in always unreffed
 // dump is unreffed only if error
-int get_special(const char *magic, cell *arg, void **valuep, cell *dump) {
-    if (!peek_special(magic, arg, valuep, dump)) {
+int get_special(const char * (*magicf)(void *), cell *arg, void **valuep, cell *dump) {
+    if (!peek_special(magicf, arg, valuep, dump)) {
         return 0;
     }
     cell_unref(arg);

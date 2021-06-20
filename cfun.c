@@ -761,7 +761,7 @@ static cell *cfun1_type(cell *a) {
         break;
 
     case c_SPECIAL:
-        t = a->_.special.magic ? a->_.special.magic : "special";
+        t = (*(a->_.special.magicf))(NULL);
         break;
 
     case c_CLOSURE:

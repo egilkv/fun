@@ -359,7 +359,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         break;
 
     case c_SPECIAL:
-        fprintf(out, "#special(%s)", ct->_.special.magic);
+        fprintf(out, "#special(%s)", (*(ct->_.special.magicf))(NULL));
         break;
 
     case c_STOP:

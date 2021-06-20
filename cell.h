@@ -71,7 +71,7 @@ struct cell_s {
         } assoc;
         struct {
             void *ptr; // pointer to special content
-            const char *magic; // type of special content
+            const char *(*magicf)(void *ptr); // function to end use, and also return magic text with NULL arg
         } special;
         struct {
             char_t *ptr; // includes a trailing '\0' for easy conversion to C
@@ -202,8 +202,8 @@ int cell_is_assoc(cell *cp);
 cell *cell_channel();
 int cell_is_channel(cell *cp);
 
-cell *cell_special(const char *magic, void *ptr);
-int cell_is_special(cell *cp, const char *magic);
+cell *cell_special(const char *(*magicf)(void *), void *ptr);
+int cell_is_special(cell *cp, const char *(*magicf)(void *));
 
 cell *cell_number(number *np);
 int cell_is_number(cell *cp);

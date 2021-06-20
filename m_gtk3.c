@@ -29,9 +29,10 @@ static cell *cell_gdkevent(GdkEvent *event);
 //
 //  magic types
 
-static const char *magic_gtk_app = "gtk_application";
-static const char *magic_gtk_widget = "gtk_widget";
-static const char *magic_gtk_textbuf = "gtk_text_buffer";
+// TODO fix
+static const char *magic_gtk_app(void *ptr) { return "gtk_application"; }
+static const char *magic_gtk_widget(void *ptr) { return "gtk_widget"; }
+static const char *magic_gtk_textbuf(void *ptr) { return "gtk_text_buffer"; }
 
 static int get_gtkapp(cell *arg, GtkApplication **gpp, cell *dump) {
     return get_special(magic_gtk_app, arg, (void **)gpp, dump);
@@ -981,7 +982,9 @@ static cell *cgtk_signal_connect(cell *args) {
     if (!arg3(args, &app, &hook, &callback)) {
         return cell_error();
     }
-    if (!peek_special((const char *)0, app, (void **)&gp, callback)) {
+    // match any type of special first
+    // TODO may be better to test the two at this point
+    if (!peek_special(NULL, app, (void **)&gp, callback)) {
         cell_unref(hook); // TODO
         return cell_error();
     }
@@ -989,8 +992,8 @@ static cell *cgtk_signal_connect(cell *args) {
         cell_unref(app);
         return cell_error();
     }
-    if (app->_.special.magic != magic_gtk_app
-     && app->_.special.magic != magic_gtk_widget) {
+    if (app->_.special.magicf != magic_gtk_app
+     && app->_.special.magicf != magic_gtk_widget) {
         cell_unref(error_rt1("not a widget nor application", cell_ref(app)));
         cell_unref(app);
         cell_unref(hook);
@@ -1057,8 +1060,8 @@ static cell *cgtk_widget_destroy(cell *widget) {
     gtk_widget_destroy(wp);
     // properly invalidate widget to avoid future refs to dead gtk widget
     // TODO sure?
-    widget->_.special.ptr = NULL;
-    widget->_.special.magic = NULL;
+    // widget->_.special.ptr = NULL;
+    // widget->_.special.magic = NULL;
     cell_unref(widget);
     return cell_void();
 }
