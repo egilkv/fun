@@ -29,10 +29,33 @@ static cell *cell_gdkevent(GdkEvent *event);
 //
 //  magic types
 
-// TODO fix
-static const char *magic_gtk_app(void *ptr) { return "gtk_application"; }
-static const char *magic_gtk_widget(void *ptr) { return "gtk_widget"; }
-static const char *magic_gtk_textbuf(void *ptr) { return "gtk_text_buffer"; }
+
+static const char *magic_gtk_app(void *ptr) { 
+    if (ptr) g_object_unref(ptr);
+    return "gtk_application"; 
+}
+
+static const char *magic_gtk_widget(void *ptr) { 
+    if (ptr) g_object_unref(ptr);
+    return "gtk_widget";
+}
+
+static const char *magic_gtk_textbuf(void *ptr) { 
+    if (ptr) g_object_unref(ptr);
+    return "gtk_text_buffer";
+}
+
+static cell *make_special_gtk_app(GtkApplication *gp) {
+    return cell_special(magic_gtk_app, (void *)gp);
+}
+
+static cell *make_special_gtk_widget(GtkWidget *wp) {
+    return cell_special(magic_gtk_widget, (void *)wp);
+}
+
+static cell *make_special_gtk_textbuf(GtkTextBuffer *wp) {
+    return cell_special(magic_gtk_textbuf, (void *)wp);
+}
 
 static int get_gtkapp(cell *arg, GtkApplication **gpp, cell *dump) {
     return get_special(magic_gtk_app, arg, (void **)gpp, dump);
@@ -236,7 +259,8 @@ static cell *cgtk_##gname(cell *widget) { \
     GtkWidget *result; \
     if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
     result = gtk_##gname(gtype(wp)); \
-    return cell_special(magic_gtk_widget, (void *)result); \
+    g_object_ref(result); \
+    return make_special_gtk_widget(result); \
 }
 // TODO above will create copies, ideally we should keep track of them in an assoc
 
@@ -360,7 +384,8 @@ static cell *cgtk_##gname(cell *args) { \
     if (!peek_cstring(str, &cstr, str) \
      || !get_integer(val, &ival, NIL)) return cell_error(); \
     result = gtk_##gname(gtype(wp), cstr, ival); \
-    return cell_special(magic_gtk_widget, (void *)result); \
+    g_object_ref(result); \
+    return make_special_gtk_widget(result); \
 }
 
 #define WIDGET_GET_FROMSET(gname, gtype, gset) \
@@ -401,12 +426,12 @@ static cell *cgtk_##gname(cell *widget, cell *keys) { \
     return cell_void(); \
 }
 
-#define VOID_GET_WIDGET(gname) \
+#define VOID_GET_WIDGET_NEW(gname) \
 static cell *cgtk_##gname(cell *args) { \
     GtkWidget *result; \
     arg0(args); \
-    result = gtk_##gname(); \
-    return cell_special(magic_gtk_widget, (void *)result); \
+    result = gtk_##gname(); /* does g_object_ref() */ \
+    return make_special_gtk_widget(result); \
 }
 
 #define VOID_SET_BOOL(gname) \
@@ -442,23 +467,23 @@ static cell *cgtk_##gname(cell *args) { \
     return cell_cstring(cstr); \
 }
 
-#define FROMSET_GET_WIDGET(gname, gset) \
+#define FROMSET_GET_WIDGET_NEW(gname, gset) \
 static cell *cgtk_##gname(cell *key) { \
     GtkWidget *result; \
     integer_t ival = 0; \
     if (!get_fromset(gset, key, &ival)) return cell_error(); \
-    result = gtk_##gname(ival); \
-    return cell_special(magic_gtk_widget, (void *)result); \
+    result = gtk_##gname(ival); /* does g_object_ref() */ \
+    return make_special_gtk_widget(result); \
 }
 
-#define CSTRING_GET_WIDGET(gname) \
+#define CSTRING_GET_WIDGET_NEW(gname) \
 static cell *cgtk_##gname(cell *str) { \
     GtkWidget *result; \
     char_t *cstr; \
     if (!peek_cstring(str, &cstr, NIL)) return cell_error(); \
-    result = gtk_##gname(cstr); \
+    result = gtk_##gname(cstr); /* does g_object_ref() */ \
     cell_unref(str); \
-    return cell_special(magic_gtk_widget, (void *)result); \
+    return make_special_gtk_widget(result); \
 }
 
 ////////////////////////////////////////////////////////////////
@@ -480,7 +505,6 @@ static cell *cgtk_##gname(cell *str) { \
 static cell *cgtk_application_new(cell *args) {
     cell *aname = NIL;
     cell *flags = NIL;
-    cell *app;
     GtkApplication *gp;
 
     if (list_pop(&args, &aname)) {
@@ -493,11 +517,9 @@ static cell *cgtk_application_new(cell *args) {
 	arg0(args);
     }
     // TODO
-    gp = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE);
+    gp = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE); // does g_object_ref()
 
-    app = cell_special(magic_gtk_app, (void *)gp);
-
-    return app;
+    return make_special_gtk_app(gp);
 }
 
 static cell *cgtk_application_run(cell *app, cell *arglist) {
@@ -519,10 +541,10 @@ static cell *cgtk_application_window_new(cell *app) {
     if (!get_gtkapp(app, &gp, NIL)) {
         return cell_error();
     }
-    window = gtk_application_window_new(gp);
+    window = gtk_application_window_new(gp); // does g_object_ref()
     // TODO error check
 
-    return cell_special(magic_gtk_widget, (void *)window);
+    return make_special_gtk_widget(window);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -530,7 +552,7 @@ static cell *cgtk_application_window_new(cell *app) {
 //  box
 //
 
-FROMSET_GET_WIDGET(button_box_new, cgtk_orientation)
+FROMSET_GET_WIDGET_NEW(button_box_new, cgtk_orientation)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -538,8 +560,8 @@ FROMSET_GET_WIDGET(button_box_new, cgtk_orientation)
 //  https://developer.gnome.org/gtk3/stable/GtkButton.html
 //
 
-VOID_GET_WIDGET(button_new)
-CSTRING_GET_WIDGET(button_new_with_label)
+VOID_GET_WIDGET_NEW(button_new)
+CSTRING_GET_WIDGET_NEW(button_new_with_label)
 // TODO gtk_button_new_with_mnemonic() see gtk_button_set_use_underline()
 // gtk_button_new_from_icon_name (), use gtk_button_new() and gtk_button_set_image().instead
 WIDGET_VOID(button_clicked, GTK_BUTTON)
@@ -606,7 +628,7 @@ WIDGET_SET_INT(container_set_border_width, GTK_CONTAINER)
 //  https://developer.gnome.org/gtk3/stable/GtkDialog.html
 //
 
-VOID_GET_WIDGET(dialog_new)
+VOID_GET_WIDGET_NEW(dialog_new)
 // TODO gtk_dialog_new_with_buttons ()
 
 WIDGET_VOID(dialog_run, GTK_DIALOG)
@@ -630,7 +652,7 @@ WIDGET_SET_INT(dialog_set_default_response, GTK_DIALOG)
 //  https://developer.gnome.org/gtk3/stable/GtkGrid.html
 //
 
-VOID_GET_WIDGET(grid_new)
+VOID_GET_WIDGET_NEW(grid_new)
 
 static cell *cgtk_grid_attach(cell *args) {
     cell *grid;
@@ -693,7 +715,7 @@ WIDGET_GET_INT(grid_get_baseline_row, GTK_GRID)
 // TODO gtk_image_get_gicon_name
 // TODO gtk_image_get_storage_type
 
-CSTRING_GET_WIDGET(image_new_from_file)
+CSTRING_GET_WIDGET_NEW(image_new_from_file)
 
 // TODO gtk_image_new_from_pixbuf
 // TODO gtk_image_new_from_animation
@@ -714,7 +736,7 @@ WIDGET_SET_CSTRING(image_set_from_resource, GTK_IMAGE)
 // TODO gtk_image_set_from_gicon
 
 WIDGET_VOID(image_clear, GTK_IMAGE)
-VOID_GET_WIDGET(image_new)
+VOID_GET_WIDGET_NEW(image_new)
 WIDGET_SET_INT(image_set_pixel_size, GTK_IMAGE)
 WIDGET_GET_INT(image_get_pixel_size, GTK_IMAGE)
 
@@ -723,15 +745,7 @@ WIDGET_GET_INT(image_get_pixel_size, GTK_IMAGE)
 //  label
 //  https://developer.gnome.org/gtk3/stable/GtkLabel.html
 //
-
-static cell *cgtk_label_new(cell *str) {
-    GtkWidget *label;
-    char_t *cstr;
-    if (!peek_cstring(str, &cstr, NIL)) return cell_error();
-    label = gtk_label_new(cstr);
-    cell_unref(str);
-    return cell_special(magic_gtk_widget, (void *)label);
-}
+CSTRING_GET_WIDGET_NEW(label_new)
 
 WIDGET_SET_CSTRING(label_set_text, GTK_LABEL)
 // TODO    label_set_attributes
@@ -789,8 +803,8 @@ WIDGET_GET_BOOL(label_get_track_visited_links, GTK_LABEL)
 static cell *cgtk_text_buffer_new(cell *args) {
     arg0(args); // TODO optional GtkTextTagTable *table);
     GtkTextBuffer *textbuf;
-    textbuf = gtk_text_buffer_new(NULL);
-    return cell_special(magic_gtk_textbuf, (void *)textbuf);
+    textbuf = gtk_text_buffer_new(NULL); // does g_object_ref()
+    return make_special_gtk_textbuf(textbuf);
 }
 
 /* TODO
@@ -826,21 +840,17 @@ gtk_text_buffer_insert_interactive_at_cursor ()
 //
 //  text view
 //
+VOID_GET_WIDGET_NEW(text_view_new)
 
-static cell *cgtk_text_view_new(cell *args) {
-    cell *a;
+// TODO TEXTBUF_GET_WIDGET_NEW(text_view_new_with_buffer)
+static cell *cgtk_text_view_new_with_buffer(cell *tb) {
     GtkWidget *text_view;
-    if (list_pop(&args, &a)) {
-        GtkTextBuffer *textbuf;
-        if (!get_gtktextbuffer(a, &textbuf, NIL)) {
-            return cell_error();
-        }
-        arg0(args);
-        text_view = gtk_text_view_new_with_buffer(textbuf);
-    } else {
-        text_view = gtk_text_view_new();
+    GtkTextBuffer *textbuf;
+    if (!get_gtktextbuffer(tb, &textbuf, NIL)) {
+        return cell_error();
     }
-    return cell_special(magic_gtk_widget, (void *)text_view);
+    text_view = gtk_text_view_new_with_buffer(textbuf); // does g_object_ref()
+    return make_special_gtk_widget(text_view);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -1253,7 +1263,7 @@ WIDGET_VOID(widget_reset_style, GTK_WIDGET)
 //  https://developer.gnome.org/gtk3/stable/GtkWindow.html
 //
 
-FROMSET_GET_WIDGET(window_new, cgtk_window_type)
+FROMSET_GET_WIDGET_NEW(window_new, cgtk_window_type)
 WIDGET_SET_CSTRING(window_set_title, GTK_WINDOW)
 WIDGET_SET_BOOL(window_set_resizable, GTK_WINDOW)
 WIDGET_GET_BOOL(window_get_resizable, GTK_WINDOW)
@@ -1373,9 +1383,12 @@ static cell *cell_gdkevent(GdkEvent *event) {
     cell *type = cell_symbol("type");
     // TODO ignore type->send_event
     assert(event);
+#if 0
     if (((GdkEventAny *)event)->window) {
-        assoc_set(a, cell_symbol("window"), cell_special(magic_gtk_widget, (void *)((GdkEventAny *)event)->window));
+        g_object_ref(((GdkEventAny *)event)->window);
+        assoc_set(a, cell_symbol("window"), make_special_gdk_window(((GdkEventAny *)event)->window));
     }
+#endif
     switch (event->type) {
     case GDK_NOTHING: // a special code to indicate a null event.
       nullevent:
@@ -1763,6 +1776,7 @@ cell *module_gtk() {
     DEFINE_CFUNN(text_buffer_new)
     DEFINE_CFUN2(text_buffer_insert_at_cursor)
     DEFINE_CFUNN(text_view_new)
+    DEFINE_CFUN1(text_view_new_with_buffer)
     DEFINE_CFUN1(widget_destroy)
     DEFINE_CFUN1(widget_in_destruction)
     DEFINE_CFUN1(widget_show)
