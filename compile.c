@@ -812,13 +812,13 @@ cell *compile(cell *item, cell *env0) {
 
 // compile a function call, allowing for N arguments pushed on stack
 cell *compile_thunk(cell *func, int nargs) {
-    cell *prog = cell_func(func, NIL);
+    cell *prog;
     cell *args = NIL;
     int n;
     for (n = 0; n < nargs; ++n) { // add dummy args
         args = cell_list(cell_integer(-1), args);
     }
-    prog = compile(prog, NIL);
+    prog = compile(cell_func(func, args), NIL);
     for (n = 0; n < nargs; ++n) { // strip off args
         cell *np;
         assert(prog && prog->type == c_DOQPUSH);
