@@ -453,12 +453,6 @@ static item *gotstop(char c, item *it, lxfile *in) {
     return it;
 }
 
-static item *gotnot(char c, item *it, lxfile *in) {
-    if (it) lxungetc(c, in);
-    else it = nextchar(newitem(it_NOT), in);
-    return it;
-}
-
 static item *gotdiv(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_DIV) { // double slash, comment until end of line
@@ -511,31 +505,36 @@ static item *gotplus(char c, item *it, lxfile *in) {
             lxungetc(c, in);
         }
     } else {
-        it = nextchar(newitem(it_PLUS), in); // reqd for peek into next
+        it = nextchar(newitem(it_PLUS), in);
     }
     return it;
 }
 
-static item *gotlt(char c, item *it, lxfile *in) {
-    if (it) lxungetc(c, in);
-    else it = nextchar(newitem(it_LT), in); // reqd for peek into next
-    return it;
-}
-
-static item *gotgt(char c, item *it, lxfile *in) { 
-    if (it) lxungetc(c, in);
-    else it = nextchar(newitem(it_GT), in); // reqd for peek into next
+static item *gotminus(char c, item *it, lxfile *in) {
+    if (it) {
+        if (it->type == it_LT) {
+            it->type = it_LARROW;  // <-
+            return it;
+        } else {
+            lxungetc(c, in);
+        }
+    } else {
+        it = nextchar(newitem(it_MINUS), in);
+    }
     return it;
 }
 
 static item *gotplain(char c, token type, item *it, lxfile *in) {
     if (it) lxungetc(c, in);
-    else it = newitem(type);
+    else it = nextchar(newitem(type), in); // reqd for peek into next
     return it;
 }
 
+static item *gotnot(char c, item *it, lxfile *in)   { return gotplain(c, it_NOT, it, in); }
+static item *gotlt(char c, item *it, lxfile *in)    { return gotplain(c, it_LT, it, in); }
+static item *gotgt(char c, item *it, lxfile *in)    { return gotplain(c, it_GT, it, in); }
+// TODO these does not need peek:
 static item *gotquote(char c, item *it, lxfile *in) { return gotplain(c, it_QUOTE, it, in); }
-static item *gotminus(char c, item *it, lxfile *in) { return gotplain(c, it_MINUS, it, in); }
 static item *gotcomma(char c, item *it, lxfile *in) { return gotplain(c, it_COMMA, it, in); }
 static item *gotcolon(char c, item *it, lxfile *in) { return gotplain(c, it_COLON, it, in); }
 static item *gotsemi(char c, item *it, lxfile *in)  { return gotplain(c, it_SEMI, it, in); }

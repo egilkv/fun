@@ -88,7 +88,7 @@ static cell *cfunN_minus(cell *args) {
     cell *a;
     result.dividend.ival = 0;
     result.divisor = 1;
-    if (!list_pop(&args, &a)
+    if (!at_least_one(&args, &a)
      || !get_number(a, &result, args)) return cell_error();
     if (args == NIL) { // special case, one argument?
         if (!make_negative(&result)) {
@@ -176,9 +176,7 @@ static cell *cfunN_quotient(cell *args) {
     number result;
     number operand;
     cell *a;
-    if (!list_pop(&args, &a)) {
-        return error_rt1("needs at least one argument", args);
-    }
+    if (!at_least_one(&args, &a)) return cell_error();
     // remark: in standard lisp (/ 5) is shorthand for 1/5
     if (!get_number(a, &result, args)) return cell_error();
 
@@ -230,7 +228,7 @@ static cell *cfunN_quotient(cell *args) {
 static cell *funname(cell *args) {                                  \
     cell *a;                                                        \
     /* TODO could do lazy evaluation */                             \
-    if (!list_pop(&args, &a)) return cell_void();                   \
+    if (!at_least_one(&args, &a)) return cell_void();               \
     if (cell_is_string(a)) {                                        \
         /* compare strings */                                       \
         cell *value = a;                                            \
@@ -591,9 +589,8 @@ static cell *cfunN_eq(cell *args) {
     cell *first;
     cell *a = NIL;
     int eq = 1;
-    if (!list_pop(&args, &first)) {
-        return cell_error();
-    }
+    if (!at_least_one(&args, &first)) return cell_error();
+
     if (first == hash_undef || first == hash_void) {
         cell_unref(args);
         return error_rt1("cannot compare undefined", first);
@@ -847,37 +844,42 @@ static cell *cfun1_include(cell *a) {
 }
 
 // start coroutine
-static cell *cfun1_go(cell *arg) {
+static cell *cfun1_go(cell *args) {
+    cell *thunk;
     cell *prog;
     cell *params;
     cell *cont_env;
     cell *env;
     struct proc_run_env *pre;
+    if (!at_least_one(&args, &thunk)) return cell_error();
 
-    switch (arg ? arg->type : c_LIST) {
+    switch (thunk ? thunk->type : c_LIST) {
     default:
-        return error_rt1("not a function thunk", arg);
+        return error_rt1("not a function thunk", thunk);
 
     case c_CLOSURE:
-        prog = arg->_.cons.car;
-        cont_env = cell_ref(arg->_.cons.cdr);
+        prog = thunk->_.cons.car;
+        cont_env = cell_ref(thunk->_.cons.cdr);
         break;
 
     case c_CLOSURE0:
     case c_CLOSURE0T:
-        prog = arg;
+        prog = thunk;
         cont_env = NIL;
         break;
     }
     params = cell_ref(prog->_.cons.car);
-    prog = cell_ref(arg->_.cons.cdr);
-    cell_unref(arg);
+    prog = cell_ref(prog->_.cons.cdr);
+    cell_unref(thunk);
 
-    env = cell_env(NIL /*prevenv*/, NIL /*prog*/, cell_assoc(), cont_env);
+    env = cell_env(NIL , NIL , cell_assoc(), cont_env);
     if (params) {
         // TODO could transfer args to assoc...
         // TODO cannot have params, better errormsg?
         arg0(params);
+        cell_unref(args);
+    } else {
+        arg0(args);
     }
     pre = run_environment_new(prog, env, NIL); 
 
@@ -892,8 +894,8 @@ static cell *cfunN_channel(cell *args) {
     return cell_channel();
 }
 
-// start coroutine
-static cell *cfun1_read(cell *chan) {
+// receive from channel
+static cell *cfun1_receive(cell *chan) {
     cell *result;
     struct proc_run_env *pre;
     if (!cell_is_channel(chan)) {
@@ -919,8 +921,8 @@ static cell *cfun1_read(cell *chan) {
     return result;
 }
 
-// start coroutine
-static cell *cfun2_write(cell *chan, cell *arg) {
+// send to channel
+static cell *cfun2_send(cell *chan, cell *arg) {
     cell *result;
     struct proc_run_env *pre;
     if (!cell_is_channel(chan)) {
@@ -1024,7 +1026,7 @@ void cfun_init() {
                     symbol_set("#exit",     cell_cfunN_pure(cfunN_exit));
                     symbol_set("#getenv",   cell_cfun1_pure(cfun1_getenv));
     hash_ge       = symbol_set("#ge",       cell_cfunN_pure(cfunN_ge));
-    hash_go       = symbol_set("#go",       cell_cfun1(cfun1_go)); // TODO pure?
+    hash_go       = symbol_set("#go",       cell_cfunN(cfun1_go)); // TODO pure?
     hash_gt       = symbol_set("#gt",       cell_cfunN_pure(cfunN_gt));
                     symbol_set("#include",  cell_cfun1(cfun1_include)); // TODO pure?
     hash_le       = symbol_set("#le",       cell_cfunN_pure(cfunN_le));
@@ -1035,12 +1037,12 @@ void cfun_init() {
     hash_noteq    = symbol_set("#noteq",    cell_cfunN_pure(cfunN_noteq));
     hash_plus     = symbol_set("#plus",     cell_cfunN_pure(cfunN_plus));
     hash_quotient = symbol_set("#quotient", cell_cfunN_pure(cfunN_quotient));
-    hash_read     = symbol_set("#read",     cell_cfun1(cfun1_read));
+    hash_receive  = symbol_set("#receive",  cell_cfun1(cfun1_receive));
     hash_ref      = symbol_set("#ref",      cell_cfun2_pure(cfun2_ref));
+    hash_send     = symbol_set("#send",     cell_cfun2(cfun2_send));
     hash_times    = symbol_set("#times",    cell_cfunN_pure(cfunN_times));
                     symbol_set("#type",     cell_cfun1_pure(cfun1_type));
                     symbol_set("#use",      cell_cfun1_pure(cfun1_use));
-    hash_write    = symbol_set("#write",    cell_cfun2(cfun2_write));
 }
 
 static void cfun_exit(void) {

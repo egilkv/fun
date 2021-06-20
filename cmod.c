@@ -19,6 +19,15 @@ cell *hash_void;
 cell *hash_undef;
 cell *hash_ellip;
 
+// like list_pop() but complain if no argument and set arg to void
+int at_least_one(cell **argsp, cell **argp) {
+    if (!list_pop(argsp, argp)) {
+        cell_unref(error_rt1("needs at least one argument", *argsp));
+        return 0;
+    }
+    return 1;
+}
+
 // function with 0 arguments
 void arg0(cell *args) {
     if (args) {

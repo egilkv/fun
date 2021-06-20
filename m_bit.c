@@ -14,7 +14,7 @@ static cell *cbit_and(cell *args) {
     integer_t result;
     integer_t operand;
     cell *a;
-    if (!list_pop(&args, &a)
+    if (!at_least_one(&args, &a)
      || !get_integer(a, &result, args)) return cell_error();
     while (list_pop(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_void();
@@ -28,7 +28,7 @@ static cell *cbit_or(cell *args) {
     integer_t result;
     integer_t operand;
     cell *a;
-    if (!list_pop(&args, &a)
+    if (!at_least_one(&args, &a)
      || !get_integer(a, &result, args)) return cell_error();
     while (list_pop(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_void();
@@ -42,7 +42,7 @@ static cell *cbit_xor(cell *args) {
     integer_t result;
     integer_t operand;
     cell *a;
-    if (!list_pop(&args, &a)
+    if (!at_least_one(&args, &a)
      || !get_integer(a, &result, args)) return cell_error();
     while (list_pop(&args, &a)) {
         if (!get_integer(a, &operand, args)) return cell_void();

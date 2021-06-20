@@ -181,6 +181,13 @@ static cell *expr(precedence lv, lxfile *in) {
         }
         return binary(pt, lv, in);
 
+    case it_LARROW: // unary and binary
+        dropitem(it);
+        pt = expr(l_LARROW, in);
+        if (!pt) return badeof();
+        pt = cell_func(cell_ref(hash_receive), cell_list(pt, NIL));
+        return binary(pt, lv, in);
+
     case it_QUOTE:
         dropitem(it);
         pt = expr(l_UNARY, in);
@@ -420,6 +427,9 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 
     case it_EQ:
         return binary_r2l(left, l_DEF,   cell_ref(hash_defq), op, lv, in); // 2 args
+
+    case it_LARROW:
+        return binary_l2r(left, l_LARROW, cell_ref(hash_send), op, lv, in); // 2 args
 
     case it_QUEST: // ternary
         if (lv > l_COND) { // right-to-left

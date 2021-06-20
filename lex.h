@@ -32,6 +32,7 @@ enum it_ {
    it_CIRC,
    it_TILDE,   // 25
    it_ELLIP,
+   it_LARROW,
    it_LPAR,
    it_RPAR,
    it_LBRK,

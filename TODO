@@ -1,4 +1,19 @@
 
+Channels can be buffered, with a certain length given.
+Senders can close a channel
+https://tour.golang.org/concurrency/4
+
+#go with arguments
+
+Send val to channel:
+ch <- v
+
+Receive from channel
+   <- ch
+
+ch := make(chan int)
+
+
 Rewrite debugger so that it places main on the ready list instead of the save thing.
 
 Add debugger and #breakpoint(). Option to switch to debugger on error.

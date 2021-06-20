@@ -22,10 +22,10 @@ cell *hash_not;
 cell *hash_noteq;
 cell *hash_plus;
 cell *hash_quotient;
-cell *hash_read;
+cell *hash_receive;
 cell *hash_ref;
+cell *hash_send;
 cell *hash_times;
-cell *hash_write;
 
 cell *push_nothing;
 

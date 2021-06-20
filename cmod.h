@@ -11,6 +11,7 @@ extern cell *hash_void;
 extern cell *hash_undef;
 extern cell *hash_ellip;
 
+int at_least_one(cell **argsp, cell **argp);
 void arg0(cell *args);
 int arg1(cell *args, cell **ap);
 int arg2(cell *args, cell **ap, cell **bp);

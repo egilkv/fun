@@ -11,7 +11,7 @@
 // all associate left-to-right except where noted
 // several of these are N-ary
 enum prec_ {
-    l_PERHAPS,  // labels perhaps allowed (ugly, I know)
+    l_PERHAPS,  // labels perhaps allowed (TODO ugly, I know)
     l_LABEL,    // labels allowed here
     l_BASE,     // base expression, no labels allowed
     l_SEMI,     // ;            TODO new, same as ',' in C
@@ -27,6 +27,7 @@ enum prec_ {
     l_REL,      // < <= > >=
     l_ADD,      // + -
     l_MULT,     // * /
+    l_LARROW,   // <-           TODO where?
     l_UNARY,    // - ! '        TODO right-to-left
     l_POST,     // () []        as postfix operators
     l_STOP      // .            left-to-right, like C
