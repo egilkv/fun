@@ -31,6 +31,7 @@ enum cell_t {
    c_CFUN1,     // builtin, 1 arg
    c_CFUN2,     // builtin, 2 arg
    c_CFUNN,     // builtin, N args
+   c_CFUNR,     // builtin, return value dealt with in function, N args
    c_DOQPUSH,   // push car, cdr is next
    c_DOLPUSH,   // car is local, push, cdr is next
    c_DOGPUSH,   // car is global, push, cdr is next
@@ -90,8 +91,11 @@ struct cell_s {
             struct cell_s *(*def)(struct cell_s *, struct cell_s *);
         } cfun2;
         struct {
-            struct proc_run_env *readers;
-            struct proc_run_env *writers;
+            void (*def)(struct cell_s *);
+        } cfunR;
+        struct {
+            struct proc_run_env *receivers;
+            struct proc_run_env *senders;
         } channel; // for c_CHANNEL
         struct {
             integer_t narg;
@@ -139,6 +143,7 @@ void cell_unref(cell *cp);
 cell *cell_cfunN(cell *(*fun)(cell *));
 cell *cell_cfun1(cell *(*fun)(cell *));
 cell *cell_cfun2(cell *(*fun)(cell *, cell *));
+cell *cell_cfunR(void (*fun)(cell *));
 cell *cell_cfunN_pure(cell *(*fun)(cell *));
 cell *cell_cfun1_pure(cell *(*fun)(cell *));
 cell *cell_cfun2_pure(cell *(*fun)(cell *, cell *));

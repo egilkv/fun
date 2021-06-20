@@ -334,13 +334,10 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         break;
 
     case c_CFUN1:
-        fprintf(out, "#cfun1()");
-        break;
     case c_CFUN2:
-        fprintf(out, "#cfun2()");
-        break;
     case c_CFUNN:
-        fprintf(out, "#cfunN()");
+    case c_CFUNR:
+        fprintf(out, "#cfun()");
         break;
 
     case c_ENV:
@@ -358,7 +355,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         break;
 
     case c_CHANNEL:
-        fprintf(out, "#channel(%s%s)", ct->_.channel.readers ? "R":"", ct->_.channel.readers ? "W":""); // TODO R/W is debug
+        fprintf(out, "#channel(%s%s)", ct->_.channel.receivers ? "R":"", ct->_.channel.senders ? "S":""); // TODO R/W is debug
         break;
 
     case c_SPECIAL:

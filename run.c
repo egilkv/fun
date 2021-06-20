@@ -10,7 +10,6 @@
 #include "cell.h"
 #include "run.h"
 #include "node.h" // newnode
-#include "cfun.h" // push_nothing
 #include "cmod.h" // get_boolean
 #include "err.h"
 #include "debug.h"
@@ -107,7 +106,7 @@ static INLINE void advance_prog(struct current_run_env *rep) {
 }
 
 static INLINE void push_value_stackp(cell *val, cell **stackp) {
-    if (val != push_nothing) *stackp = cell_list(val, *stackp);
+    *stackp = cell_list(val, *stackp);
 }
 
 static INLINE void push_value(cell *val, struct current_run_env *rep) {
@@ -478,6 +477,15 @@ cell *run_main(cell *prog, cell *env0, cell *stack) {
                     }
                     break;
 
+                case c_CFUNR:
+                    {
+                        void (*def)(cell *) = fun->_.cfunR.def;
+                        cell_unref(fun);
+                        advance_prog(&re);
+                        (*def)(cell_list(arg, NIL));
+                    }
+                    break;
+
                 case c_CLOSURE:
                     {
                         cell *lambda = cell_ref(fun->_.cons.car);
@@ -532,6 +540,15 @@ cell *run_main(cell *prog, cell *env0, cell *stack) {
                     }
                     break;
 
+                case c_CFUNR:
+                    {
+                        void (*def)(cell *) = fun->_.cfunR.def;
+                        cell_unref(fun);
+                        advance_prog(&re);
+                        (*def)(cell_list(arg1,cell_list(arg2,NIL)));
+                    }
+                    break;
+
                 case c_CLOSURE:
                     {
                         cell *lambda = cell_ref(fun->_.cons.car);
@@ -581,6 +598,15 @@ cell *run_main(cell *prog, cell *env0, cell *stack) {
                         advance_prog_where(re.prog->_.calln.cdr, &re);
                         result = (*def)(args);
                         push_value_stackp(result, stackp);
+                    }
+                    break;
+
+                case c_CFUNR:
+                    {
+                        void (*def)(cell *) = fun->_.cfunR.def;
+                        cell_unref(fun);
+                        advance_prog_where(re.prog->_.calln.cdr, &re);
+                        (*def)(args);
                     }
                     break;
 
@@ -728,6 +754,15 @@ cell *run_main(cell *prog, cell *env0, cell *stack) {
                         advance_prog(&re);
                         result = (*def)(tailarg);
                         push_value_stackp(result, stackp);
+                    }
+                    break;
+
+                case c_CFUNR:
+                    {
+                        void (*def)(cell *) = fun->_.cfunR.def;
+                        cell_unref(fun);
+                        advance_prog(&re);
+                        (*def)(tailarg);
                     }
                     break;
 

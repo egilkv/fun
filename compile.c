@@ -442,15 +442,18 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
 
                 // TODO deal with all sorts of functions
                 switch (fun->type) {
-                case c_CFUNN:
-                    {
-                        cell *(*def)(cell *) = fun->_.cfun1.def;
-                        *valp = (*def)(argdef);
+                case c_CFUN2:
+                    if (n == 2) {
+                        cell *(*def)(cell *, cell *) = fun->_.cfun2 .def;
+                        cell *arg1;
+                        cell *arg2;
+                        list_pop(&argdef, &arg1);
+                        list_pop(&argdef, &arg2);
+                        *valp = (*def)(arg1, arg2);
                         cell_unref(fun);
                         cell_unref(item);
                         return 1;
                     }
-                    break;
 
                 case c_CFUN1:
                     if (n == 1) {
@@ -464,18 +467,22 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
                     }
                     break;
 
-                case c_CFUN2:
-                    if (n == 2) {
-                        cell *(*def)(cell *, cell *) = fun->_.cfun2 .def;
-                        cell *arg1;
-                        cell *arg2;
-                        list_pop(&argdef, &arg1);
-                        list_pop(&argdef, &arg2);
-                        *valp = (*def)(arg1, arg2);
+                case c_CFUNN:
+                    {
+                        cell *(*def)(cell *) = fun->_.cfun1.def;
+                        *valp = (*def)(argdef);
                         cell_unref(fun);
                         cell_unref(item);
                         return 1;
                     }
+                    break;
+
+                case c_CFUNR:
+                    // these functions are never pure
+                    assert(0);
+                    cell_unref(fun);
+                    cell_unref(item);
+                    return 0;
 
                 case c_CLOSURE:
                 case c_CLOSURE0:

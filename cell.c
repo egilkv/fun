@@ -310,6 +310,12 @@ cell *cell_cfun2(cell *(*fun)(cell *, cell *)) {
     return node;
 }
 
+cell *cell_cfunR(void (*fun)(cell *)) {
+    cell *node = newnode(c_CFUNR);
+    node->_.cfunR.def = fun;
+    return node;
+}
+
 cell *cell_cfunN_pure(cell *(*fun)(cell *)) {
     cell *node = cell_cfunN(fun);
     node->pure = 1;
@@ -487,8 +493,8 @@ void cell_sweep(cell *node) {
         }
         break;
     case c_CHANNEL:
-        run_environment_sweep(node->_.channel.readers);
-        run_environment_sweep(node->_.channel.writers);
+        run_environment_sweep(node->_.channel.receivers);
+        run_environment_sweep(node->_.channel.senders);
 	break;
     case c_SYMBOL: 
         // TODO these should exist only on oblist ?
@@ -499,6 +505,7 @@ void cell_sweep(cell *node) {
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:
+    case c_CFUNR:
     case c_SPECIAL:
     case c_STOP:
         break;
@@ -559,6 +566,7 @@ void cell_free1(cell *node) {
     case c_CFUN1:
     case c_CFUN2:
     case c_CFUNN:
+    case c_CFUNR:
         break;
     case c_VECTOR:
         if (node->_.vector.table) {
@@ -575,8 +583,8 @@ void cell_free1(cell *node) {
         assoc_drop(node);
         break;
     case c_CHANNEL:
-        run_environment_drop(node->_.channel.readers);
-        run_environment_drop(node->_.channel.writers);
+        run_environment_drop(node->_.channel.receivers);
+        run_environment_drop(node->_.channel.senders);
 	break;
     case c_SPECIAL:
         // TODO invoke magic free function
