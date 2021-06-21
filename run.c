@@ -12,9 +12,11 @@
 #include "node.h" // newnode
 #include "cmod.h" // get_boolean
 #include "err.h"
+#include "lock.h"
 #include "debug.h"
 
 // statically allocated run environment
+// TODO should be same as struct proc_run_env
 struct current_run_env {
     cell *prog;             // program being run TODO also in env, but here for efficiency
     cell *env;              // current environment
@@ -25,12 +27,14 @@ struct current_run_env {
 
 // the one run environment
 static struct current_run_env *run_environment = 0;
+static lock_t run_environment_lock = 0;
 
 // list of other ready processes
 struct proc_run_env *ready_list = 0;
+lock_t ready_list_lock = 0;
 
 // prepare a new level of compile environment
-struct proc_run_env *run_environment_new(cell *prog, cell *env, cell *stack) {
+static struct proc_run_env *proc_run_env_new(cell *prog, cell *env, cell *stack) {
     struct proc_run_env *newenv = malloc(sizeof(struct proc_run_env));
     assert(newenv);
     newenv->prog = prog;
@@ -42,20 +46,20 @@ struct proc_run_env *run_environment_new(cell *prog, cell *env, cell *stack) {
 }
 
 // free up all run environment resources
-void run_environment_drop(struct proc_run_env *rep) {
+void proc_run_env_drop(struct proc_run_env *rep) {
     while (rep) {
         struct proc_run_env *next;
         cell_unref(rep->prog);
         cell_unref(rep->env);
         cell_unref(rep->stack);
         next = rep->next;
-        free(rep);
+        free((void *)rep);
         rep = next;
     }
 }
 
 // sweep run environment resources
-void run_environment_sweep(struct proc_run_env *rep) {
+void proc_run_env_sweep(struct proc_run_env *rep) {
     while (rep) {
         cell_sweep(rep->prog);
         cell_sweep(rep->env);
@@ -81,6 +85,7 @@ void prepend_proc_list(struct proc_run_env **pp, struct proc_run_env *rep) {
 
 // for debugging
 cell *current_run_env() {
+    // TODO LOCK(run_environment_lock) ?
     if (!run_environment) {
         cell_unref(error_rt0("breakpoint without run")); // TODO should not happen
         return NIL;
@@ -126,6 +131,7 @@ static INLINE cell *pop_value(struct current_run_env *rep) {
 
 // for special cases
 void push_stack_current_run_env(cell *val) {
+    // TODO LOCK(run_environment_lock)?
     push_value(val, run_environment);
 }
 
@@ -296,50 +302,57 @@ void run_main_apply(cell *lambda, cell *args) {
     }
 }
 
-// set run_environment, return next
-static struct proc_run_env *set_run_environment(struct proc_run_env *newp) {
-    if (newp) {
-        struct proc_run_env *next = newp->next;
-        run_environment->prog = newp->prog;
-        run_environment->env = newp->env;
-        run_environment->stack = newp->stack;
-        run_environment->proc_id = newp->proc_id;
+// set run_environment to next ready process
+static void run_environment_next_ready() {
+    struct proc_run_env *newp;
+    LOCK(ready_list_lock);
+      if ((newp = ready_list) != NULL) {
+          ready_list = newp->next;
+      }
+    UNLOCK(ready_list_lock);
+
+    if (newp != NULL) {
+        LOCK(run_environment_lock);
+          run_environment->prog = newp->prog;
+          run_environment->env = newp->env;
+          run_environment->stack = newp->stack;
+          run_environment->proc_id = newp->proc_id;
+        UNLOCK(run_environment_lock);
         free(newp);
-        return next;
     } else {
-        run_environment->prog = NIL;
-        run_environment->env = NIL;
-        run_environment->stack = NIL;
-        run_environment->proc_id = 0;
-        return NULL;
+        LOCK(run_environment_lock);
+          run_environment->prog = NIL;
+          run_environment->env = NIL;
+          run_environment->stack = NIL;
+          run_environment->proc_id = 0;
+        UNLOCK(run_environment_lock);
     }
 }
 
 // suspend running process, return its descriptor
 struct proc_run_env *suspend() {
     struct proc_run_env *susp;
+    // TODO LOCK(run_environment_lock);
     if (run_environment == NULL) {
         assert(0);
     }
-    susp = run_environment_new(run_environment->prog, run_environment->env, run_environment->stack);
+    susp = proc_run_env_new(run_environment->prog, run_environment->env, run_environment->stack);
     susp->proc_id = run_environment->proc_id;
 
-    if (ready_list != NULL) {
-        ready_list = set_run_environment(ready_list);
-    } else {
-        // nothing more to do
-        set_run_environment(NULL);
-    }
+    run_environment_next_ready();
+
     return susp;
 }
 
 // interrupt running process, inserting new process
+// TODO or put on top of ready list instead???
 void start_process(cell *prog, cell *env, cell *stack) {
     struct proc_run_env *susp;
+    // TODO UNLOCK(run_environment_lock);
     if (run_environment == NULL) {
         assert(0);
     }
-    susp = run_environment_new(run_environment->prog, run_environment->env, run_environment->stack);
+    susp = proc_run_env_new(run_environment->prog, run_environment->env, run_environment->stack);
     susp->proc_id = run_environment->proc_id;
 
     run_environment->prog = prog;
@@ -354,6 +367,7 @@ void start_process(cell *prog, cell *env, cell *stack) {
 int dispatch() {
     if (ready_list == NULL) return 0;
 
+    // TODO UNLOCK(run_environment_lock);
     if (run_environment->prog != NIL 
      || run_environment->env != NIL 
      || (run_environment->stack != NIL && run_environment->proc_id != 0)) {
@@ -362,7 +376,7 @@ int dispatch() {
         append_proc_list(&ready_list, prev);
     } else {
         // pop from top of ready list
-        ready_list = set_run_environment(ready_list);
+        run_environment_next_ready();
     }
     return 1;
 }
@@ -375,9 +389,10 @@ cell *run_main(cell *prog, cell *env0, cell *stack, int proc_id) {
     re.env = env0;
     re.stack = stack;
     re.proc_id = proc_id;
-    re.save = run_environment; // should usually be NULL
-
-    run_environment = &re;
+    LOCK(run_environment_lock);
+      re.save = run_environment; // should usually be NULL
+      run_environment = &re;
+    UNLOCK(run_environment_lock);
 
     for (;;) {
         while (re.prog == NIL) {
@@ -407,7 +422,9 @@ cell *run_main(cell *prog, cell *env0, cell *stack, int proc_id) {
                 if (re.stack) {
                     cell_unref(error_rt1("stack imbalance", re.stack)); // TODO should this happen?
                 }
-                run_environment = re.save;
+                LOCK(run_environment_lock);
+                  run_environment = re.save;
+                UNLOCK(run_environment_lock);
                 return result;
             }
         }

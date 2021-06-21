@@ -494,8 +494,8 @@ void cell_sweep(cell *node) {
         }
         break;
     case c_CHANNEL:
-        run_environment_sweep(node->_.channel.receivers);
-        run_environment_sweep(node->_.channel.senders);
+        proc_run_env_sweep(node->_.channel.receivers);
+        proc_run_env_sweep(node->_.channel.senders);
 	break;
     case c_SYMBOL: 
         // TODO these should exist only on oblist ?
@@ -584,8 +584,8 @@ void cell_free1(cell *node) {
         assoc_drop(node);
         break;
     case c_CHANNEL:
-        run_environment_drop(node->_.channel.receivers);
-        run_environment_drop(node->_.channel.senders);
+        proc_run_env_drop(node->_.channel.receivers);
+        proc_run_env_drop(node->_.channel.senders);
 	break;
     case c_SPECIAL:
         // invoke magic free function

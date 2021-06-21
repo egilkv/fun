@@ -137,7 +137,7 @@ integer_t oblist_sweep() {
 	}
     }
     // don't forget ready list
-    run_environment_sweep(ready_list);
+    proc_run_env_sweep(ready_list);
     // TODO also do things under run_main()
 
     // then sweep up
@@ -172,7 +172,7 @@ static void oblist_exit() {
     }
     oblist_teardown = 0;
 
-    run_environment_drop(ready_list);
+    proc_run_env_drop(ready_list);
     ready_list = NULL;
     // TODO also do things under run_main()
 

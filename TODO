@@ -16,6 +16,9 @@ Have special channel types with C functions as senders and as receivers
 
 Change push_nothing to a special class of function
 
+Fix locking in run.c and elsewhere
+Also probably needs a few volatile declarations
+
 Channels can be buffered, with a certain length given.
 Senders can close a channel
 https://tour.golang.org/concurrency/4

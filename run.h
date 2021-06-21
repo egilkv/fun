@@ -11,10 +11,10 @@ struct proc_run_env {
 } ;
 
 extern struct proc_run_env *ready_list;
+extern lock_t ready_list_lock;
 
-struct proc_run_env *run_environment_new(cell *prog, cell *env, cell *stack);
-void run_environment_drop(struct proc_run_env *rep);
-void run_environment_sweep(struct proc_run_env *rep);
+void proc_run_env_drop(struct proc_run_env *rep);
+void proc_run_env_sweep(struct proc_run_env *rep);
 void append_proc_list(struct proc_run_env **pp, struct proc_run_env *rep);
 void prepend_proc_list(struct proc_run_env **pp, struct proc_run_env *rep);
 struct proc_run_env *suspend();
