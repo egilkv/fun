@@ -705,6 +705,16 @@ WIDGET_SET_BOOL(button_set_always_show_image, GTK_BUTTON)
 
 ////////////////////////////////////////////////////////////////
 //
+//  check button
+//  https://developer.gnome.org/gtk3/stable/GtkCheckButton.html
+//
+
+VOID_GET_WIDGET_NEW(check_button_new)
+CSTRING_GET_WIDGET_NEW(check_button_new_with_label)
+CSTRING_GET_WIDGET_NEW(check_button_new_with_mnemonic)
+
+////////////////////////////////////////////////////////////////
+//
 //  container
 //  https://developer.gnome.org/gtk3/stable/GtkContainer.html
 //
@@ -921,6 +931,23 @@ WIDGET_GET_BOOL(label_get_track_visited_links, GTK_LABEL)
 
 ////////////////////////////////////////////////////////////////
 //
+//  radio buttons
+//
+
+/*
+GtkWidget *     gtk_radio_button_new ()
+GtkWidget *     gtk_radio_button_new_from_widget ()
+GtkWidget *     gtk_radio_button_new_with_label ()
+GtkWidget *     gtk_radio_button_new_with_label_from_widget ()
+GtkWidget *     gtk_radio_button_new_with_mnemonic ()
+GtkWidget *     gtk_radio_button_new_with_mnemonic_from_widget ()
+void    gtk_radio_button_set_group ()
+GSList *    gtk_radio_button_get_group ()
+void    gtk_radio_button_join_group ()
+*/
+
+////////////////////////////////////////////////////////////////
+//
 //  text buffer
 //
 
@@ -964,6 +991,7 @@ gtk_text_buffer_insert_interactive_at_cursor ()
 //
 //  text view
 //
+
 VOID_GET_WIDGET_NEW(text_view_new)
 
 // TODO TEXTBUF_GET_WIDGET_NEW(text_view_new_with_buffer)
@@ -976,6 +1004,23 @@ static cell *cgtk_text_view_new_with_buffer(cell *tb) {
     text_view = gtk_text_view_new_with_buffer(textbuf); // does g_object_ref()
     return make_special_gtk_widget(text_view);
 }
+
+////////////////////////////////////////////////////////////////
+//
+//  toggle button
+//  https://developer.gnome.org/gtk3/stable/GtkToggleButton.html
+//
+
+VOID_GET_WIDGET_NEW(toggle_button_new)
+CSTRING_GET_WIDGET_NEW(toggle_button_new_with_label)
+CSTRING_GET_WIDGET_NEW(toggle_button_new_with_mnemonic)
+WIDGET_SET_BOOL(toggle_button_set_mode, GTK_TOGGLE_BUTTON)
+WIDGET_GET_BOOL(toggle_button_get_mode, GTK_TOGGLE_BUTTON)
+WIDGET_VOID(toggle_button_toggled, GTK_TOGGLE_BUTTON)
+WIDGET_GET_BOOL(toggle_button_get_active, GTK_TOGGLE_BUTTON)
+WIDGET_SET_BOOL(toggle_button_set_active, GTK_TOGGLE_BUTTON)
+WIDGET_GET_BOOL(toggle_button_get_inconsistent, GTK_TOGGLE_BUTTON)
+WIDGET_SET_BOOL(toggle_button_set_inconsistent, GTK_TOGGLE_BUTTON)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -1817,6 +1862,9 @@ cell *module_gtk() {
     DEFINE_CFUN1(button_get_image_position)
     DEFINE_CFUN1(button_get_always_show_image)
     DEFINE_CFUN2(button_set_always_show_image)
+    DEFINE_CFUNN(check_button_new)
+    DEFINE_CFUN1(check_button_new_with_label)
+    DEFINE_CFUN1(check_button_new_with_mnemonic)
     DEFINE_CFUN2(container_add)
     DEFINE_CFUN2(container_remove)
     DEFINE_CFUNN(container_check_resize)
@@ -1906,6 +1954,16 @@ cell *module_gtk() {
     DEFINE_CFUN2(text_buffer_insert_at_cursor)
     DEFINE_CFUNN(text_view_new)
     DEFINE_CFUN1(text_view_new_with_buffer)
+    DEFINE_CFUNN(toggle_button_new)
+    DEFINE_CFUN1(toggle_button_new_with_label)
+    DEFINE_CFUN1(toggle_button_new_with_mnemonic)
+    DEFINE_CFUN2(toggle_button_set_mode)
+    DEFINE_CFUN1(toggle_button_get_mode)
+    DEFINE_CFUNN(toggle_button_toggled)
+    DEFINE_CFUN1(toggle_button_get_active)
+    DEFINE_CFUN2(toggle_button_set_active)
+    DEFINE_CFUN1(toggle_button_get_inconsistent)
+    DEFINE_CFUN2(toggle_button_set_inconsistent)
     DEFINE_CFUN1(widget_destroy)
     DEFINE_CFUN1(widget_in_destruction)
     DEFINE_CFUN1(widget_show)
