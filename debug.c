@@ -117,9 +117,11 @@ static cell *cfunN_bp(cell *args) {
     // TODO check if terminal is connected
     // TODO 1st argument is returned here...
 
-    if (run_env == NIL) { // breakpoint in a function?
+    if (run_env == NIL) { // breakpoint outside a function?
         // prevenv and prog are both NIL
         env0 = cell_env(NIL, NIL, cell_ref(env_assoc(run_env)), cell_ref(env_cont_env(run_env)));
+    } else {
+        env0 = cell_ref(run_env);
     }
     interactive_mode("*breakpoint*", "\nbp> ", env0);
     return cell_void();

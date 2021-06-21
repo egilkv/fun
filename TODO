@@ -1,4 +1,9 @@
 
+gtk.application_run(app, #args); should be a separate thread
+
+Remove
+void run_main_apply(cell *lambda, cell *args) {
+
 Change push_nothing to a special class of function
 
 Channels can be buffered, with a certain length given.

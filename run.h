@@ -6,7 +6,7 @@ struct proc_run_env {
     cell *prog;             // current program
     cell *env;              // current environment TODO what is prog here?
     cell *stack;            // current runtime stack
-    int is_main;            // main thread
+    int proc_id;            // 1=main thread
     struct proc_run_env *next; // next in line
 } ;
 
@@ -19,14 +19,12 @@ void append_proc_list(struct proc_run_env **pp, struct proc_run_env *rep);
 void prepend_proc_list(struct proc_run_env **pp, struct proc_run_env *rep);
 struct proc_run_env *suspend();
 
-void interrupt(cell *prog, cell *env, cell *stack, int is_main);
+void interrupt(cell *prog, cell *env, cell *stack);
 
-// only one invokation:
-cell *run_main(cell *prog, cell *env0, cell *stack);
+// TODO: only one invokation:
+cell *run_main(cell *prog, cell *env0, cell *stack, int proc_id);
 
 void run_main_apply(cell *lambda, cell *args);
-
-void run_async(cell *prog);
 
 void push_stack_current_run_env(cell *val);
 

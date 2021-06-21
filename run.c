@@ -19,7 +19,7 @@ struct current_run_env {
     cell *prog;             // program being run TODO also in env, but here for efficiency
     cell *env;              // current environment
     cell *stack;            // current runtime stack
-    int is_main;            // main thread
+    int proc_id;            // 0=anonymous, 1=main thread, 2=debugger
     struct current_run_env *save; // previous runtime environments, used when debugging primarily
 } ;
 
@@ -37,7 +37,7 @@ struct proc_run_env *run_environment_new(cell *prog, cell *env, cell *stack) {
     newenv->env = env;
     newenv->stack = stack;
     newenv->next = NULL;
-    newenv->is_main = 0;
+    newenv->proc_id = 0;
     return newenv;
 }
 
@@ -292,7 +292,7 @@ void run_main_apply(cell *lambda, cell *args) {
 
         *pp = newnode(c_DOAPPLY);
 
-        cell_unref(run_main(prog, NIL, NIL));
+        cell_unref(run_main(prog, NIL, NIL, 0));
     }
 }
 
@@ -303,14 +303,14 @@ static struct proc_run_env *set_run_environment(struct proc_run_env *newp) {
         run_environment->prog = newp->prog;
         run_environment->env = newp->env;
         run_environment->stack = newp->stack;
-        run_environment->is_main = newp->is_main;
+        run_environment->proc_id = newp->proc_id;
         free(newp);
         return next;
     } else {
         run_environment->prog = NIL;
         run_environment->env = NIL;
         run_environment->stack = NIL;
-        run_environment->is_main = 0;
+        run_environment->proc_id = 0;
         return NULL;
     }
 }
@@ -322,7 +322,7 @@ struct proc_run_env *suspend() {
         assert(0);
     }
     susp = run_environment_new(run_environment->prog, run_environment->env, run_environment->stack);
-    susp->is_main = run_environment->is_main;
+    susp->proc_id = run_environment->proc_id;
 
     if (ready_list != NULL) {
         ready_list = set_run_environment(ready_list);
@@ -334,18 +334,18 @@ struct proc_run_env *suspend() {
 }
 
 // interrupt running process, insert new process
-void interrupt(cell *prog, cell *env, cell *stack, int is_main) {
+void interrupt(cell *prog, cell *env, cell *stack) {
     struct proc_run_env *susp;
     if (run_environment == NULL) {
         assert(0);
     }
     susp = run_environment_new(run_environment->prog, run_environment->env, run_environment->stack);
-    susp->is_main = run_environment->is_main;
+    susp->proc_id = run_environment->proc_id;
 
     run_environment->prog = prog;
     run_environment->env = env;
     run_environment->stack = stack;
-    run_environment->is_main = is_main;
+    run_environment->proc_id = 0;
 
     prepend_proc_list(&ready_list, susp);
 }
@@ -356,7 +356,7 @@ int dispatch() {
 
     if (run_environment->prog != NIL 
      || run_environment->env != NIL 
-     || (run_environment->stack != NIL && run_environment->is_main)) {
+     || (run_environment->stack != NIL && run_environment->proc_id != 0)) {
         // there is something of interest, so suspend it
         struct proc_run_env *prev = suspend();
         append_proc_list(&ready_list, prev);
@@ -368,13 +368,13 @@ int dispatch() {
 }
 
 // main run program facility, return result
-cell *run_main(cell *prog, cell *env0, cell *stack) {
+cell *run_main(cell *prog, cell *env0, cell *stack, int proc_id) {
     struct current_run_env re;
 
     re.prog = prog;
     re.env = env0;
     re.stack = stack;
-    re.is_main = 1;
+    re.proc_id = proc_id;
     re.save = run_environment; // should usually be NULL
 
     run_environment = &re;
@@ -388,9 +388,9 @@ cell *run_main(cell *prog, cell *env0, cell *stack) {
                 cell_unref(re.env);
                 re.env = prevenv;
                 re.prog = contprog;
-            } else if (!re.is_main) {
+            } else if (re.proc_id != proc_id) {
                 // a thread stopped
-                fprintf(stdout, "*thread stopped*\n"); // TODO only in debug mode of some kind
+                fprintf(stdout, "*thread %d stopped*\n", re.proc_id); // TODO only in debug mode of some kind
                 cell_unref(re.env); // discard environment
                 re.env = NIL;
                 cell_unref(re.stack); // and results
