@@ -77,8 +77,8 @@ int arg2(cell *args, cell **ap, cell **bp) {
 // dump is unreffed only if error
 int peek_number(cell *a, number *np, cell *dump) {
     if (!cell_is_number(a)) {
-	cell_unref(dump);
         cell_unref(error_rt1("not a number", cell_ref(a)));
+	cell_unref(dump);
 	return 0;
     }
     *np = a->_.n;

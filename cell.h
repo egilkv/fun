@@ -104,8 +104,8 @@ struct cell_s {
             struct cell_s *buffer;
         } rchannel; // for c_RCHANNEL
         struct {
-            void (*fun)(struct cell_s *);
-            // struct proc_run_env *senders; // TODO not required
+            void (*fun)(struct cell_s *); // signal data in buffer is available
+            struct cell_s *buffer;
         } schannel; // for c_SCHANNEL
         struct {
             integer_t narg;
@@ -147,8 +147,9 @@ DEFINLINE cell *cell_ref(cell *node) {
 
 DEFINLINE void cell_unref(cell *node) {
     if (node) {
+        // post-decrement will detect double free() errors
 #ifdef __STDC_NO_ATOMICS__
-        if (--(node->ref) == 0) { // not atomic and thread safe
+        if ((node->ref)-- <= 1) { // not atomic and thread safe
             cell_free1(node);
         }
 #else

@@ -905,9 +905,16 @@ static void cfunR_receive(cell *args) {
         }
         break;
 
-    case c_SCHANNEL:
-        // TODO not allowed, generate error?
-        push_stack_current_run_env(cell_void());
+    case c_SCHANNEL: // TODO testing only, generate error?
+        if (chan->_.schannel.buffer) {
+            cell *result;
+            if (!list_pop(&(chan->_.schannel.buffer), &result)) {
+                assert(0);
+            }
+            push_stack_current_run_env(result); // receive result to our own stack
+        } else {
+            push_stack_current_run_env(cell_void());
+        }
         break;
 
     default:
@@ -958,9 +965,19 @@ static void cfunR_send(cell *args) {
         break;
 
     case c_SCHANNEL:
-        // send directly to C function (who will do any buffering=
-        (*(chan->_.schannel.fun))(val);
-        break;
+        // add content to buffer
+        // TODO add lock here and elsewhere
+        {
+            cell **pp = &(chan->_.schannel.buffer);
+            while (*pp) {
+                assert(cell_is_list(*pp));
+                pp = &((*pp)->_.cons.cdr);
+            }
+            *pp = cell_list(val, NIL);
+        }
+        // signal that content is ready
+        (*(chan->_.schannel.fun))(chan);
+        return; // chan ref was given to callback above
 
     default:
         cell_unref(val);
@@ -970,20 +987,26 @@ static void cfunR_send(cell *args) {
     cell_unref(chan);
 }
 
-// send to stdout
-void cfun_stdout(cell *s) {
-    char_t *str = "";
-    index_t len = 0;
-    // TODO no error message if not string !?
-    if (s && s->type == c_STRING) {
-        str = s->_.string.ptr;
-        len = s->_.string.len;
-        if (len > 0) {
-            fwrite(str, sizeof(char_t), len, stdout); // TODO test
-            fflush(stdout);
+// signal that data to stdout is ready
+// TODO in another thread...
+void cfun_stdout(cell *chan) {
+    cell *s;
+    assert(chan && (chan->type = c_SCHANNEL));
+    while (list_pop(&(chan->_.schannel.buffer), &s)) {
+        char_t *str = "";
+        index_t len = 0;
+        // TODO no error message if not string !?
+        if (s && s->type == c_STRING) {
+            str = s->_.string.ptr;
+            len = s->_.string.len;
+            if (len > 0) {
+                fwrite(str, sizeof(char_t), len, stdout); // TODO test
+            }
         }
+        cell_unref(s);
     }
-    cell_unref(s);
+    fflush(stdout);
+    cell_unref(chan);
 }
 
 // get from OS environment

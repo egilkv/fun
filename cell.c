@@ -507,6 +507,7 @@ void cell_sweep(cell *node) {
         cell_sweep(node->_.rchannel.buffer);
         break;
     case c_SCHANNEL:
+        cell_sweep(node->_.schannel.buffer);
 	break;
     case c_SYMBOL: 
         // TODO these should exist only on oblist ?
@@ -603,6 +604,7 @@ void cell_free1(cell *node) {
         cell_unref(node->_.rchannel.buffer);
 	break;
     case c_SCHANNEL:
+        cell_unref(node->_.schannel.buffer);
 	break;
     case c_SPECIAL:
         // invoke magic free function
