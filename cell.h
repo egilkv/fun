@@ -28,6 +28,7 @@ enum cell_t {
    c_ASSOC,
    c_CHANNEL,   // regular non-buffered channel
    c_RCHANNEL,  // channel, sender is a C function
+   c_SCHANNEL,  // channel, receiver is a C function
    c_SPECIAL,
    c_CFUN1,     // builtin, 1 arg
    c_CFUN2,     // builtin, 2 arg
@@ -102,6 +103,10 @@ struct cell_s {
             struct proc_run_env *receivers;
             struct cell_s *buffer;
         } rchannel; // for c_RCHANNEL
+        struct {
+            void (*fun)(struct cell_s *);
+            // struct proc_run_env *senders; // TODO not required
+        } schannel; // for c_SCHANNEL
         struct {
             integer_t narg;
             struct cell_s *cdr;
@@ -222,7 +227,7 @@ int cell_is_assoc(cell *cp);
 
 cell *cell_channel();
 cell *cell_rchannel();
-int cell_is_channel(cell *cp);
+cell *cell_schannel();
 
 cell *cell_special(const char *(*magicf)(void *), void *ptr);
 int cell_is_special(cell *cp, const char *(*magicf)(void *));

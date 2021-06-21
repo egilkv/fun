@@ -128,10 +128,6 @@ int cell_is_special(cell *cp, const char *(*magicf)(void *)) {
     return cp && cp->type == c_SPECIAL && (magicf == NULL || cp->_.special.magicf == magicf);
 }
 
-int cell_is_channel(cell *cp) {
-    return cp && cp->type == c_CHANNEL;
-}
-
 // TODO inline
 int cell_is_number(cell *cp) {
     return cp && cp->type == c_NUMBER;
@@ -433,6 +429,12 @@ cell *cell_rchannel() {
     return newnode(c_RCHANNEL);
 }
 
+cell *cell_schannel(void (*fun)(cell *)) {
+    cell *node = newnode(c_SCHANNEL);
+    node->_.schannel.fun = fun;
+    return node;
+}
+
 cell *cell_special(const char *(*magicf)(void *), void *ptr) {
     cell *node = newnode(c_SPECIAL);
     node->_.special.ptr = ptr;
@@ -503,6 +505,8 @@ void cell_sweep(cell *node) {
     case c_RCHANNEL:
         proc_run_env_sweep(node->_.rchannel.receivers);
         cell_sweep(node->_.rchannel.buffer);
+        break;
+    case c_SCHANNEL:
 	break;
     case c_SYMBOL: 
         // TODO these should exist only on oblist ?
@@ -597,6 +601,8 @@ void cell_free1(cell *node) {
     case c_RCHANNEL:
         proc_run_env_drop(node->_.rchannel.receivers);
         cell_unref(node->_.rchannel.buffer);
+	break;
+    case c_SCHANNEL:
 	break;
     case c_SPECIAL:
         // invoke magic free function

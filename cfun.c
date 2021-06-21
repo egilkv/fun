@@ -759,6 +759,7 @@ static cell *cfun1_type(cell *a) {
 
     case c_CHANNEL:
     case c_RCHANNEL:
+    case c_SCHANNEL:
         t = "channel";
         break;
 
@@ -904,6 +905,11 @@ static void cfunR_receive(cell *args) {
         }
         break;
 
+    case c_SCHANNEL:
+        // TODO not allowed, generate error?
+        push_stack_current_run_env(cell_void());
+        break;
+
     default:
         push_stack_current_run_env(error_rt1("not a channel", chan));
         return;
@@ -929,14 +935,14 @@ static void cfunR_send(cell *args) {
             prepend_proc_list(&ready_list, pre);
             push_stack_current_run_env(cell_void()); // return regular result of send
         } else {
-            // no reader waiting, push the argument on our own stack, then suspend
+            // no receiver waiting, push the argument on our own stack, then suspend
             push_stack_current_run_env(val);
             append_proc_list(&(chan->_.channel.senders), suspend());
             // no result on stack
         }
         break;
 
-    case c_RCHANNEL:
+    case c_RCHANNEL: // for testing only
         if ((pre = chan->_.rchannel.receivers)) {
             pre->stack = cell_list(val, pre->stack); // reader waiting: push read result directly on its stack
             chan->_.channel.receivers = pre->next; // and move it to top of ready list
@@ -944,11 +950,16 @@ static void cfunR_send(cell *args) {
             prepend_proc_list(&ready_list, pre);
             push_stack_current_run_env(cell_void()); // return regular result of send
         } else {
-            // no reader waiting, push the argument on our own stack, then suspend
+            // no receiver waiting, push the argument on our own stack, then suspend
             push_stack_current_run_env(val);
             append_proc_list(&(chan->_.channel.senders), suspend());
             // no result on stack
         }
+        break;
+
+    case c_SCHANNEL:
+        // send directly to C function (who will do any buffering=
+        (*(chan->_.schannel.fun))(val);
         break;
 
     default:
@@ -957,6 +968,22 @@ static void cfunR_send(cell *args) {
         return;
     }
     cell_unref(chan);
+}
+
+// send to stdout
+void cfun_stdout(cell *s) {
+    char_t *str = "";
+    index_t len = 0;
+    // TODO no error message if not string !?
+    if (s && s->type == c_STRING) {
+        str = s->_.string.ptr;
+        len = s->_.string.len;
+        if (len > 0) {
+            fwrite(str, sizeof(char_t), len, stdout); // TODO test
+            fflush(stdout);
+        }
+    }
+    cell_unref(s);
 }
 
 // get from OS environment
@@ -1055,6 +1082,7 @@ void cfun_init() {
 
     // for now, testing
     hash_stdin    = symbol_set("#stdin",    cell_rchannel());
+    hash_stdout   = symbol_set("#stdout",   cell_schannel(cfun_stdout));
 }
 
 static void cfun_exit(void) {
