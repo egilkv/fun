@@ -12,6 +12,13 @@ https://tour.golang.org/concurrency/4
 
 #go with arguments
 
+Proposal:
+	std = #use("std");
+	std.out <- "Hello world";
+	readstring = <- std.in;
+	#print converts args to string (with optional formatting), as does #write
+
+
 Rewrite debugger so that it places main on the ready list instead of the save thing.
 
 interrupt(), should really be protected

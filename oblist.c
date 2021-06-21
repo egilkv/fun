@@ -86,9 +86,11 @@ cell *asymbol_find(char *sym) {
 // define value of variable
 // val is consumed
 void oblist_set(cell *sym, cell *val) {
+    cell *oldval;
     assert(cell_is_symbol(sym));
-    cell_unref(sym->_.symbol.val);
+    oldval = sym->_.symbol.val;
     sym->_.symbol.val = val;
+    cell_unref(oldval);
 }
 
 // search oblist for text matches, return allocated match in turn

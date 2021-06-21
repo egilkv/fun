@@ -50,7 +50,7 @@ enum cell_t {
 } ;
 
 struct cell_s {
-    unsigned ref     : 32; // TODO will limit total # of cells; 64bit
+    refcount_t ref;        // referrence count
     unsigned pure    : 1;  // for constant folding and so on
     unsigned mark    : 1;  // for garbage collect
     unsigned pmark   : 1;  // for printing TODO needed?
@@ -124,13 +124,29 @@ typedef struct cell_s cell;
 
 extern void cell_free1(cell *node);
 
-DEFINLINE cell *cell_ref(cell *cp) {
-    if (cp) ++(cp->ref);
-    return cp;
+DEFINLINE cell *cell_ref(cell *node) {
+    if (node) {
+#ifdef __GNUC__
+        __sync_add_and_fetch(&(node->ref), 1);
+#else
+        ++(node->ref); // not atomic and thread safe
+#endif
+    }
+    return node;
 }
 
 DEFINLINE void cell_unref(cell *node) {
-    if (node && --(node->ref) == 0) cell_free1(node);
+    if (node) {
+#ifdef __GNUC__
+        if (__sync_sub_and_fetch(&(node->ref), 1) == 0) {
+            cell_free1(node);
+        }
+#else
+        if (--(node->ref) == 0) { // not atomic and thread safe
+            cell_free1(node);
+        }
+#endif
+    }
 }
 
 #else

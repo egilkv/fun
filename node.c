@@ -9,6 +9,7 @@
 #include <assert.h>
 
 #include "cell.h"
+#include "lock.h"
 #include "opt.h"
 #include "debug.h" // debug_write
 
@@ -22,34 +23,47 @@ struct chunk_s {
 
 // holds all free cells
 static cell *freelist = NIL;
+static lock_t freelist_lock = 0;
 
 // holds all chunks
 static struct chunk_s *chunks = (struct chunk_s *)0;
+static lock_t chunk_lock = 0;
 
 // need a new chunk
 cell *newchunk() {
-    int i;
-    struct chunk_s *cp = malloc(sizeof(struct chunk_s ));
-    assert(cp);
-    memset(cp, 0, sizeof(struct chunk_s));
-    // add all but the last one to freelist
-    for (i = 0; i < CHUNK_SIZE-1; ++i) {
-        cp->nodes[i].type = c_FREE;
-        cp->nodes[i]._.cons.car = freelist;
-        freelist = &(cp->nodes[i]);
-    }
-    cp->next = chunks;
-    chunks = cp;
+    struct chunk_s *cp_new = malloc(sizeof(struct chunk_s ));
+    cell *p_last;
+    cell *p;
+    assert(cp_new);
+    memset(cp_new, 0, sizeof(struct chunk_s));
 
-    return &(cp->nodes[CHUNK_SIZE-1]);
+    // add all but the last one to freelist
+    p_last = &(cp_new->nodes[CHUNK_SIZE-1]);
+    for (p = &(cp_new->nodes[0]); p < p_last; ++p) {
+        p->type = c_FREE;
+
+        LOCK(freelist_lock);
+          p->_.cons.car = freelist;
+          freelist = p;
+        UNLOCK(freelist_lock);
+    }
+    LOCK(chunk_lock);
+      cp_new->next = chunks;
+      chunks = cp_new;
+    UNLOCK(chunk_lock);
+
+    return p_last;
 }
 
 cell *newnode(celltype t) {
     cell *node;
     if (freelist) {
-        node = freelist;
+        LOCK(freelist_lock);
+          node = freelist;
+          freelist = node->_.cons.car;
+        UNLOCK(freelist_lock);
+
         assert(node->type == c_FREE);
-        freelist = node->_.cons.car;
         node->_.cons.car = NIL;
     } else {
         node = newchunk();
@@ -62,9 +76,12 @@ cell *newnode(celltype t) {
 // TODO inline
 void freenode(cell *node) {
     node->type = c_FREE;
-    node->_.cons.car = freelist;
-    node->_.cons.cdr = NIL; // not required
-    freelist = node->_.cons.car;
+    node->_.cons.cdr = NIL; // newnode depends on this
+
+    LOCK(freelist_lock);
+        node->_.cons.car = freelist;
+        freelist = node->_.cons.car;
+    UNLOCK(freelist_lock);
 }
 
 //
