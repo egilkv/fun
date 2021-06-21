@@ -1324,7 +1324,7 @@ static void cgtk_callback_wait(GtkWidget* gp, gpointer data) {
  // printf("\n***callback***\n");
 
  // TODO seems like this one needs to finish its job before we return
- // interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+ // start_process(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
     run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
 }
 
@@ -1334,7 +1334,7 @@ static void cgtk_callback_none(GtkWidget* gp, gpointer data) {
     // ignore gp (for now)
     cell *prog = (cell *)data;
 
-//  interrupt(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+//  start_process(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
     run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/, 0);
 }
 
@@ -1344,7 +1344,7 @@ static void cgtk_callback_int(GtkWidget* gp, gint extra, gpointer data) {
     cell *prog = (cell *)data;
     cell *stack = cell_list(cell_integer(extra), NIL);
 
-//  interrupt(cell_ref(prog), NIL /*env*/, stack);
+//  start_process(cell_ref(prog), NIL /*env*/, stack);
     run_main(cell_ref(prog), NIL /*env*/, stack, 0);
 }
 
@@ -1354,7 +1354,7 @@ static void cgtk_callback_event(GtkWidget* gp, GdkEvent *extra, gpointer data) {
     cell *prog = (cell *)data;
     cell *stack = cell_list(cell_gdkevent(extra), NIL);
 
-//  interrupt(cell_ref(prog), NIL /*env*/, stack);
+//  start_process(cell_ref(prog), NIL /*env*/, stack);
     run_main(cell_ref(prog), NIL /*env*/, stack, 0);
 }
 
@@ -1399,26 +1399,26 @@ static cell *cgtk_signal_connect(cell *args) {
 
     switch (type) {
     case 0: // no extra data, needs to complete before we return
-        callbackprog = compile_thunk(callback, 0);
+        callbackprog = compile_thunk_n(callback, 0);
 
         // TODO gulong tag =
         g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_wait), callbackprog);
         break;
 
     case 1: // no extra data provided
-        callbackprog = compile_thunk(callback, 0);
+        callbackprog = compile_thunk_n(callback, 0);
 
         g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_none), callbackprog);
         break;
 
     case 2: // extra parameter: integer response_id
-        callbackprog = compile_thunk(callback, 1);
+        callbackprog = compile_thunk_n(callback, 1);
 
         g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_int), callbackprog);
         break;
 
     case 3: // extra parameter: GdkEvent *event
-        callbackprog = compile_thunk(callback, 1);
+        callbackprog = compile_thunk_n(callback, 1);
 
         // https://developer.gnome.org/gdk3/unstable/gdk3-Event-Structures.html
         g_signal_connect(gp, signal, G_CALLBACK(cgtk_callback_event), callbackprog);

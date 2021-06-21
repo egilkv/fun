@@ -15,6 +15,7 @@
 #include "err.h"
 #include "parse.h" // chomp_file
 #include "run.h"
+#include "compile.h"
 #if HAVE_MATH
 #include "m_math.h"
 #endif
@@ -848,43 +849,10 @@ static cell *cfun1_include(cell *a) {
 static cell *cfun1_go(cell *args) {
     cell *thunk;
     cell *prog;
-    cell *params;
-    cell *cont_env;
-    cell *env;
-    struct proc_run_env *pre;
     if (!at_least_one(&args, &thunk)) return cell_error();
 
-    switch (thunk ? thunk->type : c_LIST) {
-    default:
-        return error_rt1("not a function thunk", thunk);
-
-    case c_CLOSURE:
-        prog = thunk->_.cons.car;
-        cont_env = cell_ref(thunk->_.cons.cdr);
-        break;
-
-    case c_CLOSURE0:
-    case c_CLOSURE0T:
-        prog = thunk;
-        cont_env = NIL;
-        break;
-    }
-    params = cell_ref(prog->_.cons.car);
-    prog = cell_ref(prog->_.cons.cdr);
-    cell_unref(thunk);
-
-    env = cell_env(NIL , NIL , cell_assoc(), cont_env);
-    if (params) {
-        // TODO could transfer args to assoc...
-        // TODO cannot have params, better errormsg?
-        arg0(params);
-        cell_unref(args);
-    } else {
-        arg0(args);
-    }
-    pre = run_environment_new(prog, env, NIL); 
-
-    append_proc_list(&ready_list, pre);
+    prog = known_thunk_a(thunk, args);
+    start_process(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
 
     return cell_void();
 }

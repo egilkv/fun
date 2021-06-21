@@ -19,7 +19,7 @@ void append_proc_list(struct proc_run_env **pp, struct proc_run_env *rep);
 void prepend_proc_list(struct proc_run_env **pp, struct proc_run_env *rep);
 struct proc_run_env *suspend();
 
-void interrupt(cell *prog, cell *env, cell *stack);
+void start_process(cell *prog, cell *env, cell *stack);
 
 // TODO: only one invokation:
 cell *run_main(cell *prog, cell *env0, cell *stack, int proc_id);

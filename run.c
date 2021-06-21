@@ -333,8 +333,8 @@ struct proc_run_env *suspend() {
     return susp;
 }
 
-// interrupt running process, insert new process
-void interrupt(cell *prog, cell *env, cell *stack) {
+// interrupt running process, inserting new process
+void start_process(cell *prog, cell *env, cell *stack) {
     struct proc_run_env *susp;
     if (run_environment == NULL) {
         assert(0);

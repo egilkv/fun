@@ -71,7 +71,7 @@ static int compile_args(cell *args, cell ***nextpp, struct compile_env *cep) {
     int n = 0;
     cell *arg;
     if (list_pop(&args, &arg)) {
-        n += compile_args(args, nextpp, cep);
+        n = compile_args(args, nextpp, cep);
         n += compile1(arg, nextpp, cep);
     }
     return n;
@@ -668,7 +668,7 @@ static int compile1nc(cell *item, cell ***nextpp, struct compile_env *cep) {
                     cell *node;
                     // compile, pushing on stack
                     compile1void(fun, nextpp, cep);
-                    node = add2prog(t, def, nextpp);
+                    node = add2prog(c_DOCALLN, NIL, nextpp);
                     node->_.calln.narg = n;
                     assert(*nextpp == &(node->_.calln.cdr)); // TODO assumption
                 } else {
@@ -811,7 +811,7 @@ cell *compile(cell *item, cell *env0) {
 }
 
 // compile a function call, allowing for N arguments pushed on stack
-cell *compile_thunk(cell *func, int nargs) {
+cell *compile_thunk_n(cell *func, int nargs) {
     cell *prog;
     cell *args = NIL;
     int n;
@@ -825,6 +825,43 @@ cell *compile_thunk(cell *func, int nargs) {
         np = cell_ref(prog->_.cons.cdr);
         cell_unref(prog);
         prog = np;
+    }
+    return prog;
+}
+
+
+// push already evaluated arguments last to first, return count
+static int push_args(cell *args, cell ***nextpp) {
+    int n = 0;
+    cell *val;
+    if (list_pop(&args, &val)) {
+        n = 1 + push_args(args, nextpp);
+        add2prog(c_DOQPUSH, val, nextpp);
+    }
+    return n;
+}
+
+// make code for a known function call, allowing for supplied list of evaluated arguments
+cell *known_thunk_a(cell *func, cell *args) {
+    cell *prog = NIL;
+    cell **nextp = &prog;
+    int n;
+    n = push_args(args, &nextp);
+    switch (n) {
+    case 1:
+        add2prog(c_DOCALL1, func, &nextp);
+        break;
+    case 2:
+        add2prog(c_DOCALL2, func, &nextp);
+        break;
+    default:
+        {
+            cell *node;
+            add2prog(c_DOQPUSH, func, &nextp);
+            node = add2prog(c_DOCALLN, NIL, &nextp);
+            node->_.calln.narg = n;
+        }
+        break;
     }
     return prog;
 }
