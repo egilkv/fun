@@ -285,8 +285,11 @@ cell *cfun2_ref(cell *a, cell *b) {
         cell_unref(b);
         break;
 
-    case c_RANGE:
-        {
+    case c_VECTOR:
+    case c_STRING:
+    case c_LIST:
+    case c_LABEL:
+        if (cell_is_range(b)) {
             index_t index1 = 0;
             cell *b1, *b2;
             range_split(b, &b1, &b2);
@@ -306,14 +309,7 @@ cell *cfun2_ref(cell *a, cell *b) {
             } else {
                 value = ref_range1(a, index1);
             }
-        }
-        break;
-
-    case c_VECTOR:
-    case c_STRING:
-    case c_LIST:
-    case c_LABEL:
-        {
+        } else {
             index_t index;
             if (!get_index(b, &index, a)) return cell_error();
             value = ref_index(a, index);
