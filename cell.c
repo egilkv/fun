@@ -426,8 +426,11 @@ cell *cell_assoc() {
 }
 
 cell *cell_channel() {
-    cell *node = newnode(c_CHANNEL);
-    return node;
+    return newnode(c_CHANNEL);
+}
+
+cell *cell_rchannel() {
+    return newnode(c_RCHANNEL);
 }
 
 cell *cell_special(const char *(*magicf)(void *), void *ptr) {
@@ -496,6 +499,10 @@ void cell_sweep(cell *node) {
     case c_CHANNEL:
         proc_run_env_sweep(node->_.channel.receivers);
         proc_run_env_sweep(node->_.channel.senders);
+	break;
+    case c_RCHANNEL:
+        proc_run_env_sweep(node->_.rchannel.receivers);
+        cell_sweep(node->_.rchannel.buffer);
 	break;
     case c_SYMBOL: 
         // TODO these should exist only on oblist ?
@@ -586,6 +593,10 @@ void cell_free1(cell *node) {
     case c_CHANNEL:
         proc_run_env_drop(node->_.channel.receivers);
         proc_run_env_drop(node->_.channel.senders);
+	break;
+    case c_RCHANNEL:
+        proc_run_env_drop(node->_.rchannel.receivers);
+        cell_unref(node->_.rchannel.buffer);
 	break;
     case c_SPECIAL:
         // invoke magic free function

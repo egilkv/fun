@@ -758,6 +758,7 @@ static cell *cfun1_type(cell *a) {
         break;
 
     case c_CHANNEL:
+    case c_RCHANNEL:
         t = "channel";
         break;
 
@@ -871,29 +872,41 @@ static void cfunR_receive(cell *args) {
         push_stack_current_run_env(cell_error());
         return;
     }
-    if (!cell_is_channel(chan)) {
+    switch (chan ? chan->type : c_LIST) {
+    case c_CHANNEL:
+        if ((pre = chan->_.channel.senders)) {
+            cell *result;
+            if (!list_pop(&(pre->stack), &result)) { // writer waiting: pick up argument from its stack
+                assert(0); // TODO can this happen?
+            }
+            push_stack_current_run_env(result); // receive result to our own stack
+
+            pre->stack = cell_list(cell_void(), pre->stack); // push back send's result on other stack
+            chan->_.channel.senders = pre->next; // move to top of ready list
+            pre->next = NULL;
+            prepend_proc_list(&ready_list, pre);
+        } else {
+            append_proc_list(&(chan->_.channel.receivers), suspend());
+            // no result on stack
+        }
+        break;
+
+    case c_RCHANNEL:
+        if (chan->_.rchannel.buffer) { // data ready?
+            cell *result;
+            if (!list_pop(&(chan->_.rchannel.buffer), &result)) {
+                assert(0);
+            }
+            push_stack_current_run_env(result); // receive result to our own stack
+        } else {
+            append_proc_list(&(chan->_.rchannel.receivers), suspend());
+            // no result on stack
+        }
+        break;
+
+    default:
         push_stack_current_run_env(error_rt1("not a channel", chan));
         return;
-    }
-    if ((pre = chan->_.channel.senders)) {
-        // a writer is waiting, pick up argument from its stack
-        cell *result;
-        if (!list_pop(&(pre->stack), &result)) {
-            // TODO can this happen?
-            assert(0);
-        }
-        // receive result to our own stack
-        push_stack_current_run_env(result);
-
-        // and push back send's result on other stack
-        pre->stack = cell_list(cell_void(), pre->stack);
-        // move to top of ready list
-        chan->_.channel.senders = pre->next;
-        pre->next = NULL;
-        prepend_proc_list(&ready_list, pre);
-    } else {
-        append_proc_list(&(chan->_.channel.receivers), suspend());
-        // no result on stack
     }
     cell_unref(chan);
 }
@@ -907,25 +920,41 @@ static void cfunR_send(cell *args) {
         push_stack_current_run_env(cell_error());
         return;
     }
-    if (!cell_is_channel(chan)) {
+    switch (chan ? chan->type : c_LIST) {
+    case c_CHANNEL:
+        if ((pre = chan->_.channel.receivers)) {
+            pre->stack = cell_list(val, pre->stack); // reader waiting: push read result directly on its stack
+            chan->_.channel.receivers = pre->next; // and move it to top of ready list
+            pre->next = NULL;
+            prepend_proc_list(&ready_list, pre);
+            push_stack_current_run_env(cell_void()); // return regular result of send
+        } else {
+            // no reader waiting, push the argument on our own stack, then suspend
+            push_stack_current_run_env(val);
+            append_proc_list(&(chan->_.channel.senders), suspend());
+            // no result on stack
+        }
+        break;
+
+    case c_RCHANNEL:
+        if ((pre = chan->_.rchannel.receivers)) {
+            pre->stack = cell_list(val, pre->stack); // reader waiting: push read result directly on its stack
+            chan->_.channel.receivers = pre->next; // and move it to top of ready list
+            pre->next = NULL;
+            prepend_proc_list(&ready_list, pre);
+            push_stack_current_run_env(cell_void()); // return regular result of send
+        } else {
+            // no reader waiting, push the argument on our own stack, then suspend
+            push_stack_current_run_env(val);
+            append_proc_list(&(chan->_.channel.senders), suspend());
+            // no result on stack
+        }
+        break;
+
+    default:
         cell_unref(val);
         push_stack_current_run_env(error_rt1("not a channel", chan));
         return;
-    }
-    if ((pre = chan->_.channel.receivers)) {
-        // a reader is waiting, push read result directly on its stack
-        pre->stack = cell_list(val, pre->stack);
-        // and move to top of ready list
-        chan->_.channel.receivers = pre->next;
-        pre->next = NULL;
-        prepend_proc_list(&ready_list, pre);
-        // return regular result of send
-        push_stack_current_run_env(cell_void());
-    } else {
-        // no reader waiting, push the argument on our own stack, then suspend
-        push_stack_current_run_env(val);
-        append_proc_list(&(chan->_.channel.senders), suspend());
-        // no result on stack
     }
     cell_unref(chan);
 }
@@ -1023,6 +1052,9 @@ void cfun_init() {
     hash_times    = symbol_set("#times",    cell_cfunN_pure(cfunN_times));
                     symbol_set("#type",     cell_cfun1_pure(cfun1_type));
                     symbol_set("#use",      cell_cfun1_pure(cfun1_use));
+
+    // for now, testing
+    hash_stdin    = symbol_set("#stdin",    cell_rchannel());
 }
 
 static void cfun_exit(void) {

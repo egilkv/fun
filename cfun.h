@@ -27,7 +27,7 @@ cell *hash_ref;
 cell *hash_send;
 cell *hash_times;
 
-cell *push_nothing;
+cell *hash_stdin;
 
 void cfun_init();
 void cfun_args(int argc, char * const argv[]);

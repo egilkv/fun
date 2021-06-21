@@ -4,11 +4,6 @@
 
 #ifndef CELL_H
 
-#ifdef __STDC_NO_ATOMICS__
-  #error Need atoms
-#else
-  #include <stdatomic.h>
-#endif
 #include "assoc.h"
 #include "type.h"
 
@@ -31,7 +26,8 @@ enum cell_t {
    c_NUMBER,
    c_VECTOR,
    c_ASSOC,
-   c_CHANNEL,
+   c_CHANNEL,   // regular non-buffered channel
+   c_RCHANNEL,  // channel, sender is a C function
    c_SPECIAL,
    c_CFUN1,     // builtin, 1 arg
    c_CFUN2,     // builtin, 2 arg
@@ -102,6 +98,10 @@ struct cell_s {
             struct proc_run_env *receivers;
             struct proc_run_env *senders;
         } channel; // for c_CHANNEL
+        struct {
+            struct proc_run_env *receivers;
+            struct cell_s *buffer;
+        } rchannel; // for c_RCHANNEL
         struct {
             integer_t narg;
             struct cell_s *cdr;
@@ -221,6 +221,7 @@ cell *cell_assoc();
 int cell_is_assoc(cell *cp);
 
 cell *cell_channel();
+cell *cell_rchannel();
 int cell_is_channel(cell *cp);
 
 cell *cell_special(const char *(*magicf)(void *), void *ptr);

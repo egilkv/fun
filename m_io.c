@@ -358,6 +358,10 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "#channel(%s%s)", ct->_.channel.receivers ? "R":"", ct->_.channel.senders ? "S":""); // TODO R/W is debug
         break;
 
+    case c_RCHANNEL:
+        fprintf(out, "#rchannel(%s)", ct->_.rchannel.receivers ? "R":""); // TODO R/W is debug
+        break;
+
     case c_SPECIAL:
         fprintf(out, "#special(%s)", (*(ct->_.special.magicf))(NULL));
         break;

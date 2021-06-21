@@ -16,6 +16,8 @@ Have special channel types with C functions as senders and as receivers
 
 Change push_nothing to a special class of function
 
+See if locks can be replaces by atomics
+https://en.cppreference.com/w/c/atomic
 Fix locking in run.c and elsewhere
 Also probably needs a few volatile declarations
 

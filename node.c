@@ -22,7 +22,7 @@ struct chunk_s {
 };
 
 // holds all free cells
-static cell *freelist = NIL;
+static cell volatile *freelist = NIL;
 static lock_t freelist_lock = 0;
 
 // holds all chunks
@@ -43,8 +43,8 @@ cell *newchunk() {
         p->type = c_FREE;
 
         LOCK(freelist_lock);
-          p->_.cons.car = freelist;
-          freelist = p;
+        p->_.cons.car = (cell *)freelist;
+        freelist = p;
         UNLOCK(freelist_lock);
     }
     LOCK(chunk_lock);
@@ -57,15 +57,15 @@ cell *newchunk() {
 
 cell *newnode(celltype t) {
     cell *node;
-    if (freelist) {
-        LOCK(freelist_lock);
-          node = freelist;
-          freelist = node->_.cons.car;
+    LOCK(freelist_lock);
+    if ((node = (cell *)freelist)) {
+        freelist = node->_.cons.car;
         UNLOCK(freelist_lock);
 
         assert(node->type == c_FREE);
         node->_.cons.car = NIL;
     } else {
+        UNLOCK(freelist_lock);
         node = newchunk();
     }
     node->type = t;
@@ -79,8 +79,8 @@ void freenode(cell *node) {
     node->_.cons.cdr = NIL; // newnode depends on this
 
     LOCK(freelist_lock);
-        node->_.cons.car = freelist;
-        freelist = node->_.cons.car;
+        node->_.cons.car = (cell *)freelist;
+        freelist = (cell volatile *)(node->_.cons.car);
     UNLOCK(freelist_lock);
 }
 

@@ -8,9 +8,17 @@
 
 #ifndef TYPE_H
 
+#ifdef __STDC_NO_ATOMICS__
+  #error Need atoms
+#else
+  #include <stdatomic.h>
+#endif
+
 #define INLINE inline
 
-typedef volatile unsigned refcount_t; // 32 bit TODO will limit # of cells to 50G of memory
+// TODO should use atomic_init() to set initial value
+typedef atomic_uint refcount_t; // 32 bit TODO will limit # of cells to 50G of memory
+
 typedef volatile int lock_t; // for locking
 
 // TODO review size_t and so on, ssize_t is signed size
