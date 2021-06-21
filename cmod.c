@@ -276,36 +276,53 @@ static int list_spin(cell **ap, index_t times) {
 // consumes both arguments, produces error messages
 cell *cfun2_ref(cell *a, cell *b) {
     cell *value;
-    if (cell_is_assoc(a)) {
+    switch (a ? a->type : c_LIST) {
+    case c_ASSOC:
 	if (!assoc_get(a, b, &value)) {
 	    cell_unref(a);
 	    return error_rt1("assoc key does not exist", b);
 	}
         cell_unref(b);
-    } else if (cell_is_range(b)) {
-        index_t index1 = 0;
-        cell *b1, *b2;
-        range_split(b, &b1, &b2);
-        if (b1) {
-            if (!get_index(b1, &index1, b2)) {
-                cell_unref(a);
-                return cell_error();
+        break;
+
+    case c_RANGE:
+        {
+            index_t index1 = 0;
+            cell *b1, *b2;
+            range_split(b, &b1, &b2);
+            if (b1) {
+                if (!get_index(b1, &index1, b2)) {
+                    cell_unref(a);
+                    return cell_error();
+                }
+            }
+            if (b2) {
+                index_t index2 = 0;
+                if (!get_index(b2, &index2, a)) return cell_error();
+                if (index2 < index1) {
+                    return error_rti("index range cannot be reverse", index2);
+                }
+                value = ref_range2(a, index1, 1+index2 - index1);
+            } else {
+                value = ref_range1(a, index1);
             }
         }
-        if (b2) {
-            index_t index2 = 0;
-            if (!get_index(b2, &index2, a)) return cell_error();
-            if (index2 < index1) {
-                return error_rti("index range cannot be reverse", index2);
-            }
-            value = ref_range2(a, index1, 1+index2 - index1);
-        } else {
-            value = ref_range1(a, index1);
+        break;
+
+    case c_VECTOR:
+    case c_STRING:
+    case c_LIST:
+    case c_LABEL:
+        {
+            index_t index;
+            if (!get_index(b, &index, a)) return cell_error();
+            value = ref_index(a, index);
         }
-    } else {
-	index_t index;
-        if (!get_index(b, &index, a)) return cell_error();
-	value = ref_index(a, index);
+        break;
+
+    default:
+        cell_unref(b);
+        return error_rt1("cannot reference", a);
     }
     cell_unref(a);
     return value;
