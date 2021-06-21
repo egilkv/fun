@@ -5,49 +5,50 @@ io = #use("io");
 time = #use("time");
 #include("gtk3.fun");
 
-app = gtk_application("org.gtk.example",
+app = gtk_application("org.gtk.demo", // unique ID
     signal_connect:         'activate, (){
 
-    window = #undefined;
+        window = #undefined;
 
-    button1 = gtk_button(
-        label:              "Button",
-        signal_connect:     'clicked, (){ gtk.println("Hello World") }
-    );
+        button1 = gtk_button(
+            label:          "Button",
+            signal_connect: 'clicked, (){ gtk.println("Hello World") }
+        );
 
-    button2 = gtk_button(
-        label:              "Dialog",
-        signal_connect:     'clicked, (){ popup_dialog() }
-    );
+        button2 = gtk_button(
+            label:          "Dialog",
+            signal_connect: 'clicked, (){ popup_dialog() }
+        );
 
-    button = gtk_button(
-        label:              "Quit",
-        signal_connect:     'clicked, (){ gtk.widget_destroy(window) }
-    );
+        button = gtk_button(
+            label:          "Quit",
+            signal_connect: 'clicked, (){ gtk.widget_destroy(window) }
+        );
 
-    label1 = gtk_label("The Quick Brown Fox Jumps Over a Lazy Dog");
+        label1 = gtk_label("The Quick Brown Fox Jumps Over a Lazy Dog");
 
-    image1 = gtk.image_new_from_file("tux256.png");
+        image1 = gtk.image_new_from_file("tux256.png");
 
-    grid = gtk_grid(
-        attach: button1,    [0, 0, 1, 1],
-        attach: button2,    [1, 0, 1, 1],
-        attach: button,     [0, 1, 2, 1],
-        attach: image1,     [0, 2, 2, 1],
-        attach: label1,     [0, 3, 2, 1]
-    );
+        grid = gtk_grid(
+            attach: button1, [0, 0, 1, 1],
+            attach: button2, [1, 0, 1, 1],
+            attach: button, [0, 1, 2, 1],
+            attach: image1, [0, 2, 2, 1],
+            attach: label1, [0, 3, 2, 1]
+        );
 
-    window = gtk_application_window(app,
-	title:        "Mywindow",
-	border_width: 10,
-        add:          grid,
-        show_all:     #t
-    );
+        window = gtk_application_window(app,
+            title:    "Mywindow",
+            border_width: 10,
+            add:      grid,
+            show_all: #t
+        );
 
-    #bp();
+        #bp();
 
-    demo_events(window)
-});
+        demo_events(window)
+    }
+);
 
 popup_dialog = (){
 

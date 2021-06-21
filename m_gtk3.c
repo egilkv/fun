@@ -12,6 +12,10 @@
 #include <math.h> // isfinite
 #include <assert.h>
 
+#ifdef HAVE_THREADS
+#include <pthread.h>
+#endif
+
 #include <gtk/gtk.h>
 
 #include "cmod.h"
@@ -346,10 +350,8 @@ static cell *cgtk_##gname(cell *args) { \
 #define WIDGET_GET_BOOL(gname, gtype) \
 static cell *cgtk_##gname(cell *widget) { \
     GtkWidget *wp; \
-    gboolean bval; \
     if (!get_gtkwidget(widget, &wp, NIL)) return cell_error(); \
-    bval = gtk_##gname(gtype(wp)); \
-    return cell_boolean(bval); \
+    return cell_boolean(gtk_##gname(gtype(wp))); \
 }
 
 #define WIDGET_SET_BOOL(gname, gtype) \
@@ -510,10 +512,8 @@ static cell *cgtk_##gname(cell *val) { \
 
 #define VOID_GET_BOOL(gname) \
 static cell *cgtk_##gname(cell *args) { \
-    gboolean bval; \
     arg0(args); \
-    bval = gtk_##gname(); \
-    return cell_boolean(bval); \
+    return cell_boolean(gtk_##gname()); \
 }
 
 #define VOID_SET_CSTRING(gname) \
@@ -569,35 +569,92 @@ static cell *cgtk_##gname(cell *str) { \
 //
 
 static cell *cgtk_application_new(cell *args) {
+    char_t *id = NULL;
     cell *aname = NIL;
-    cell *flags = NIL;
+    int flags = G_APPLICATION_FLAGS_NONE;
     GtkApplication *gp;
 
     if (list_pop(&args, &aname)) {
-	// TODO pick string
-	cell_unref(aname);
-        if (list_pop(&args, &flags)) {
+        cell *arg2 = NIL;
+        index_t len;
+        if (!peek_string(aname, &id, &len, NIL)) {  // ignoring errors
+            aname = NIL;
+        }
+        if (list_pop(&args, &arg2)) {
 	    // TODO implement
-	    cell_unref(flags);
+            cell_unref(arg2);
 	}
 	arg0(args);
     }
     // TODO
-    gp = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE); // does g_object_ref()
+    gp = gtk_application_new(id, flags); // does g_object_ref()
+    cell_unref(aname);
 
     return make_special_gtk_app(gp);
 }
+
+static cell *cgtk_application_id_is_valid(cell *aname) {
+    char_t *id;
+    index_t len;
+    if (!peek_string(aname, &id, &len, NIL)) {
+        return cell_error();
+    }
+    return cell_boolean(g_application_id_is_valid(id));
+}
+
+#ifdef HAVE_THREADS
+static void *cgtk_application_thread(void *gp) {
+    // status =
+    g_application_run(G_APPLICATION((GtkApplication *)gp), 0, NULL);
+    // TODO look at status
+    // TODO if this function returns, the thread is killed
+    return NULL;
+}
+
+static pthread_t gtkapp_thread;
+#endif
 
 static cell *cgtk_application_run(cell *app, cell *arglist) {
     GtkApplication *gp;
     if (!get_gtkapp(app, &gp, arglist)) {
         return cell_error();
     }
-    // TODO convert to argc, argv
-    // status =
-    g_application_run(G_APPLICATION(gp), 0, NULL);
-    // TODO look at status
+#if 0
+    // TODO complex, see https://developer.gnome.org/gio/stable/GApplication.html#g-application-run
+    // transfer argc/argv
+    cell *arg;
+    const char **argv;
+    int argc = 0;
+    argv = malloc(sizeof(const char *));
+    assert(argv);
+    while (list_pop(&arglist, &arg)) {
+        char_t *str;
+        index_t len;
+        if (peek_string(arg, &str, &len, NIL)) {
+            argv = realloc(argv, (argc+2)*sizeof(const char *));
+            assert(argv);
+            argv[argc++] = strdup(str); // TODO when will we free() this one?
+            cell_unref(arg);
+        }
+    }
+#else
     cell_unref(arglist);
+#endif
+
+#ifdef HAVE_THREADS
+    // the first argument is the returned pointer to the thread id.
+    // the second argument is the thread arguments, which can be NULL
+    //      unless you want to start the thread with a specific priority.
+    // the third argument is the function executed by the thread.
+    // the fourth argument is the single argument passed to the thread
+    // function when it is executed.
+    pthread_create(&gtkapp_thread, NULL, cgtk_application_thread, gp);
+    // TOODO return value is?
+#else
+    // status =
+    g_application_run(G_APPLICATION(gp), argc, argv);
+    // TODO look at status
+#endif
     return cell_void();
 }
 
@@ -1741,6 +1798,7 @@ cell *module_gtk() {
     // TODO these functions are mostly impure
 
     DEFINE_CFUNN(application_new)
+    DEFINE_CFUN1(application_id_is_valid)
     DEFINE_CFUN2(application_run)
     DEFINE_CFUN1(application_window_new)
     DEFINE_CFUNN(button_new)

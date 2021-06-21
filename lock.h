@@ -9,6 +9,7 @@
  *  https://attractivechaos.wordpress.com/2011/10/06/multi-threaded-programming-efficiency-of-locking/
  *
  *  TODO see also
+ *      <stdatomic.h>
  *      __sync_add_and_fetch(&(node->ref), 1);
  *      __sync_sub_and_fetch(&(node->ref), 1);
  *
