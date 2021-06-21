@@ -62,9 +62,7 @@ static cell *cmath_int(cell *a) {
         return a;
     }
     if (!get_number(a, &na, NIL)) return cell_error();
-    if (!round_integer(&na)) {
-        return err_overflow(a);
-    }
+    if (!round_integer(&na)) return err_overflow(NIL);
     return cell_number(&na);
 }
 
