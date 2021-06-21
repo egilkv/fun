@@ -4,6 +4,11 @@
 
 #ifndef CELL_H
 
+#ifdef __STDC_NO_ATOMICS__
+  #error Need atoms
+#else
+  #include <stdatomic.h>
+#endif
 #include "assoc.h"
 #include "type.h"
 
@@ -126,10 +131,10 @@ extern void cell_free1(cell *node);
 
 DEFINLINE cell *cell_ref(cell *node) {
     if (node) {
-#ifdef __GNUC__
-        __sync_add_and_fetch(&(node->ref), 1);
-#else
+#ifdef __STDC_NO_ATOMICS__
         ++(node->ref); // not atomic and thread safe
+#else
+        atomic_fetch_add(&(node->ref), 1);
 #endif
     }
     return node;
@@ -137,12 +142,12 @@ DEFINLINE cell *cell_ref(cell *node) {
 
 DEFINLINE void cell_unref(cell *node) {
     if (node) {
-#ifdef __GNUC__
-        if (__sync_sub_and_fetch(&(node->ref), 1) == 0) {
+#ifdef __STDC_NO_ATOMICS__
+        if (--(node->ref) == 0) { // not atomic and thread safe
             cell_free1(node);
         }
 #else
-        if (--(node->ref) == 0) { // not atomic and thread safe
+        if (atomic_fetch_add(&(node->ref), -1) <= 1) {
             cell_free1(node);
         }
 #endif
