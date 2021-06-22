@@ -35,17 +35,20 @@ static cell *cell_gdkevent(GdkEvent *event);
 
 
 static const char *magic_gtk_app(void *ptr) { 
-    if (ptr) g_object_unref(ptr);
+    // TODO does not work as of yet
+    // if (ptr) g_object_unref(ptr);
     return "gtk_application"; 
 }
 
 static const char *magic_gtk_widget(void *ptr) { 
-    if (ptr) g_object_unref(ptr);
+    // TODO does not work as of yet
+    // if (ptr) g_object_unref(ptr);
     return "gtk_widget";
 }
 
 static const char *magic_gtk_textbuf(void *ptr) { 
-    if (ptr) g_object_unref(ptr);
+    // TODO does not work as of yet
+    // if (ptr) g_object_unref(ptr);
     return "gtk_text_buffer";
 }
 

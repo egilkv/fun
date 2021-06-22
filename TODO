@@ -16,6 +16,10 @@ compile as:
             call #plus
 
 gtk.application_run(app, #args); should be a separate thread of some kind
+SO that it can be started with a #go, and that it returns nicely when done.
+Perhaps using an internal channel or something
+
+GTK magic unref does not work at all
 
 Have special channel types with C functions as senders and as receivers
 
