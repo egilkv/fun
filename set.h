@@ -1,11 +1,11 @@
-/*	TAB-P
+/*  TAB-P
  *
  */
 
 struct keyival_s {
-	const char *str;
-	cell *key; // must be symbol
-	integer_t ival;
+    const char *str;
+    cell *key; // must be symbol
+    integer_t ival;
 };
 
 typedef struct keyival_s set;

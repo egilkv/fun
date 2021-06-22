@@ -8,37 +8,16 @@
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
-#ifdef HAVE_READLINE
-#include <readline/readline.h>
-#include <readline/history.h>
-#include "oblist.h"
-#endif
 
 #include "lex.h"
 #include "err.h"
 #include "number.h"
 #include "opt.h"
+#include "readline.h"
 
 static item *pushback = 0;
 static item *gotchar(int c, item *it, lxfile *in);
 static item *gotsymbol(char c, item *it, lxfile *in);
-
-#ifdef HAVE_READLINE
-
-// https://thoughtbot.com/blog/tab-completion-in-gnu-readline
-// if there are no possible completions, return NULL.
-// if there is one possible completion, return an array 
-// containing that completion, followed by a NULL value.
-// if there are two or more possibilities, return an array
-// containing the longest common prefix of all the options, 
-// followed by each of the possible completions, followed
-// by a NULL value.
-static char **readline_completion(const char *text, int start, int end) {
-    rl_attempted_completion_over = 1; // do not fall back to filename completion
-//  return rl_completion_matches(text, character_name_generator);
-    return rl_completion_matches(text, oblist_search);
-}
-#endif // HAVE_READLINE
 
 void lxfile_init(lxfile *in, FILE *f, const char *name) {
     memset(in, 0, sizeof(lxfile));
@@ -53,17 +32,7 @@ void lxfile_init(lxfile *in, FILE *f, const char *name) {
     in->linebuf = NULL;
     in->linelen = 0;
 
-#ifdef HAVE_READLINE
-    // disable tab completion
-    // rl_bind_key('\t', rl_insert);
-
-    // have our own TAB-completion
-    rl_attempted_completion_function = readline_completion;
-
-    // let readline know our quote characters etc
-    // rl_completer_quote_characters = "\"'";
-    // rl_completer_word_break_characters = " ";
-#endif
+    read_line_init();
 }
 
 // BUG: static string
@@ -72,25 +41,6 @@ const char *lxfile_info(lxfile *in) {
     snprintf(infobuf, sizeof(infobuf)-1, "%s%s at %d:%ld", 
              (in->filename[0] ? " in ":""), in->filename, in->lineno, in->index);
     return infobuf;
-}
-
-// return allocated line from stdin or file
-// *lenp does not include trailing newline
-char *lex_getline(FILE *f, ssize_t *lenp) {
-    size_t buflen = 1;
-    ssize_t len;
-    char *buf = malloc(1); // if NULL, getline will malloc a huge buffer
-    if ((len = getline(&buf, &buflen, f)) < 0) {
-        // usually an eof but could be other type of error
-        // TODO errno is error
-        free(buf);
-        *lenp = 0;
-        return NULL;
-    }
-    assert(buf);
-    if (len > 0 && buf[len-1] == '\n') --len; // skip trailing newline
-    *lenp = len;
-    return buf;
 }
 
 // TODO inline
@@ -109,6 +59,7 @@ static int lxgetc(lxfile *in) {
     int c;
     if (in->is_terminal) {
         while (in->index >= in->linelen) { // reached end of line?
+            int n;
             if (in->index == in->linelen) {
                 if (in->linebuf) {
                     ++(in->index);
@@ -124,30 +75,11 @@ static int lxgetc(lxfile *in) {
             else if (in->lineno == 1) in->lineno = 0; // fix line number
             in->index = 0;
 
-#ifdef HAVE_READLINE
-            if (!opt_noreadline) {
-                in->linelen = 0;
-                in->linebuf = readline(in->show_prompt ? in->show_prompt : "    ");
-                if (!(in->linebuf)) {
-                    in->is_eof = 1;
-                    return -1; // end of file
-                }
-                in->linelen = strlen(in->linebuf);
-                if (in->linelen > 0) {
-                    add_history(in->linebuf);
-                }
-            } else
-#endif
-            {
-                // prompt
-                fprintf(stdout, "%s", in->show_prompt ? in->show_prompt : "    ");
-                fflush(stdout);
-                in->linebuf = lex_getline(in->f, &(in->linelen));
-                if (!(in->linebuf)) {
-                    in->is_eof = 1;
-                    return -1; // end of file
-                }
+            if ((n = read_line(&(in->linebuf), in->show_prompt)) < 0) {
+                in->is_eof = 1;
+                return -1;
             }
+            in->linelen = n;
             in->show_prompt = 0;
             ++(in->lineno);
         }

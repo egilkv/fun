@@ -79,8 +79,6 @@ item *lexical(lxfile *in);
 void lxfile_init(lxfile *in, FILE *f, const char *name);
 const char *lxfile_info(lxfile *in);
 
-char *lex_getline(FILE *f, ssize_t *lenp);
-
 void dropitem(item *it);
 void pushitem(item *it);
 

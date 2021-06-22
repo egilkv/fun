@@ -987,6 +987,17 @@ static void cfunR_send(cell *args) {
     cell_unref(chan);
 }
 
+// print result, used by main evaluator
+// TODO
+static cell *cfun1_result(cell *val) {
+    if (val != hash_void) { // write result if not void
+        cell_write(stdout, val);
+      //if (!(lxf->is_terminal))
+            printf("\n");
+    }
+    return val;
+}
+
 // signal that data to stdout is ready
 // TODO in another thread...
 void cfun_stdout(cell *chan) {
@@ -1098,6 +1109,7 @@ void cfun_init() {
     hash_quotient = symbol_set("#quotient", cell_cfunN_pure(cfunN_quotient));
     hash_receive  = symbol_set("#receive",  cell_cfunR(cfunR_receive));
     hash_ref      = symbol_set("#ref",      cell_cfun2_pure(cfun2_ref));
+    hash_result   = symbol_set("#result",   cell_cfun1(cfun1_result));
     hash_send     = symbol_set("#send",     cell_cfunR(cfunR_send));
     hash_times    = symbol_set("#times",    cell_cfunN_pure(cfunN_times));
                     symbol_set("#type",     cell_cfun1_pure(cfun1_type));

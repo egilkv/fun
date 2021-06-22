@@ -51,8 +51,13 @@ static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
         ct = expression(lxf);
 	if (!ct) break; // eof
 
+        if (lxf->f == stdin) { // print result if stdin
+            ct = cell_func(cell_ref(hash_result), cell_list(ct, NIL));
+        }
+
         cell_unref(result);
         result = NIL; // to avoid the ref
+
         if (lxf->f == stdin) {
             if (lxf->show_parse & 1) {
                 cell_write(stdout, ct);
@@ -69,17 +74,7 @@ static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
 	    }
 	}
 
-        ct = run_main(ct, cell_ref(env0), NIL, 1);
-
-        if (lxf->f == stdin) {
-            if (ct != hash_void) { // write result if not void
-                cell_write(stdout, ct);
-                if (!(lxf->is_terminal)) {
-                    printf("\n");
-                }
-            }
-	}
-        result = ct;
+        result = run_main(ct, cell_ref(env0), NIL, 1);
     }
     if (lxf->is_terminal) {
         printf("\n");

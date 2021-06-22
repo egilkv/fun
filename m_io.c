@@ -14,6 +14,7 @@
 #include "cmod.h"
 #include "number.h"
 #include "parse.h"
+#include "readline.h"
 #include "opt.h"
 
 #define MULTILINE_VECTOR 0  // multiline vectors
@@ -448,7 +449,7 @@ static cell *cfio_getline(cell *args) {
     ssize_t len = 0;
     char *line;
     arg0(args);
-    line = lex_getline(stdin, &len);
+    line = line_from_file(stdin, &len);
     if (!line || len < 0) {
         return cell_void();
     }
