@@ -1,4 +1,9 @@
 
+breakpoint/debugger works by moving the current function out of context and to
+a debug_list similar to the ready_list
+
+demo.fun only works if #include()
+
 Remove
 void run_main_apply(cell *lambda, cell *args) {
 see also known_thunk_a to see if it can be used
@@ -316,3 +321,5 @@ Have #assert()
 Optimize #type
 
 Warning if = used instead of ==
+
+#include should return result

@@ -79,3 +79,4 @@ demo_events = (w) {
 
 gtk.application_run(app, #args);
 
+// TODO g_object_unref(app) when done

@@ -21,7 +21,6 @@ struct current_run_env {
     cell *prog;             // program being run TODO also in env, but here for efficiency
     cell *env;              // current environment
     cell *stack;            // current runtime stack
-    int proc_id;            // 0=anonymous, 1=main thread, 2=debugger
     struct current_run_env *save; // previous runtime environments, used when debugging primarily
 } ;
 
@@ -41,7 +40,6 @@ static struct proc_run_env *proc_run_env_new(cell *prog, cell *env, cell *stack)
     newenv->env = env;
     newenv->stack = stack;
     newenv->next = NULL;
-    newenv->proc_id = 0;
     return newenv;
 }
 
@@ -298,7 +296,7 @@ void run_main_apply(cell *lambda, cell *args) {
 
         *pp = newnode(c_DOAPPLY);
 
-        cell_unref(run_main(prog, NIL, NIL, 0));
+        run_main(prog, NIL, NIL);
     }
 }
 
@@ -316,7 +314,6 @@ static void run_environment_next_ready() {
           run_environment->prog = newp->prog;
           run_environment->env = newp->env;
           run_environment->stack = newp->stack;
-          run_environment->proc_id = newp->proc_id;
         UNLOCK(run_environment_lock);
         free(newp);
     } else {
@@ -324,7 +321,6 @@ static void run_environment_next_ready() {
           run_environment->prog = NIL;
           run_environment->env = NIL;
           run_environment->stack = NIL;
-          run_environment->proc_id = 0;
         UNLOCK(run_environment_lock);
     }
 }
@@ -337,7 +333,6 @@ struct proc_run_env *suspend() {
         assert(0);
     }
     susp = proc_run_env_new(run_environment->prog, run_environment->env, run_environment->stack);
-    susp->proc_id = run_environment->proc_id;
 
     run_environment_next_ready();
 
@@ -353,12 +348,10 @@ void start_process(cell *prog, cell *env, cell *stack) {
         assert(0);
     }
     susp = proc_run_env_new(run_environment->prog, run_environment->env, run_environment->stack);
-    susp->proc_id = run_environment->proc_id;
 
     run_environment->prog = prog;
     run_environment->env = env;
     run_environment->stack = stack;
-    run_environment->proc_id = 0;
 
     prepend_proc_list(&ready_list, susp);
 }
@@ -369,8 +362,7 @@ int dispatch() {
 
     // TODO UNLOCK(run_environment_lock);
     if (run_environment->prog != NIL 
-     || run_environment->env != NIL 
-     || (run_environment->stack != NIL && run_environment->proc_id != 0)) {
+     || run_environment->env != NIL) {
         // there is something of interest, so suspend it
         struct proc_run_env *prev = suspend();
         append_proc_list(&ready_list, prev);
@@ -382,13 +374,12 @@ int dispatch() {
 }
 
 // main run program facility, return result
-cell *run_main(cell *prog, cell *env0, cell *stack, int proc_id) {
+void run_main(cell *prog, cell *env0, cell *stack) {
     struct current_run_env re;
 
     re.prog = prog;
     re.env = env0;
     re.stack = stack;
-    re.proc_id = proc_id;
     LOCK(run_environment_lock);
       re.save = run_environment; // should usually be NULL
       run_environment = &re;
@@ -403,29 +394,20 @@ cell *run_main(cell *prog, cell *env0, cell *stack, int proc_id) {
                 cell_unref(re.env);
                 re.env = prevenv;
                 re.prog = contprog;
-            } else if (re.proc_id != proc_id) {
+            } else {
                 // a thread stopped
-                fprintf(stdout, "*thread %d stopped*\n", re.proc_id); // TODO only in debug mode of some kind
-                cell_unref(re.env); // discard environment
-                re.env = NIL;
+                assert(re.prog == NIL && re.env == NIL);
                 cell_unref(re.stack); // and results
                 re.stack = NIL;
                 if (!dispatch()) { // TODO logic is shaky
-                    return error_rt0("main thread not ready");
+                    //fprintf(stdout, "*no more threads*\n"); // TODO only in debug mode something
+                    LOCK(run_environment_lock);
+                      run_environment = re.save;
+                    UNLOCK(run_environment_lock);
+                    return;
+                } else {
+                    fprintf(stdout, "*thread stopped*\n"); // TODO only in debug mode something
                 }
-            } else if (!dispatch()) {
-                // no more threads
-                cell *result;
-                if (!list_pop(&re.stack, &result)) {
-                    result = cell_void();
-                }
-                if (re.stack) {
-                    cell_unref(error_rt1("stack imbalance", re.stack)); // TODO should this happen?
-                }
-                LOCK(run_environment_lock);
-                  run_environment = re.save;
-                UNLOCK(run_environment_lock);
-                return result;
             }
         }
 

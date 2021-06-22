@@ -20,7 +20,7 @@
 
 #include "oblist.h"
 
-static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0);
+static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0);
 static cell *expr(precedence lv, lxfile *in);
 static cell *getlist(item *op, token sep_token, token end_token, 
                      precedence blv, lxfile *in);
@@ -38,12 +38,11 @@ void interactive_mode(const char *greeting, const char *prompt, cell *env0) {
     if (infile.is_terminal) {
         fprintf(stdout, "%s", greeting);
     }
-    cell_unref(chomp_lx(&infile, prompt, env0));
+    chomp_lx(&infile, prompt, env0);
 }
 
-// return last item, or void if none
-static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
-    cell *result = cell_void();
+// chomp contents of entire file
+static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
     cell *ct;
 
     for (;;) {
@@ -51,19 +50,16 @@ static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
         ct = expression(lxf);
 	if (!ct) break; // eof
 
-        if (lxf->f == stdin) { // print result if stdin
-            ct = cell_func(cell_ref(hash_result), cell_list(ct, NIL));
-        }
-
-        cell_unref(result);
-        result = NIL; // to avoid the ref
-
         if (lxf->f == stdin) {
             if (lxf->show_parse & 1) {
                 cell_write(stdout, ct);
                 printf(" ==> ");
 	    }
 	}
+
+        if (lxf->f == stdin) { // print result if stdin
+            ct = cell_func(cell_ref(hash_result), cell_list(ct, NIL));
+        }
 
         // TODO should also provide env0 to compile
         ct = compile(ct, env0);
@@ -74,27 +70,27 @@ static cell *chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
 	    }
 	}
 
-        result = run_main(ct, cell_ref(env0), NIL, 1);
+        run_main(ct, cell_ref(env0), NIL);
     }
     if (lxf->is_terminal) {
         printf("\n");
     }
     cell_unref(env0); // consume it
-    return result;
 }
 
 int chomp_file(const char *name, cell **resultp) {
-    cell *result;
     FILE *f = fopen(name, "r");
     lxfile cfile;
     if (!f) {
         return 0;
     }
     lxfile_init(&cfile, f, name);
-    result = chomp_lx(&cfile, NULL, NIL);
-    if (resultp) *resultp = result;
-    else cell_unref(result);
+    chomp_lx(&cfile, NULL, NIL);
     fclose(cfile.f);
+    if (resultp) {
+        // TODO most implement
+        *resultp = cell_void();
+    }
     return 1;
 }
 
