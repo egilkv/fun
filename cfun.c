@@ -1113,7 +1113,7 @@ void cfun_init() {
     hash_send     = symbol_set("#send",     cell_cfunR(cfunR_send));
     hash_times    = symbol_set("#times",    cell_cfunN_pure(cfunN_times));
                     symbol_set("#type",     cell_cfun1_pure(cfun1_type));
-                    symbol_set("#use",      cell_cfun1_pure(cfun1_use));
+                    symbol_set("#use",      cell_cfun1(cfun1_use)); // TODO pure?
 
     // for now, testing
     hash_stdin    = symbol_set("#stdin",    cell_rchannel());
