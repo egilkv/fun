@@ -152,6 +152,15 @@ static cell *expr(precedence lv, lxfile *in) {
         pt = cell_func(cell_ref(hash_not), cell_list(pt, NIL));
         return binary(pt, lv, in);
 
+    case it_GO: // unary only
+        dropitem(it);
+        pt = expr(l_UNARY, in);
+        if (!pt) return badeof();
+        // #go(#lambda([], ...whatever...))
+        pt = cell_func(cell_ref(hash_go), cell_list(cell_func(cell_ref(hash_lambda), 
+                                          cell_list(NIL, cell_list(pt, NIL))), NIL));
+        return binary(pt, lv, in);
+
     case it_TILDE: // unary only
         dropitem(it);
         pt = expr(l_UNARY, in);
@@ -557,6 +566,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return left;
 
     case it_NOT: // unary only
+    case it_GO:
     case it_QUOTE:
     case it_TILDE:
     case it_LBRC:

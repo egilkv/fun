@@ -33,10 +33,11 @@ enum it_ {
    it_TILDE,   // 25
    it_ELLIP,
    it_LARROW,
+   it_GO,
    it_LPAR,
-   it_RPAR,
+   it_RPAR,    // 30
    it_LBRK,
-   it_RBRK,    // 30
+   it_RBRK,
    it_LBRC,
    it_RBRC,
    it_NUMBER,

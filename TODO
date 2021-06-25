@@ -263,10 +263,6 @@ a["one"];
 
 ELM and Haskell uses ++ instead of & to concatenate.
 
-Easy to use threading, like goroutines, i.e.: go function() i.e. !! function()
-
-Go interfaces - specifies only functions
-
 In error messages,
 should prettyprint instead, so instead of #(#defq, a, b) say a = b
 

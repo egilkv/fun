@@ -456,13 +456,26 @@ static item *gotminus(char c, item *it, lxfile *in) {
     return it;
 }
 
+static item *gotnot(char c, item *it, lxfile *in) {
+    if (it) {
+        if (it->type == it_NOT) {
+            it->type = it_GO;      // !!
+            return it;
+        } else {
+            lxungetc(c, in);
+        }
+    } else {
+        it = nextchar(newitem(it_NOT), in);
+    }
+    return it;
+}
+
 static item *gotplain(char c, token type, item *it, lxfile *in) {
     if (it) lxungetc(c, in);
     else it = nextchar(newitem(type), in); // reqd for peek into next
     return it;
 }
 
-static item *gotnot(char c, item *it, lxfile *in)   { return gotplain(c, it_NOT, it, in); }
 static item *gotlt(char c, item *it, lxfile *in)    { return gotplain(c, it_LT, it, in); }
 static item *gotgt(char c, item *it, lxfile *in)    { return gotplain(c, it_GT, it, in); }
 // TODO these does not need peek:

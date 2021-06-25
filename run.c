@@ -273,9 +273,12 @@ static void run_apply(cell *lambda, cell *args, cell *contenv) {
 }
 
 // set run_environment to next ready process
+// assume current run_environment is NIL
 // can be called following a suspend()
 static void run_environment_next_ready() {
     struct proc_run_env *newp;
+
+    // get the thing first on the ready list
     LOCK(ready_list_lock);
       if ((newp = ready_list) != NULL) {
           ready_list = newp->next;
@@ -286,6 +289,7 @@ static void run_environment_next_ready() {
     assert(run_environment->prog == NIL && run_environment->env == NIL);
 
     if (newp != NULL) {
+        newp->next = NULL;
         LOCK(run_environment_lock);
           run_environment->prog = newp->prog;
           run_environment->env = newp->env;
@@ -317,7 +321,11 @@ struct proc_run_env *suspend() {
 void start_process(cell *prog, cell *env, cell *stack) {
     struct proc_run_env *newp;
     newp = proc_run_env_new(prog, env, stack);
-    prepend_proc_list(&ready_list, newp);
+
+    LOCK(ready_list_lock);
+      prepend_proc_list(&ready_list, newp);
+    UNLOCK(ready_list_lock);
+
     // TODO should we perhaps dispatch() at this point?
 }
 
@@ -331,7 +339,11 @@ static int dispatch() {
         // there is something of interest currently running, so suspend it
         struct proc_run_env *prev = suspend();
         run_environment_next_ready(); // TODO not really necessary
-        append_proc_list(&ready_list, prev);
+
+        LOCK(ready_list_lock);
+          append_proc_list(&ready_list, prev);
+        UNLOCK(ready_list_lock);
+
     } else {
         // pop from top of ready list
         run_environment_next_ready();
@@ -367,7 +379,12 @@ void run_main(cell *prog, cell *env0, cell *stack) {
         // already running?
         // TODO this is still not 100% safe
         struct proc_run_env *pre = proc_run_env_new(prog, env0, stack);
-        prepend_proc_list(&ready_list, pre);
+        // TODO dual locks, check if we can have deadlocks
+
+        LOCK(ready_list_lock);
+          prepend_proc_list(&ready_list, pre);
+        UNLOCK(ready_list_lock);
+
         UNLOCK(run_environment_lock);
         return;
     }
@@ -389,7 +406,7 @@ void run_main(cell *prog, cell *env0, cell *stack) {
             } else {
                 // a thread stopped
                 assert(re.prog == NIL && re.env == NIL);
-                cell_unref(re.stack); // and results
+                cell_unref(re.stack); // throw away any results
                 re.stack = NIL;
                 if (!dispatch()) { // TODO logic is shaky
                     //fprintf(stdout, "*no more threads*\n"); // TODO only in debug mode something
