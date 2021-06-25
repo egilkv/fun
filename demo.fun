@@ -44,7 +44,7 @@ app = gtk_application("org.gtk.demo", // unique ID
             show_all: #t
         );
 
-        #bp();
+        //#bp();
 
         demo_events(window)
     }

@@ -2,7 +2,16 @@
 breakpoint/debugger works by moving the current function out of context and to
 a debug_list similar to the ready_list
 
+run_main if there is a run_main already, just places the new thing on the ready list
+and returns immediately. Only problem is activate.
+Locks around run_environment are shady
+
 demo.fun only works if #include()
+
+The time() thing should probably be outright replaced by:
+	t0 = time.seconds();
+	func();
+	toime.seconds() - t0;
 
 Remove
 void run_main_apply(cell *lambda, cell *args) {

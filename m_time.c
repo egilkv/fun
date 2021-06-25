@@ -16,6 +16,7 @@
 #include "m_time.h"
 #include "cmod.h"
 #include "number.h"
+#include "node.h"
 #include "run.h"
 #include "compile.h"
 #include "err.h"
@@ -165,21 +166,52 @@ static cell *ctime_mktime(cell *a) {
 // measure time required for evaluating all arguments
 static cell *ctime_time(cell *args) {
     cell *f;
+    if (!list_pop(&args, &f)) {
+        return error_rt1("function to time expected", args);
+    }
+        // TODO no environment
+        // TODO re-invocation of run_main() is questionable
+#if 0
+        // TODO instead, compile this:
+        //     push negative time
+        //     call cell_func(f, args)
+        //     discard value
+        //     push positive time
+        //     call subtract
+               // push negative time
+               cell_func(cell_ref(hash_minus), 
+               cell_list(cell_cfunN(ctime_seconds), NIL));
+               cell_func(cell_ref(hash_minus), cell_list(cell_cfunN(ctime_seconds), NIL));
+               call cell_func(f, args)
+
+
+#else
+    // TODO have to make silly program
+    cell *prog = NIL;
+    cell **pp = &prog;
+
+    *pp = newnode(c_DOQPUSH);
+    (*pp)->_.cons.car = args;
+    pp = &(*pp)->_.cons.cdr;
+
+    *pp = newnode(c_DOQPUSH);
+    (*pp)->_.cons.car = f;
+    pp = &(*pp)->_.cons.cdr;
+
+    *pp = newnode(c_DOAPPLY);
+
     number secs;
     struct timeval tv;
     gettimeofday(&tv, (struct timezone *)0);
     secs.dividend.fval = tv.tv_sec + tv.tv_usec / 1000000.0;
     secs.divisor = 0;
 
-    if (list_pop(&args, &f)) {
-        // TODO no environment
-        // TODO re-invocation of run_main() is questionable
-        run_main_apply(f, args);
-    }
+    run_main_force(prog, NIL, NIL);
 
     gettimeofday(&tv, (struct timezone *)0);
     secs.dividend.fval = (tv.tv_sec + tv.tv_usec / 1000000.0) - secs.dividend.fval;
     return cell_number(&secs);
+#endif
 }
 
 // seconds since epoch, with sub second accuracy

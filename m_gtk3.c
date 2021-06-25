@@ -1429,8 +1429,7 @@ static void cgtk_callback_wait(GtkWidget* gp, gpointer data) {
  // printf("\n***callback***\n");
 
  // TODO seems like this one needs to finish its job before we return
- // start_process(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
-    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+    run_main_force(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
 }
 
 // callback, no extra argument provided

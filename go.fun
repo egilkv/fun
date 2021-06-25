@@ -1,132 +1,47 @@
-/*
- *  https://spf13.com/post/is-go-object-oriented/
 
-type rect struct {
-    width int
-    height int
-}
+f1 = (a){
+    b = 99;
+    f3( (){ cc = b+2; #bp(); a })
+};
 
-func (r *rect) area() int {
-    return r.width * r.height
-}
+f3 = (thunk){
+    b = 9;
+    thunk();
+    12
+};
 
-func main() {
-    r := rect{width: 10, height: 5}
-    fmt.Println("area: ", r.area())
-}
+f1(999);
 
-*/
-
+---------------------------------------------------------
 io = #use("io");
+#go( (){ 
+	#go( (){ io.println("hello2") });
+	io.println("hello1")
+});
+---------------------------------------------------------
+io = #use("io");
+c1 = #channel();
+c2 = #channel();
 
-r = {
-    width: 10,
-    height: 5
+cr = () {
+	io.println("read");
+	v = <- c1;
+	io.println("write");
+	c2 <- 2*v;
+	io.println("loop");
+	cr()
 };
+#go(cr);
+c1 <- 99;
+<- c2;
+---------------------------------------------------------
+io = #use("io");
+c1 = #channel();
 
-area = (r) {
-     r.width * r.height
+cr = () {
+	io.println("value", <- c1);
+	cr()
 };
+#go(cr);
+c1 <- 99;
 
-io.println("area: ", area(r));
-
-// TODO how to connect the function to the assoc
-
-/* one possibility
-r = {
-    width: 10,
-    height: 5,
-    area: () { .width * .height }
-};
-*/
-
-///////////////////////////////////////////////////////////
-
-/*
- *  https://play.golang.org/p/LGB-2j707c
-
-package main
-
-import "fmt"
-
-type Counter int
-
-func (c *Counter) AddOne() {
-  *c++
-}
-
-func main() {
-        var hits Counter
-        hits.AddOne()
-        fmt.Println(hits)
-}
-
-*/
-
-///////////////////////////////////////////////////////////
-
-/*
- *  "has-a"
-
-type Person struct {
-   Name string
-   Address Address
-}
-
-type Address struct {
-   Number string
-   Street string
-   City   string
-   State  string
-   Zip    string
-}
-
-func (p *Person) Talk() {
-    fmt.Println("Hi, my name is", p.Name)
-}
-
-func (p *Person) Location() {
-    fmt.Println("I'm at", p.Address.Number, p.Address.Street,
-p.Address.City, p.Address.State, p.Address.Zip)
-}
-
-func main() {
-    p := Person{
-	Name: "Steve",
-	Address: Address{
-	    Number: "13",
-	    Street: "Main",
-	    City:   "Gotham",
-	    State:  "NY",
-	    Zip:    "01313",
-	},
-    }
-
-    p.Talk()
-    p.Location()
-}
-
-*/
-
-Talk = (p){
-    io.println("Hi, my name is", p.Name)
-};
-
-Location = (p) {
-    io.println("I'm at", p.Address.Number, p.Address.Street,
-	       p.Address.City, p.Address.State, p.Address.Zip)
-};
-
-    p = {
-	Name: "Steve",
-	Address: {
-	    Number: "13",
-	    Street: "Main",
-	    City:   "Gotham",
-	    State:  "NY",
-	    Zip:    "01313"
-	}
-    };
-
-    Talk(p);
-    Location(p);

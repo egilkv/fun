@@ -888,6 +888,7 @@ static void cfunR_receive(cell *args) {
             prepend_proc_list(&ready_list, pre);
         } else {
             append_proc_list(&(chan->_.channel.receivers), suspend());
+            // run_environment_next_ready(); // TODO not really necessary
             // no result on stack
         }
         break;
@@ -901,6 +902,7 @@ static void cfunR_receive(cell *args) {
             push_stack_current_run_env(result); // receive result to our own stack
         } else {
             append_proc_list(&(chan->_.rchannel.receivers), suspend());
+            // run_environment_next_ready(); // TODO not really necessary
             // no result on stack
         }
         break;
@@ -945,6 +947,7 @@ static void cfunR_send(cell *args) {
             // no receiver waiting, push the argument on our own stack, then suspend
             push_stack_current_run_env(val);
             append_proc_list(&(chan->_.channel.senders), suspend());
+            // run_environment_next_ready(); // TODO not really necessary
             // no result on stack
         }
         break;
@@ -960,6 +963,7 @@ static void cfunR_send(cell *args) {
             // no receiver waiting, push the argument on our own stack, then suspend
             push_stack_current_run_env(val);
             append_proc_list(&(chan->_.channel.senders), suspend());
+            // run_environment_next_ready(); // TODO not really necessary
             // no result on stack
         }
         break;
@@ -1096,7 +1100,7 @@ void cfun_init() {
                     symbol_set("#exit",     cell_cfunN_pure(cfunN_exit));
                     symbol_set("#getenv",   cell_cfun1_pure(cfun1_getenv));
     hash_ge       = symbol_set("#ge",       cell_cfunN_pure(cfunN_ge));
-    hash_go       = symbol_set("#go",       cell_cfunN(cfun1_go)); // TODO pure?
+    hash_go       = symbol_set("#go",       cell_cfunN(cfun1_go));
     hash_gt       = symbol_set("#gt",       cell_cfunN_pure(cfunN_gt));
                     symbol_set("#include",  cell_cfun1(cfun1_include)); // TODO pure?
     hash_le       = symbol_set("#le",       cell_cfunN_pure(cfunN_le));

@@ -21,10 +21,9 @@ struct current_run_env {
     cell *prog;             // program being run TODO also in env, but here for efficiency
     cell *env;              // current environment
     cell *stack;            // current runtime stack
-    struct current_run_env *save; // previous runtime environments, used when debugging primarily
 } ;
 
-// the one run environment
+// the one run environment currently being executed
 static struct current_run_env *run_environment = 0;
 static lock_t run_environment_lock = 0;
 
@@ -93,8 +92,6 @@ cell *current_run_env() {
     }
 }
 
-static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct current_run_env *rep);
-
 // advance program pointer to anywhere
 static INLINE void advance_prog_where(cell *where, struct current_run_env *rep) {
     // TODO inefficient
@@ -133,7 +130,7 @@ void push_stack_current_run_env(cell *val) {
     push_value(val, run_environment);
 }
 
-static void run_apply(cell *lambda, cell *args, cell *contenv, struct current_run_env *rep) {
+static void run_apply(cell *lambda, cell *args, cell *contenv) {
     int gotlabel = 0;
     cell *nam;
     cell *val;
@@ -245,62 +242,38 @@ static void run_apply(cell *lambda, cell *args, cell *contenv, struct current_ru
     }
     cell_unref(lambda);
 
-    run_pushprog(body, newassoc, contenv, rep);
-}
-
-static void run_pushprog(cell *body, cell *newassoc, cell *contenv, struct current_run_env *rep) {
-    cell *next = cell_ref(rep->prog);
+    // next program pointer, i.e. return address
+    cell *next = cell_ref(run_environment->prog);
 
     // save current program pointer in environment
 #if 1 // TODO tail call enable
 
-    if (rep->env != NIL && next == NIL) {
+    if (run_environment->env != NIL && next == NIL) {
         // tail end call, can drop previous environment:
-        //   env_prev(rep->env)
-        //   env_cont_env(rep->env)
-        //   env_prog(rep->env)
-        //   env_assoc(rep->env)
+        // TODO this may be quicker but dirtier:
+        //   env_prev(run_environment->env)
+        //   env_cont_env(run_environment->env)
+        //   env_prog(run_environment->env)
+        //   env_assoc(run_environment->env)
 
-        cell *newenv = cell_env(cell_ref(env_prev(rep->env)), cell_ref(env_prog(rep->env)), newassoc, contenv);
+        cell *newenv = cell_env(cell_ref(env_prev(run_environment->env)), cell_ref(env_prog(run_environment->env)), newassoc, contenv);
 
-        cell_unref(rep->env);
-        rep->env = newenv;
+        cell_unref(run_environment->env);
+        run_environment->env = newenv;
     } else
 #endif
     {
         // push one level of environment
-        cell *newenv = cell_env(rep->env, next, newassoc, contenv);
-        rep->env = newenv;
+        cell *newenv = cell_env(run_environment->env, next, newassoc, contenv);
+        run_environment->env = newenv;
     }
     // switch to new program
-    cell_unref(rep->prog);
-    rep->prog = body;
-}
-
-// apply a function from extern
-// TODO review
-void run_main_apply(cell *lambda, cell *args) {
-    {
-        // TODO have to make silly program
-        // TODO use stack instead...
-        cell *prog = NIL;
-        cell **pp = &prog;
-
-        *pp = newnode(c_DOQPUSH);
-        (*pp)->_.cons.car = args;
-        pp = &(*pp)->_.cons.cdr;
-
-        *pp = newnode(c_DOQPUSH);
-        (*pp)->_.cons.car = lambda;
-        pp = &(*pp)->_.cons.cdr;
-
-        *pp = newnode(c_DOAPPLY);
-
-        run_main(prog, NIL, NIL);
-    }
+    cell_unref(run_environment->prog);
+    run_environment->prog = body;
 }
 
 // set run_environment to next ready process
+// can be called following a suspend()
 static void run_environment_next_ready() {
     struct proc_run_env *newp;
     LOCK(ready_list_lock);
@@ -309,6 +282,9 @@ static void run_environment_next_ready() {
       }
     UNLOCK(ready_list_lock);
 
+    assert(run_environment != NULL);
+    assert(run_environment->prog == NIL && run_environment->env == NIL);
+
     if (newp != NULL) {
         LOCK(run_environment_lock);
           run_environment->prog = newp->prog;
@@ -316,16 +292,11 @@ static void run_environment_next_ready() {
           run_environment->stack = newp->stack;
         UNLOCK(run_environment_lock);
         free(newp);
-    } else {
-        LOCK(run_environment_lock);
-          run_environment->prog = NIL;
-          run_environment->env = NIL;
-          run_environment->stack = NIL;
-        UNLOCK(run_environment_lock);
     }
 }
 
 // suspend running process, return its descriptor
+// note: run_main will subsequently pick processes of the ready list
 struct proc_run_env *suspend() {
     struct proc_run_env *susp;
     // TODO LOCK(run_environment_lock);
@@ -334,37 +305,32 @@ struct proc_run_env *suspend() {
     }
     susp = proc_run_env_new(run_environment->prog, run_environment->env, run_environment->stack);
 
-    run_environment_next_ready();
+    run_environment->prog = NIL; 
+    run_environment->env = NIL;
+    run_environment->stack = NIL;
 
     return susp;
 }
 
-// interrupt running process, inserting new process
-// TODO or put on top of ready list instead???
+// start a new process
+// the priority is undefined
 void start_process(cell *prog, cell *env, cell *stack) {
-    struct proc_run_env *susp;
-    // TODO UNLOCK(run_environment_lock);
-    if (run_environment == NULL) {
-        assert(0);
-    }
-    susp = proc_run_env_new(run_environment->prog, run_environment->env, run_environment->stack);
-
-    run_environment->prog = prog;
-    run_environment->env = env;
-    run_environment->stack = stack;
-
-    prepend_proc_list(&ready_list, susp);
+    struct proc_run_env *newp;
+    newp = proc_run_env_new(prog, env, stack);
+    prepend_proc_list(&ready_list, newp);
+    // TODO should we perhaps dispatch() at this point?
 }
 
 // dispatch, rotate ready list
-int dispatch() {
+static int dispatch() {
     if (ready_list == NULL) return 0;
 
     // TODO UNLOCK(run_environment_lock);
     if (run_environment->prog != NIL 
      || run_environment->env != NIL) {
-        // there is something of interest, so suspend it
+        // there is something of interest currently running, so suspend it
         struct proc_run_env *prev = suspend();
+        run_environment_next_ready(); // TODO not really necessary
         append_proc_list(&ready_list, prev);
     } else {
         // pop from top of ready list
@@ -373,16 +339,42 @@ int dispatch() {
     return 1;
 }
 
+// main run program facility, force running untill evaluated
+// TODO temporary kludge
+void run_main_force(cell *prog, cell *env0, cell *stack) {
+    struct current_run_env *save;
+
+    // TODO needs some locking too
+    LOCK(run_environment_lock);
+    save = run_environment;
+    run_environment = NULL;
+    UNLOCK(run_environment_lock);
+
+    // this will then be the run_main for this task
+    run_main(prog, env0, stack);
+
+    LOCK(run_environment_lock);
+    run_environment = save;
+    UNLOCK(run_environment_lock);
+}
+
 // main run program facility, return result
 void run_main(cell *prog, cell *env0, cell *stack) {
     struct current_run_env re;
 
+    LOCK(run_environment_lock);
+    if (run_environment) {
+        // already running?
+        // TODO this is still not 100% safe
+        struct proc_run_env *pre = proc_run_env_new(prog, env0, stack);
+        prepend_proc_list(&ready_list, pre);
+        UNLOCK(run_environment_lock);
+        return;
+    }
     re.prog = prog;
     re.env = env0;
     re.stack = stack;
-    LOCK(run_environment_lock);
-      re.save = run_environment; // should usually be NULL
-      run_environment = &re;
+    run_environment = &re;
     UNLOCK(run_environment_lock);
 
     for (;;) {
@@ -402,7 +394,7 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                 if (!dispatch()) { // TODO logic is shaky
                     //fprintf(stdout, "*no more threads*\n"); // TODO only in debug mode something
                     LOCK(run_environment_lock);
-                      run_environment = re.save;
+                      run_environment = NULL;
                     UNLOCK(run_environment_lock);
                     return;
                 } else {
@@ -491,13 +483,13 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
                         advance_prog(&re);
-                        run_apply(lambda, cell_list(arg, NIL), contenv, &re);
+                        run_apply(lambda, cell_list(arg, NIL), contenv);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
                     advance_prog(&re);
-                    run_apply(fun, cell_list(arg, NIL), NIL, &re);
+                    run_apply(fun, cell_list(arg, NIL), NIL);
                     break;
 
                 default:
@@ -554,14 +546,14 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
                         advance_prog(&re);
-                        run_apply(lambda, cell_list(arg1,cell_list(arg2, NIL)), contenv, &re);
+                        run_apply(lambda, cell_list(arg1,cell_list(arg2, NIL)), contenv);
                     }
                     break;
 
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
                     advance_prog(&re);
-                    run_apply(fun, cell_list(arg1,cell_list(arg2, NIL)), NIL, &re);
+                    run_apply(fun, cell_list(arg1,cell_list(arg2, NIL)), NIL);
                     break;
 
                 default:
@@ -615,14 +607,14 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
                         advance_prog(&re);
-                        run_apply(lambda, args, contenv, &re);
+                        run_apply(lambda, args, contenv);
                     }
                     break;
 
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
                     advance_prog(&re);
-                    run_apply(fun, args, NIL, &re);
+                    run_apply(fun, args, NIL);
                     break;
 
                 default:
@@ -771,13 +763,13 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                         cell *contenv = cell_ref(fun->_.cons.cdr);
                         cell_unref(fun);
                         advance_prog(&re);
-                        run_apply(lambda, tailarg, contenv, &re);
+                        run_apply(lambda, tailarg, contenv);
                     }
                     break;
                 case c_CLOSURE0:
                 case c_CLOSURE0T:
                     advance_prog(&re);
-                    run_apply(fun, tailarg, NIL, &re);
+                    run_apply(fun, tailarg, NIL);
                     break;
 
                 default:

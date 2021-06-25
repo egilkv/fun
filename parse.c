@@ -55,9 +55,8 @@ static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
                 cell_write(stdout, ct);
                 printf(" ==> ");
 	    }
-	}
 
-        if (lxf->f == stdin) { // print result if stdin
+            // print result if stdin
             ct = cell_func(cell_ref(hash_result), cell_list(ct, NIL));
         }
 
@@ -70,7 +69,9 @@ static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
 	    }
 	}
 
-        run_main(ct, cell_ref(env0), NIL);
+        // TODO must have some way of ensuring the previous statements in the
+        //      include file have been executed already
+        run_main_force(ct, cell_ref(env0), NIL);
     }
     if (lxf->is_terminal) {
         printf("\n");
