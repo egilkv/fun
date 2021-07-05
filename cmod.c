@@ -121,15 +121,22 @@ int get_integer(cell *a, integer_t *valuep, cell *dump) {
     return 1;
 }
 
-int get_index(cell *a, index_t *indexp, cell *dump) {
+int peek_index(cell *a, index_t *indexp) {
     integer_t value;
-    if (!get_integer(a, &value, dump)) return 0;
-    if (value < 0) {
+    if (!cell_is_integer(a)) return 0;
+    value = a->_.n.dividend.ival;
+    if (value < 0) return 0;
+    *indexp = (index_t)value;
+    return 1;
+}
+
+int get_index(cell *a, index_t *indexp, cell *dump) {
+    if (!peek_index(a, indexp)) {
 	cell_unref(dump);
-	cell_unref(error_rti("cannot be negative", value));
+        cell_unref(error_rt1("illegal index", a));
 	return 0;
     }
-    *indexp = (index_t)value;
+    cell_unref(a);
     return 1;
 }
 
@@ -289,6 +296,7 @@ cell *cfun2_ref(cell *a, cell *b) {
     case c_STRING:
     case c_LIST:
     case c_LABEL:
+    case c_RANGE:
         if (cell_is_range(b)) {
             index_t index1 = 0;
             cell *b1, *b2;
@@ -324,22 +332,52 @@ cell *cfun2_ref(cell *a, cell *b) {
     return value;
 }
 
-// does not consume
+// does not consume a
 cell *ref_index(cell *a, index_t index) {
-    cell *value = NIL;
     if (a) switch (a->type) {
 
     case c_VECTOR:
-	if (!vector_get(a, index, &value)) {
-            value = error_rti("vector index out of bounds", index);
+	{
+	    cell *value = NIL;
+	    if (!vector_get(a, index, &value)) {
+		return error_rti("vector index out of bounds", index);
+	    }
+	    return value;
 	}
-	return value;
 
     case c_STRING:
-	if (index < a->_.string.len) {
-            return cell_nastring(&(a->_.string.ptr[index]), 1);
-        } else {
+	if (index >= a->_.string.len) {
             return error_rti("string index out of bounds", index);
+	}
+	return cell_nastring(&(a->_.string.ptr[index]), 1);
+
+    case c_RANGE:
+	{
+            index_t index1 = 0;
+            cell *b1 = a->_.cons.car;
+            cell *b2 = a->_.cons.cdr;
+            if (b1) {
+		if (!peek_index(b1, &index1)) {
+		    return error_rt1("invalid range start", b1);
+                }
+	    }
+#ifdef __GNUC__
+            if (__builtin_saddll_overflow(index1, index, (integer_t *)&index1)) {
+                return error_rti("range index overflow", index);
+            }
+#else
+	    index1 += index;
+#endif
+	    if (b2) {
+                index_t index2 = 0;
+		if (!peek_index(b2, &index2)) {
+		    return error_rt1("invalid range end", b2);
+                }
+		if (index1 > index2) {
+		    return error_rti("range out of bounds", index2);
+		}
+	    }
+	    return cell_integer(index1);
 	}
 
     case c_LIST:
@@ -347,7 +385,7 @@ cell *ref_index(cell *a, index_t index) {
         if (!a) {
             return error_rti("list index out of bounds", index);
         }
-        return cell_ref(cell_car(a));
+	return cell_ref(cell_car(a));
 
     case c_LABEL:
         switch (index) {
@@ -367,7 +405,7 @@ cell *ref_index(cell *a, index_t index) {
     }
 }
 
-// does not consume
+// does not consume a
 cell *ref_range1(cell *a, index_t index) {
     switch (a ? a->type : c_LIST) {
 
@@ -381,6 +419,38 @@ cell *ref_range1(cell *a, index_t index) {
         if (!list_spin(&a, index)) return a;
         // NIL list is tolerated here
         return cell_ref(a); 
+
+    case c_RANGE:
+        if (index == 0) {
+            return cell_ref(a);
+        } else {
+            index_t index1 = 0;
+            if (a->_.cons.car) {
+                if (!peek_index(a->_.cons.car, &index1)) {
+                    return error_rt1("invalid range start", cell_ref(a->_.cons.car));
+                }
+            }
+#ifdef __GNUC__
+            if (__builtin_saddll_overflow(index1, index, (integer_t *)&index1)) {
+                return error_rti("range index overflow", index);
+            }
+#else
+            index1 += index;
+#endif
+            if (a->_.cons.cdr) {
+                index_t index2;
+                if (!peek_index(a->_.cons.cdr, &index2)) {
+                    return error_rt1("invalid range end", cell_ref(a->_.cons.cdr));
+                }
+                if (index2 < index1) {
+                    if (index2 == index1-1) return NIL; // special case
+                    return error_rti("range out of bounds", index2);
+                }
+                return cell_range(cell_integer(index1), cell_ref(a->_.cons.cdr));
+            } else {
+                return cell_range(cell_integer(index1), NIL);
+            }
+        }
 
     default:
         return ref_range2(a, index, 0);
@@ -444,6 +514,49 @@ cell *ref_range2(cell *a, index_t index, integer_t len) {
             }
             return value;
 	}
+
+    case c_RANGE:
+        {
+            index_t index1 = 0;
+            index_t index2;
+            if (a->_.cons.car) {
+                if (!peek_index(a->_.cons.car, &index1)) {
+                    return error_rt1("invalid range start", cell_ref(a->_.cons.car));
+                }
+            }
+#ifdef __GNUC__
+            if (__builtin_saddll_overflow(index1, index, (integer_t *)&index1)) {
+                return error_rti("range index overflow", index);
+            }
+#else
+            index1 += index;
+#endif
+            if (a->_.cons.cdr) {
+                index_t index3;
+                if (!peek_index(a->_.cons.cdr, &index2)) {
+                    return error_rt1("invalid range end", cell_ref(a->_.cons.cdr));
+                }
+                if (index2 < index1) {
+                    if (index2 == index1-1) return NIL; // special case
+                    return error_rti("range start out of bounds", index1);
+                }
+#ifdef __GNUC__
+                if (__builtin_saddll_overflow(index1, len, (integer_t *)&index3)) {
+                    return error_rti("range end overflow", index1);
+                }
+#else
+                index3 = index1 + len;
+#endif
+                if (index3 > index2) {
+                    return error_rti("range end out of bounds", index2);
+                }
+            } else {
+                if (len == 0) return NIL; // special case
+                // TODO range check overflow
+                index2 = index1 + len-1;
+            }
+            return cell_range(cell_integer(index1), cell_integer(index2));
+        }
 
     default:
         return error_rt1("cannot referrence", cell_ref(a));

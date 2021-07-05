@@ -14,7 +14,7 @@ enum cell_t {
    c_CLOSURE,   // car is c_CLOSURE0, cdr is continuation env
    c_CLOSURE0,  // car is parameters, cdr is the body, NIL cont env, aka lambda
    c_CLOSURE0T, // same as c_CLOSURE0, but tracing is enabled
-   c_RANGE,     // car is lower, car is upper bound; both may be NIL
+   c_RANGE,     // car is lower, cdr is upper, both can be NIL
    c_LABEL,     // car is label, cdr is expr
    c_PAIR,      // car is left, cdr is right part
    c_KEYVAL,    // car is key, cdr is value, for assocs
@@ -212,6 +212,8 @@ int cell_is_vector(cell *cp);
 int vector_set(cell *vector, index_t index, cell *value);
 int vector_get(cell *node, index_t index, cell **valuep);
 cell *vector_resize(cell* node, index_t newlen);
+
+int range_get(cell *node, index_t index, cell **valuep);
 
 cell *cell_symbol(const char *symbol);
 cell *cell_asymbol(char_t *symbol);

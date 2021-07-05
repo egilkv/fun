@@ -415,6 +415,14 @@ int vector_get(cell *node, index_t index, cell **valuep) {
     return 1;
 }
 
+// ref value, leave vector
+int range_get(cell *node, index_t index, cell **valuep) {
+    assert(cell_is_range(node));
+    // TODO: out of bounds
+    *valuep = NIL;
+    return 0;
+}
+
 cell *cell_assoc() {
     cell *node = newnode(c_ASSOC);
     // no table required when empty

@@ -20,6 +20,7 @@ int peek_number(cell *a, number *np, cell *dump);
 int get_number(cell *a, number *valuep, cell *dump);
 int get_integer(cell *a, integer_t *valuep, cell *dump);
 int get_any_integer(cell *a, integer_t *valuep, cell *dump);
+int peek_index(cell *a, index_t *indexp);
 int get_index(cell *a, index_t *indexp, cell *dump);
 int peek_string(cell *a, char_t **valuep, index_t *lengthp, cell *dump);
 int peek_cstring(cell *a, char **valuep, cell *dump);

@@ -1,4 +1,20 @@
 
+monad, can also be called effects?
+bind operator >>= "shove" we can use that
+But how to define the Monad workings? we need to be able to:
+	instantiate it
+	get its ac
+
+
+Simple Monad example is Maybe, which can be Just value, or Nothing (usu. meaning error)
+IO is also a monad which can be exceptions
+
+https://medium.com/swlh/monads-in-python-e3c9592285d6
+
+In Haskell, the Lambda operator is \
+
+In Python, 'self' is referrence to our own structure
+
 breakpoint/debugger works by moving the current function out of context and to
 a debug_list similar to the ready_list
 
@@ -7,6 +23,14 @@ and returns immediately. Only problem is activate.
 Locks around run_environment are shady
 
 demo.fun only works if #include()
+
+ref_range2: what about zero or negative len
+optimize c_range with
+	struct {
+	    integer_t lower;
+	    integer_t upper;
+	} range;
+#define RANGE_UNDEF -1
 
 The time() thing should probably be outright replaced by:
 	t0 = time.seconds();
@@ -35,6 +59,10 @@ Have special channel types with C functions as senders and as receivers
 Change push_nothing to a special class of function
 
 Add buffering to stdout
+
+Second error message not needed
+    #apply(#plus) ==> error; missing tail arguments: []
+    +error; not a function with N args: #cfun()
 
 See if locks can be replaces by atomics
 https://en.cppreference.com/w/c/atomic

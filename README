@@ -9,6 +9,13 @@ Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
 
 && and || does lazy evaluation
 
+You cannot use compare against #void, so
+	a == #void
+always yields an error message (but what about Monads?) and the result is
+#void, neither #t nor #f. To test if a result is void, do:
+	#type(a) == 'void
+
+
 Send val to channel:
 ch <- v
 
