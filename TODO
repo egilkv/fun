@@ -22,6 +22,8 @@ run_main if there is a run_main already, just places the new thing on the ready 
 and returns immediately. Only problem is activate.
 Locks around run_environment are shady
 
+Avoid DOOOP in compile if
+
 demo.fun only works if #include()
 
 ref_range2: what about zero or negative len
@@ -52,7 +54,7 @@ gtk.application_run(app, #args); should be a separate thread of some kind
 SO that it can be started with a #go, and that it returns nicely when done.
 Perhaps using an internal channel or something
 
-GTK magic unref does not work at all
+GTK magic unref does not work at all?
 
 Have special channel types with C functions as senders and as receivers
 
@@ -123,10 +125,7 @@ Have defq for globals and defq for locals
 During garbage collect, do not forget:
 	run_environment_sweep(run_environment);
 
-This really, really should yield void if A2 is unknown
-A2 == B2 ? "same":"not";
-Do not recurse if args produced errors. Fix to if mayy help a lot,
-see above.
+Consider not calling a func if args produced errors. Fix to if may help a lot, though.
 
 Printing label stuff, add parens:
 	[ a: 2, b: 3 ]
@@ -214,7 +213,7 @@ Catenate is called conjoin
 
 Modules. Namespaces?
 
-These are the same, not currently supported (and needless, catenate is easy)
+These are the same, not currently supported (and perhaps needless, catenate is easy)
 #apply(f, [1, 2, 3, 4])
 #apply(f, 1, 2, [3, 4])
 #apply(f, 1, 2, 3, 4, [])
@@ -262,7 +261,8 @@ What is the difference between (){} for function and {} for assoc, really.
 Try to nullify it. So in addition to { a : b }, we can also have { a }
 which means? And { a ; b }
 
-Vector/list and function subscript is the same? So fib(0..10) returns a vector??
+Vector/list and function subscript is the same? So fib(0..10) returns a vector?
+Should be #map instead, or some operator
 
 c_STRING8
 c_STRING16
@@ -335,8 +335,7 @@ Are symbols with values really functions that define the same value every time??
 Quoting operators: '+ same as #plus and so on?
 
 Implement &, | and ^ as homage to C?
-Throw away #bitand, #bitor etc
-
+Throw away bit.and, bit.or etc
 Let "bit" also work for Booleans
 #type #t #f #void what are they? What is #type([])
 
@@ -346,17 +345,20 @@ Can we index a range? Is it meaningful
 
 Implement lazy sequences etc
 
-Proposal: 
-	1..100[0] ==> 1 
-	1..100[1..] ==> 2..100
-	100.100[1..] ==> []
-
 Add #eval? Or not
 
 Have #assert()
+Have #error()
 
 Optimize #type
 
 Warning if = used instead of ==
 
 #include should return result
+
+Should this be possible?
+    #apply(#plus, [1, 2, 3]);
+    #apply(#plus, (1..3));
+
+Parsing error, check
+     '+;

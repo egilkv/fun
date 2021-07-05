@@ -26,5 +26,7 @@ void run_main_force(cell *prog, cell *env0, cell *stack);
 
 void push_stack_current_run_env(cell *val);
 
+void sweep_current_run_env();
+
 // for debugging
 cell *current_run_env();

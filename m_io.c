@@ -194,6 +194,20 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         cell_writei(out, ct->_.cons.cdr, indent+4);
         break;
 
+    case c_DOIF:
+        fprintf(out, "#doif\n%*s#t -> ", indent+2,"");
+        cell_writei(out, ct->_.cons.car, indent+4);
+        fprintf(out, "\n%*selse -> ", indent+2,"");
+        cell_writei(out, ct->_.cons.cdr, indent+4);
+        break;
+
+    case c_DOELSE:
+        fprintf(out, "#doelse\n%*s#f -> ", indent+2,"");
+        cell_writei(out, ct->_.cons.car, indent+4);
+        fprintf(out, "\n%*s-> ", indent+2,"");
+        cell_writei(out, ct->_.cons.cdr, indent+4);
+        break;
+
     case c_DODEFQ:
         fprintf(out, "#dodefq(");
         cell_writei(out, ct->_.cons.car, indent);

@@ -136,9 +136,8 @@ integer_t oblist_sweep() {
             p = p->next;
 	}
     }
-    // don't forget ready list
-    proc_run_env_sweep(ready_list);
-    // TODO also do things under run_main()
+    // don't forget currently executing program
+    sweep_current_run_env();
 
     // then sweep up
     return node_gc_cleanup();

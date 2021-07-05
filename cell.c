@@ -472,6 +472,8 @@ void cell_sweep(cell *node) {
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCOND:
+    case c_DOIF:
+    case c_DOELSE:
     case c_DODEFQ:
     case c_DOREFQ:
     case c_DOLAMB:
@@ -556,6 +558,8 @@ void cell_free1(cell *node) {
     case c_DOCALL1:
     case c_DOCALL2:
     case c_DOCOND:
+    case c_DOIF:
+    case c_DOELSE:
     case c_DODEFQ:
     case c_DOREFQ:
     case c_DOLAMB:

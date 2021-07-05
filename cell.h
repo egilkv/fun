@@ -41,6 +41,8 @@ enum cell_t {
    c_DOCALL2,   // car is known function or NIL for pop fun, pop 2 args, push result
    c_DOCALLN,   // car is number of args, pop func and N args, push result
    c_DOCOND,	// pop, car if true, cdr else
+   c_DOIF,      // pop, car if true, cdr should be DOELSE
+   c_DOELSE,    // car if false, only after DOIF, otherwise as DONOOP
    c_DODEFQ,    // car is name, pop and push value, cdr is next
    c_DOREFQ,    // car is name, pop assoc, push value, cdr is next
    c_DOLAMB,    // add closure, car is cell_lambda, cdr is next

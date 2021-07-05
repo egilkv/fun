@@ -92,6 +92,18 @@ cell *current_run_env() {
     }
 }
 
+// for garbage collect
+void sweep_current_run_env() {
+    if (run_environment) {
+        // TODO use proc_run_env_sweep(run_environment)
+        cell_sweep(run_environment->prog);
+        cell_sweep(run_environment->env);
+        cell_sweep(run_environment->stack);
+    }
+    // don't forget ready list
+    proc_run_env_sweep(ready_list);
+}
+
 // advance program pointer to anywhere
 static INLINE void advance_prog_where(cell *where, struct current_run_env *rep) {
     // TODO inefficient
@@ -648,7 +660,7 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                 int bool;
                 cell *cond = pop_value(&re);
                 if (!get_boolean(cond, &bool, NIL)) {
-                    bool = 1; // TODO assuming true, is this sensible?
+                    bool = 0; // assume false, sensible choice for && and ||
                 }
                 if (bool) {
                     advance_prog_where(re.prog->_.cons.car, &re);
@@ -656,6 +668,35 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                     advance_prog(&re);
                 }
             }
+            break;
+
+        case c_DOIF:      // pop, car if true, cdr is c_DOELSE
+            {
+                int bool;
+                cell *cond = pop_value(&re);
+                if (!get_boolean(cond, &bool, NIL)) {
+                    // error condition, continue with void value
+                    advance_prog(&re);
+                    assert(re.prog && re.prog->type == c_DOELSE);
+                    // TODO use error value above instead...
+                    push_value(cell_void(), &re);
+                    advance_prog(&re);
+
+                } else if (bool) {
+                    advance_prog_where(re.prog->_.cons.car, &re); // go calculate true value
+
+                } else {
+                    // follow else-path
+                    advance_prog(&re);
+                    assert(re.prog && re.prog->type == c_DOELSE);
+                    advance_prog_where(re.prog->_.cons.car, &re); // go calculate else value
+                }
+            }
+            break;
+
+        case c_DOELSE:    // cdr is next
+            // when encountered outright, it is following push of either true or false value
+            advance_prog(&re);
             break;
 
         case c_DODEFQ:    // car is name, pop value, push result

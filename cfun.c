@@ -793,6 +793,8 @@ static cell *cfun1_type(cell *a) {
     case c_DOCALL2:
     case c_DOCALLN:
     case c_DOCOND:
+    case c_DOIF:
+    case c_DOELSE:
     case c_DODEFQ:
     case c_DOREFQ:
     case c_DOLAMB:

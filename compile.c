@@ -140,6 +140,7 @@ static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
         compile1void(iffalse, nextpp, cep);
         cell_unref(iftrue);
     } else {
+#if 0 // TODO remove...
         cell **condp = *nextpp;
         cell *noop;
         add2prog(c_DOCOND, NIL, nextpp); // have NIL dummy for iftrue
@@ -149,6 +150,26 @@ static int compile1_if(cell *args, cell ***nextpp, struct compile_env *cep) {
         compile1void(iftrue, &condp, cep);
         noop = add2prog(c_DONOOP, NIL, nextpp); // TODO can be improved
         *condp = cell_ref(noop); // join up
+#else
+        cell *doif = add2prog(c_DOIF, NIL, nextpp); // have NIL dummy for iftrue
+        cell *doelse = add2prog(c_DOELSE, NIL, nextpp); // have NIL dummy for iffalse
+        cell *donoop = add2prog(c_DONOOP, NIL, nextpp); // TODO should avoid this one
+        cell **branchp;
+
+        branchp = &(doif->_.cons.car); // iftrue path
+        assert(*branchp == NIL);
+        compile1void(iftrue, &branchp, cep);
+        // *branchp = cell_ref(doelse); // join up
+        *branchp = cell_ref(donoop); // TODO
+
+        branchp = &(doelse->_.cons.car); // iffalse path
+        assert(*branchp == NIL);
+        compile1void(iffalse, &branchp, cep);
+        // *branchp = cell_ref(doelse); // join up TODO circular ref, should be weak
+        *branchp = cell_ref(donoop); // TODO
+
+        // TODO jump to doelse should really be one beyond, of possiblew
+#endif
     }
     return 1;
 }
