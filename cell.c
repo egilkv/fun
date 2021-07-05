@@ -451,7 +451,7 @@ cell *cell_special(const char *(*magicf)(void *), void *ptr) {
 }
 
 void cell_sweep(cell *node) {
-    if (!node) return;
+    if (node == NIL) return;
     if (node->mark) return;
 
     node->mark = 1;
@@ -539,7 +539,7 @@ void cell_sweep(cell *node) {
 
 // only to be used through cell_unref()
 void cell_free1(cell *node) {
-    assert(node && node->ref == 0);
+    assert(node != NIL && node->ref == 0);
 
     switch (node->type) {
     case c_LIST:
@@ -599,7 +599,7 @@ void cell_free1(cell *node) {
             cell *cp;
             for (i = 0; i < node->_.vector.len; ++i) {
                 cp = node->_.vector.table[i];
-                node->_.vector.table[i] = NIL; // to be safe
+                // node->_.vector.table[i] = NIL; // to be safe
                 cell_unref(cp);
             }
         }

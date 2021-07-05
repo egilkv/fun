@@ -313,16 +313,17 @@ h();
 (1..2)[1..];
 (1..2)[2..];
 
-ct = #t;
-cf = #f;
-cv = #void;
+ct = (){#t};
+cf = (){#f};
+cv = (){#void};
+ff = (n){n};
 
-ct ? 1:0;
-cf ? 1:0;
-cv ? 1:0;
-cv && ct;
-cv && cf;
-cv || ct;
-cv || cf;
+ct() ? ff(1):ff(0);
+cf() ? ff(1):ff(0);
+cv() ? ff(1):ff(0);
+cv() && ct();
+cv() && cf();
+cv() || ct();
+cv() || cf();
 
 // #gc();

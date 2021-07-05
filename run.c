@@ -676,26 +676,26 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                 cell *cond = pop_value(&re);
                 if (!get_boolean(cond, &bool, NIL)) {
                     // error condition, continue with void value
-                    advance_prog(&re);
-                    assert(re.prog && re.prog->type == c_DOELSE);
                     // TODO use error value above instead...
                     push_value(cell_void(), &re);
                     advance_prog(&re);
+                    assert(re.prog && re.prog->type == c_DOELSE);
+                    advance_prog(&re);
 
                 } else if (bool) {
-                    advance_prog_where(re.prog->_.cons.car, &re); // go calculate true value
+                    advance_prog_where(re.prog->_.cons.car, &re); // go calculate if-true value
 
                 } else {
                     // follow else-path
                     advance_prog(&re);
                     assert(re.prog && re.prog->type == c_DOELSE);
-                    advance_prog_where(re.prog->_.cons.car, &re); // go calculate else value
+                    advance_prog_where(re.prog->_.cons.car, &re); // go calculate if-false value
                 }
             }
             break;
 
         case c_DOELSE:    // cdr is next
-            // when encountered outright, it is following push of either true or false value
+            // when encountered outright, it is following push of either if-true or if-false value
             advance_prog(&re);
             break;
 

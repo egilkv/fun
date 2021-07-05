@@ -320,16 +320,26 @@ h() ==> 240
 #ref(1 .. 10, 1 .. ) ==> 2 .. 10
 #ref(1 .. 2, 1 .. ) ==> 2 .. 2
 #ref(1 .. 2, 2 .. ) ==> []
-#defq(ct, #t) ==> #t
-#defq(cf, #f) ==> #f
-#defq(cv, #void) ==> #if(ct, 1, 0) ==> 1
-#if(cf, 1, 0) ==> 0
-#if(cv, 1, 0) ==> error; not a boolean: #void
-#and(cv, ct) ==> error; not a boolean: #void
+#defq(ct, #lambda([], #t)) ==> #closure0(
+  args: []
+) 
+#defq(cf, #lambda([], #f)) ==> #closure0(
+  args: []
+) 
+#defq(cv, #lambda([], #void)) ==> #closure0(
+  args: []
+) 
+#defq(ff, #lambda([ n ], n)) ==> #closure0(
+  args: [ n ]
+) 
+#if(ct(), ff(1), ff(0)) ==> 1
+#if(cf(), ff(1), ff(0)) ==> 0
+#if(cv(), ff(1), ff(0)) ==> error; not a boolean: #void
+#and(cv(), ct()) ==> error; not a boolean: #void
 #f
-#and(cv, cf) ==> error; not a boolean: #void
+#and(cv(), cf()) ==> error; not a boolean: #void
 #f
-#or(cv, ct) ==> error; not a boolean: #void
+#or(cv(), ct()) ==> error; not a boolean: #void
 #t
-#or(cv, cf) ==> error; not a boolean: #void
+#or(cv(), cf()) ==> error; not a boolean: #void
 #f

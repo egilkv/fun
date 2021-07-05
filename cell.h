@@ -137,7 +137,7 @@ typedef struct cell_s cell;
 extern void cell_free1(cell *node);
 
 DEFINLINE cell *cell_ref(cell *node) {
-    if (node) {
+    if (node != NIL) {
 #ifdef __STDC_NO_ATOMICS__
         ++(node->ref); // not atomic and thread safe
 #else
@@ -148,7 +148,7 @@ DEFINLINE cell *cell_ref(cell *node) {
 }
 
 DEFINLINE void cell_unref(cell *node) {
-    if (node) {
+    if (node != NIL) {
         // post-decrement will detect double free() errors
 #ifdef __STDC_NO_ATOMICS__
         if ((node->ref)-- <= 1) { // not atomic and thread safe

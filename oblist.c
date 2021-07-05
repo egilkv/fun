@@ -148,9 +148,6 @@ static void oblist_exit() {
     int h;
     struct ob_entry *p;
 
-    // do garbage collection first
-    oblist_sweep();
-
     oblist_teardown = 1;
     if (opt_showoblist) printf("\n\noblist:\n");
     for (h = 0; h < OBLIST_HASH_SIZE; ++h) {
@@ -169,11 +166,15 @@ static void oblist_exit() {
 	    p = q;
 	}
     }
-    oblist_teardown = 0;
 
     proc_run_env_drop(ready_list);
     ready_list = NULL;
     // TODO also do things under run_main()
+
+    // do final garbage collection, even symbols can be 'hanging'
+    oblist_sweep();
+
+    oblist_teardown = 0;
 
     if (opt_showoblist) printf("\n");
 
