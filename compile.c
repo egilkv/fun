@@ -39,7 +39,7 @@ static int compile1nc(cell *item, struct fixup *fixp, struct compile_env *cep);
 static int compile2constant(cell *item, cell **valp, struct compile_env *cep);
 static void compile1void(cell *item, struct fixup *fixp, struct compile_env *cep);
 static void compilenc1void(cell *item, struct fixup *fixp, struct compile_env *cep);
-static cell *compile_list(cell *tree, struct compile_env *cep);
+static void compile_list(cell *tree, struct fixup *fixp, struct compile_env *cep);
 
 // prepare a new level of compile environment
 static struct compile_env *compile_env_new(struct compile_env *cep, cell *assoc) {
@@ -61,14 +61,31 @@ static void compile_env_drop(struct compile_env **cepp) {
     *cepp = prevenv;
 }
 
-// add fixup for next fixup
-static void addfixup(cell **where, struct fixup *fixp) {
-    struct fixup *f2 = malloc(sizeof(struct fixup));
-    assert(f2 != NULL);
-    assert(*where == NIL);
-    f2->pp = where;
-    f2->chain = fixp->chain;
-    fixp->chain = f2;
+// add fixup(s) for next fixup
+static void joinfixup(struct fixup *fromp, struct fixup *fixp) {
+    struct fixup *f1;
+    // add any additional fixups first
+    while ((f1 = fromp->chain) != NULL) {
+        fromp->chain = f1->chain;
+        f1->chain = fixp->chain;
+        fixp->chain = f1;
+    }
+    // then add final fixup
+    f1 = malloc(sizeof(struct fixup));
+    assert(f1 != NULL);
+    assert(*(fromp->pp) == NIL);
+    f1->pp = fromp->pp;
+    f1->chain = fixp->chain;
+    fixp->chain = f1;
+}
+
+// cleanup any memory allocated for fixups
+static void fixcleanup(struct fixup *fixp) {
+    struct fixup *f2;
+    while ((f2 = fixp->chain) != NULL) { // more than one fixup needed?
+        fixp->chain = f2->chain;
+        free(f2);
+    }
 }
 
 // fix pointers to (new) node (which is consumed)
@@ -76,7 +93,7 @@ static void fixprog(cell *node, struct fixup *fixp) {
     struct fixup *f2;
     *(fixp->pp) = node;
     fixp->pp = &(node->_.cons.cdr);
-    while ((f2 = fixp->chain)) { // more than one fixup needed?
+    while ((f2 = fixp->chain) != NULL) { // more than one fixup needed?
         *(f2->pp) = cell_ref(node);
         fixp->chain = f2->chain;
         free(f2);
@@ -174,12 +191,12 @@ static int compile1_if(cell *args, struct fixup *fixp, struct compile_env *cep) 
         branchfix.pp = &(doif->_.cons.car); // iftrue path
         assert(*(branchfix.pp) == NIL);
         compile1void(iftrue, &branchfix, cep);
-        addfixup(branchfix.pp, fixp);
+        joinfixup(&branchfix, fixp);
 
         branchfix.pp = &(doelse->_.cons.car); // iffalse path
         assert(*(branchfix.pp) == NIL);
         compile1void(iffalse, &branchfix, cep);
-        addfixup(branchfix.pp, fixp);
+        joinfixup(&branchfix, fixp);
     }
     return 1;
 }
@@ -226,7 +243,7 @@ static int compile1_and(cell *args, struct fixup *fixp, struct compile_env *cep)
         }
     }
     if (pushf != NIL) { // patch up missing link from false value
-        addfixup(pushfix.pp, fixp);
+        joinfixup(&pushfix, fixp);
     }
     return 1;
 }
@@ -271,7 +288,7 @@ static int compile1_or(cell *args, struct fixup *fixp, struct compile_env *cep) 
         }
     }
     if (pusht != NIL) { // patch up missing link
-        addfixup(pushfix.pp, fixp);
+        joinfixup(&pushfix, fixp);
     }
     return 1;
 }
@@ -319,7 +336,7 @@ static int compile1_refq(cell *args, struct fixup *fixp, struct compile_env *cep
 
 // return 1 if something was pushed, 0 otherwise
 static int compile1_lambda(cell *args, struct fixup *fixp, struct compile_env *cep) {
-    cell *prog;
+    cell *prog = NIL;
     cell *paramlist;
     cell *cp;
     if (!list_pop(&args, &paramlist)) {
@@ -373,8 +390,14 @@ static int compile1_lambda(cell *args, struct fixup *fixp, struct compile_env *c
         cp = cell_cdr(cp);
     }
 
-    // now compile the function body
-    prog = compile_list(args, cep);
+    {
+        struct fixup fix;
+        fix.pp = &prog;
+        fix.chain = NULL;
+        // now compile the function body
+        compile_list(args, &fix, cep);
+        fixcleanup(&fix);
+    }
 
     cp = cell_lambda(paramlist, prog);
 
@@ -795,34 +818,30 @@ static int compile1nc(cell *item, struct fixup *fixp, struct compile_env *cep) {
 }
 
 // compile list of expressions, leaving a value on stack
-static cell *compile_list(cell *tree, struct compile_env *cep) {
+// used for lambda bodies
+static void compile_list(cell *tree, struct fixup *fixp, struct compile_env *cep) {
     cell *leavevalue = cell_error(); // assume error
     cell *item;
     int stacklevel = 0;
-    cell *result = NIL;
-    struct fixup fix;
-    fix.pp = &result;
-    fix.chain = NULL;
 
     while (list_pop(&tree, &item)) {
         cell *val = NIL;
         if (stacklevel > 0) {
-            add2prog(c_DOPOP, NIL, &fix); // TODO inefficient
+            add2prog(c_DOPOP, NIL, fixp); // TODO inefficient
             --stacklevel;
         }
         if (!compile2constant(item, &val, cep)) {
-            if (compile1nc(item, &fix, cep)) ++stacklevel;
+            if (compile1nc(item, fixp, cep)) ++stacklevel;
             val = cell_error(); // assume error
         }
         cell_unref(leavevalue);
         leavevalue = val;
     }
     if (stacklevel == 0) {
-        add2prog(c_DOQPUSH, leavevalue, &fix);
+        add2prog(c_DOQPUSH, leavevalue, fixp);
     } else {
         cell_unref(leavevalue);
     }
-    return result; 
 }
 
 // if total failure, result is NIL
@@ -833,6 +852,7 @@ cell *compile(cell *item, cell *env0) {
     struct fixup fix;
     fix.pp = &result;
     fix.chain = NULL;
+
     if (env0) {
         // prepare a level of compile environment for 
         // any pre-existing runtime environment
@@ -847,6 +867,7 @@ cell *compile(cell *item, cell *env0) {
     // release any environments
     while (cep) compile_env_drop(&cep);
 
+    fixcleanup(&fix);
     return result; 
 }
 
@@ -905,5 +926,6 @@ cell *known_thunk_a(cell *func, cell *args) {
         }
         break;
     }
+    fixcleanup(&fix);
     return prog;
 }
