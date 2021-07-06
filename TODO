@@ -1,17 +1,35 @@
 
 monad, can also be called effects?
 bind operator >>= "shove" we can use that
+The operator >> throws away results
 But how to define the Monad workings? we need to be able to:
 	instantiate it
 	get its ac
 
-
 Simple Monad example is Maybe, which can be Just value, or Nothing (usu. meaning error)
-IO is also a monad which can be exceptions
+IO is also a monad which can be exceptions  https://wiki.haskell.org/Introduction_to_IO
+A value (IO a) is an action which will produce a value type a
 
 https://medium.com/swlh/monads-in-python-e3c9592285d6
 
 In Haskell, the Lambda operator is \
+
+IO with binds:
+main = putStrLn "Hello, what is your name?"
+      >> getLine
+      >>= \name -> putStrLn ("Hello, " ++ name ++ "!")
+
+IO with do notation:
+main = do putStrLn "Hello, what is your name?"
+	  name <- getLine
+	  putStrLn ("Hello, " ++ name ++ "!")
+
+Perhaps {} is the same as DO notation??
+
+DOCOND optimized into
+	DOAND, if false, push false and jump to car, otherwise continue to cdr
+	DOOR, if true, push true and jump to car, otherwise continue to cdr
+	Remove DONOP
 
 In Python, 'self' is referrence to our own structure
 
@@ -22,7 +40,10 @@ run_main if there is a run_main already, just places the new thing on the ready 
 and returns immediately. Only problem is activate.
 Locks around run_environment are shady
 
-Avoid DOOOP in compile if
+Avoid DOOOP in compile && and !!
+
+F# cheat sheet:
+https://raw.githubusercontent.com/dungpa/fsharp-cheatsheet/gh-pages/fsharp-cheatsheet.pdf
 
 demo.fun only works if #include()
 
