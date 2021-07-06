@@ -34,11 +34,11 @@ struct fixup {
     struct fixup *chain;    // added fixups
 } ;
 
-static int compile1(cell *item, struct fixup *fix, struct compile_env *cep);
-static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep);
+static int compile1(cell *item, struct fixup *fixp, struct compile_env *cep);
+static int compile1nc(cell *item, struct fixup *fixp, struct compile_env *cep);
 static int compile2constant(cell *item, cell **valp, struct compile_env *cep);
-static void compile1void(cell *item, struct fixup *fix, struct compile_env *cep);
-static void compilenc1void(cell *item, struct fixup *fix, struct compile_env *cep);
+static void compile1void(cell *item, struct fixup *fixp, struct compile_env *cep);
+static void compilenc1void(cell *item, struct fixup *fixp, struct compile_env *cep);
 static cell *compile_list(cell *tree, struct compile_env *cep);
 
 // prepare a new level of compile environment
@@ -62,43 +62,43 @@ static void compile_env_drop(struct compile_env **cepp) {
 }
 
 // add fixup for next fixup
-static void addfixup(cell **where, struct fixup *fix) {
+static void addfixup(cell **where, struct fixup *fixp) {
     struct fixup *f2 = malloc(sizeof(struct fixup));
     assert(f2 != NULL);
     assert(*where == NIL);
     f2->pp = where;
-    f2->chain = fix->chain;
-    fix->chain = f2;
+    f2->chain = fixp->chain;
+    fixp->chain = f2;
 }
 
 // fix pointers to (new) node (which is consumed)
-static void fixprog(cell *node, struct fixup *fix) {
+static void fixprog(cell *node, struct fixup *fixp) {
     struct fixup *f2;
-    *(fix->pp) = node;
-    fix->pp = &(node->_.cons.cdr);
-    while ((f2 = fix->chain)) { // more than one fixup needed?
+    *(fixp->pp) = node;
+    fixp->pp = &(node->_.cons.cdr);
+    while ((f2 = fixp->chain)) { // more than one fixup needed?
         *(f2->pp) = cell_ref(node);
-        fix->chain = f2->chain;
+        fixp->chain = f2->chain;
         free(f2);
     }
 }
 
 // return unreffed node, if needed
-static cell *add2prog(enum cell_t type, cell *car, struct fixup *fix) {
+static cell *add2prog(enum cell_t type, cell *car, struct fixup *fixp) {
     cell *node = newnode(type);
     node->_.cons.car = car;
     node->_.cons.cdr = NIL;
-    fixprog(node, fix);
+    fixprog(node, fixp);
     return node;
 }
 
 // compile and push arguments last to first, return count
-static int compile_args(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile_args(cell *args, struct fixup *fixp, struct compile_env *cep) {
     int n = 0;
     cell *arg;
     if (list_pop(&args, &arg)) {
-        n = compile_args(args, fix, cep);
-        n += compile1(arg, fix, cep);
+        n = compile_args(args, fixp, cep);
+        n += compile1(arg, fixp, cep);
     }
     return n;
 }
@@ -131,7 +131,7 @@ static int compile2constant_args(cell *args, cell **valp, struct compile_env *ce
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_if(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile1_if(cell *args, struct fixup *fixp, struct compile_env *cep) {
     cell *cond;
     int bool = -1;
     cell *iftrue;
@@ -144,11 +144,11 @@ static int compile1_if(cell *args, struct fixup *fix, struct compile_env *cep) {
         // test condition is constant
         cell_unref(cond);
     } else {
-        compilenc1void(cond, fix, cep);
+        compilenc1void(cond, fixp, cep);
     }
     if (!list_pop(&args, &iftrue)) {
         if (bool >= 0) {
-            add2prog(c_DOQPUSH, cell_boolean(bool), fix);
+            add2prog(c_DOQPUSH, cell_boolean(bool), fixp);
         }
         // leave value from if-test
         cell_unref(error_rt0("missing value if true for if"));
@@ -160,49 +160,37 @@ static int compile1_if(cell *args, struct fixup *fix, struct compile_env *cep) {
         iffalse = cell_void(); // default to void value for else
     }
     if (bool == 1) {
-        compile1void(iftrue, fix, cep);
+        compile1void(iftrue, fixp, cep);
         cell_unref(iffalse);
     } else if (bool == 0) {
-        compile1void(iffalse, fix, cep);
+        compile1void(iffalse, fixp, cep);
         cell_unref(iftrue);
     } else {
-        cell *doif = add2prog(c_DOIF, NIL, fix); // have NIL dummy for iftrue
-        cell *doelse = add2prog(c_DOELSE, NIL, fix); // have NIL dummy for iffalse
-        struct fixup branch;
-        branch.chain = NULL;
+        cell *doif = add2prog(c_DOIF, NIL, fixp); // have NIL dummy for iftrue
+        cell *doelse = add2prog(c_DOELSE, NIL, fixp); // have NIL dummy for iffalse
+        struct fixup branchfix;
+        branchfix.chain = NULL;
 
-        branch.pp = &(doif->_.cons.car); // iftrue path
-        assert(*(branch.pp) == NIL);
-        compile1void(iftrue, &branch, cep);
-#if 1 // TODO remove alternative
-        addfixup(branch.pp, fix);
-#else
-        assert(*(branch.pp) == NIL);
-        *(branch.pp) = cell_ref(doelse); // join up
-#endif
+        branchfix.pp = &(doif->_.cons.car); // iftrue path
+        assert(*(branchfix.pp) == NIL);
+        compile1void(iftrue, &branchfix, cep);
+        addfixup(branchfix.pp, fixp);
 
-        branch.pp = &(doelse->_.cons.car); // iffalse path
-        assert(*(branch.pp) == NIL);
-        compile1void(iffalse, &branch, cep);
-#if 1 // TODO remove alternative
-        addfixup(branch.pp, fix);
-#else
-        // TODO circular ref, should be weak or somesuch
-        // TODO jump to doelse should really be one beyond, if possible
-        assert(*(branch.pp) == NIL);
-        *(branch.pp) = cell_ref(doelse); // join up
-#endif
+        branchfix.pp = &(doelse->_.cons.car); // iffalse path
+        assert(*(branchfix.pp) == NIL);
+        compile1void(iffalse, &branchfix, cep);
+        addfixup(branchfix.pp, fixp);
     }
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_and(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile1_and(cell *args, struct fixup *fixp, struct compile_env *cep) {
     cell *test;
     cell *pushf = NIL;
-    struct fixup push;
-    push.pp = &pushf;
-    push.chain = NULL;
+    struct fixup pushfix;
+    pushfix.pp = &pushf;
+    pushfix.chain = NULL;
 
     while (list_pop(&args, &test)) {
         int bool = -1;
@@ -210,54 +198,46 @@ static int compile1_and(cell *args, struct fixup *fix, struct compile_env *cep) 
             // test condition is constant
             cell_unref(test);
         } else {
-            compilenc1void(test, fix, cep);
+            compilenc1void(test, fixp, cep);
         }
         if (args == NIL) { // last item can be left as is
-            if (bool >= 0) add2prog(c_DOQPUSH, cell_boolean(bool), fix);
+            if (bool >= 0) add2prog(c_DOQPUSH, cell_boolean(bool), fixp);
             break;
         }
         if (bool == 0) {
             cell_unref(args); // false, so forget about rest
             args = NIL ;
             // TODO can use pushf instead?
-            add2prog(c_DOQPUSH, cell_ref(hash_f), fix);
+            add2prog(c_DOQPUSH, cell_ref(hash_f), fixp);
 
         } else if (bool == 1) {
             // continue to next test
 
         } else {
+            cell *testp = add2prog(c_DOCOND, NIL, fixp); // have NIL dummy for iftrue, filled in below
             // more items, so need a "push false"
             if (pushf == NIL) {
-                add2prog(c_DOQPUSH, cell_ref(hash_f), &push); // make NIL dummy for iffalse
+                add2prog(c_DOQPUSH, cell_ref(hash_f), &pushfix); // make NIL dummy for iffalse
             } else {
                 cell_ref(pushf); // one more ref
             }
-            {
-                cell *testp = add2prog(c_DOCOND, NIL, fix); // have NIL dummy for iftrue, filled in below
-                fixprog(pushf, fix); // iffalse, go to push false
-                fix->pp = &(testp->_.cons.car); // iftrue, continue
-            }
+            fixprog(pushf, fixp); // iffalse, go to push false
+            fixp->pp = &(testp->_.cons.car); // iftrue, continue
         }
     }
-    if (pushf != NIL) {
-        // patch up missing link
-#if 1 // TODO remove alternative
-        addfixup(push.pp, fix);
-#else
-        cell *noop = add2prog(c_DONOOP, NIL, fix); // TODO can be improved
-        *(push.pp) = cell_ref(noop); // join up
-#endif
+    if (pushf != NIL) { // patch up missing link from false value
+        addfixup(pushfix.pp, fixp);
     }
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_or(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile1_or(cell *args, struct fixup *fixp, struct compile_env *cep) {
     cell *test;
     cell *pusht = NIL;
-    struct fixup push;
-    push.pp = &pusht;
-    push.chain = NULL;
+    struct fixup pushfix;
+    pushfix.pp = &pusht;
+    pushfix.chain = NULL;
 
     while (list_pop(&args, &test)) {
         int bool = -1;
@@ -265,17 +245,17 @@ static int compile1_or(cell *args, struct fixup *fix, struct compile_env *cep) {
             // test condition is constant
             cell_unref(test);
         } else {
-            compilenc1void(test, fix, cep);
+            compilenc1void(test, fixp, cep);
         }
         if (args == NIL) { // last item does not need to be read
-            if (bool >= 0) add2prog(c_DOQPUSH, cell_boolean(bool), fix);
+            if (bool >= 0) add2prog(c_DOQPUSH, cell_boolean(bool), fixp);
             break;
         }
         if (bool == 1) {
             cell_unref(args); // true, so forget about rest
             args = NIL ;
             // TODO can use pusht instead?
-            add2prog(c_DOQPUSH, cell_ref(hash_t), fix);
+            add2prog(c_DOQPUSH, cell_ref(hash_t), fixp);
 
         } else if (bool == 0) {
             // continue to next test
@@ -283,27 +263,21 @@ static int compile1_or(cell *args, struct fixup *fix, struct compile_env *cep) {
         } else {
             // more items, so need a "push true"
             if (pusht == NIL) {
-                add2prog(c_DOQPUSH, cell_ref(hash_t), &push); // make NIL dummy for iftrue
+                add2prog(c_DOQPUSH, cell_ref(hash_t), &pushfix); // make NIL dummy for iftrue
             } else {
                 cell_ref(pusht); // one more ref
             }
-            add2prog(c_DOCOND, pusht, fix); // go push true iftrue
+            add2prog(c_DOCOND, pusht, fixp); // go push true iftrue
         }
     }
-    if (pusht != NIL) {
-        // patch up missing link
-#if 1 // TODO remove alternative
-        addfixup(push.pp, fix);
-#else
-        cell *noop = add2prog(c_DONOOP, NIL, fix); // TODO can be improved
-        *(push.pp)= cell_ref(noop); // join up
-#endif
+    if (pusht != NIL) { // patch up missing link
+        addfixup(pushfix.pp, fixp);
     }
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_defq(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile1_defq(cell *args, struct fixup *fixp, struct compile_env *cep) {
     cell *nam;
     cell *val;
 
@@ -323,14 +297,14 @@ static int compile1_defq(cell *args, struct fixup *fix, struct compile_env *cep)
         // TODO do what if define is global?
     }
 
-    compile1void(val, fix, cep);
-    add2prog(c_DODEFQ, nam, fix);
+    compile1void(val, fixp, cep);
+    add2prog(c_DODEFQ, nam, fixp);
 
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_refq(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile1_refq(cell *args, struct fixup *fixp, struct compile_env *cep) {
     cell *nam;
     cell *val;
 
@@ -338,13 +312,13 @@ static int compile1_refq(cell *args, struct fixup *fix, struct compile_env *cep)
         return 0; // error
     }
 
-    compile1void(val, fix, cep);
-    add2prog(c_DOREFQ, nam, fix);
+    compile1void(val, fixp, cep);
+    add2prog(c_DOREFQ, nam, fixp);
     return 1;
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_lambda(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile1_lambda(cell *args, struct fixup *fixp, struct compile_env *cep) {
     cell *prog;
     cell *paramlist;
     cell *cp;
@@ -406,9 +380,9 @@ static int compile1_lambda(cell *args, struct fixup *fix, struct compile_env *ce
 
     if (cep->ref_closure > 0) { // function needs a closure?
         // closure dealt with at runtime
-        add2prog(c_DOLAMB, cp, fix);
+        add2prog(c_DOLAMB, cp, fixp);
     } else {
-        add2prog(c_DOQPUSH, cp, fix);
+        add2prog(c_DOQPUSH, cp, fixp);
     }
 
     if (opt_showcode) { // debug?
@@ -423,7 +397,7 @@ static int compile1_lambda(cell *args, struct fixup *fix, struct compile_env *ce
 }
 
 // return 1 if something was pushed, 0 otherwise
-static int compile1_apply(cell *args, struct fixup *fix, struct compile_env *cep) {
+static int compile1_apply(cell *args, struct fixup *fixp, struct compile_env *cep) {
     cell *fun;
     cell *tailargs;
     if (!list_pop(&args, &fun)) {
@@ -438,23 +412,23 @@ static int compile1_apply(cell *args, struct fixup *fix, struct compile_env *cep
     }
     arg0(args);
 
-    compile1void(tailargs, fix, cep);
-    compile1void(fun, fix, cep);
-    add2prog(c_DOAPPLY, NIL, fix);
+    compile1void(tailargs, fixp, cep);
+    compile1void(fun, fixp, cep);
+    add2prog(c_DOAPPLY, NIL, fixp);
     return 1;
 }
 
 // compile, substituting void value in case of error
-static void compile1void(cell *item, struct fixup *fix, struct compile_env *cep) {
-    if (!compile1(item, fix, cep)) {
-        add2prog(c_DOQPUSH, cell_void(), fix); // error
+static void compile1void(cell *item, struct fixup *fixp, struct compile_env *cep) {
+    if (!compile1(item, fixp, cep)) {
+        add2prog(c_DOQPUSH, cell_void(), fixp); // error
     }
 }
 
 // like compile1void(), but do not look for constants initially
-static void compilenc1void(cell *item, struct fixup *fix, struct compile_env *cep) {
-    if (!compile1nc(item, fix, cep)) {
-        add2prog(c_DOQPUSH, cell_void(), fix); // error
+static void compilenc1void(cell *item, struct fixup *fixp, struct compile_env *cep) {
+    if (!compile1nc(item, fixp, cep)) {
+        add2prog(c_DOQPUSH, cell_void(), fixp); // error
     }
 }
 
@@ -649,18 +623,18 @@ static int compile2constant(cell *item, cell **valp, struct compile_env *cep) {
 
 // return 1 if something was pushed, 0 otherwise
 // item is always consumed
-static int compile1(cell *item, struct fixup *fix, struct compile_env *cep) {
+static int compile1(cell *item, struct fixup *fixp, struct compile_env *cep) {
     cell *val = NIL;
     if (compile2constant(item, &val, cep)) {
-        add2prog(c_DOQPUSH, val, fix);
+        add2prog(c_DOQPUSH, val, fixp);
         return 1;
     }
-    return compile1nc(item, fix, cep);
+    return compile1nc(item, fixp, cep);
 }
 
 // same as compile1(), but no check for constant initially
 // this is just to avoid double work
-static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
+static int compile1nc(cell *item, struct fixup *fixp, struct compile_env *cep) {
 
     switch (item ? item->type : c_LIST) {
     case c_FUNC: // function call
@@ -677,41 +651,41 @@ static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
                     return 0;
                 }
                 // TODO should never end up here...
-                add2prog(c_DOQPUSH, thing, fix);
+                add2prog(c_DOQPUSH, thing, fixp);
                 return 1;
             } else 
 #endif
             if (fun == hash_defq) { // #defq is special case
                 cell_unref(fun);
-                return compile1_defq(args, fix, cep);
+                return compile1_defq(args, fixp, cep);
 
             } else if (fun == hash_refq) { // #refq is special case
                 cell_unref(fun);
-                return compile1_refq(args, fix, cep);
+                return compile1_refq(args, fixp, cep);
 
             } else if (fun == hash_if) { // #if is special case
                 cell_unref(fun);
-                return compile1_if(args, fix, cep);
+                return compile1_if(args, fixp, cep);
 
             } else if (fun == hash_and) { // #and is special case
                 cell_unref(fun);
-                return compile1_and(args, fix, cep);
+                return compile1_and(args, fixp, cep);
 
             } else if (fun == hash_or) { // #or is special case
                 cell_unref(fun);
-                return compile1_or(args, fix, cep);
+                return compile1_or(args, fixp, cep);
 
             } else if (fun == hash_lambda) { // #lambda is special case
                 cell_unref(fun);
-                return compile1_lambda(args, fix, cep);
+                return compile1_lambda(args, fixp, cep);
 
             } else if (fun == hash_apply) { // #apply is special case
                 cell_unref(fun);
-                return compile1_apply(args, fix, cep);
+                return compile1_apply(args, fixp, cep);
 
             } else {
 		cell *def = NIL;
-                int n = compile_args(args, fix, cep);
+                int n = compile_args(args, fixp, cep);
                 enum cell_t t;
 
                 switch (n) {
@@ -728,17 +702,17 @@ static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
                 if (t == c_DOCALLN) {
                     cell *node;
                     // compile, pushing on stack
-                    compile1void(fun, fix, cep);
-                    node = add2prog(c_DOCALLN, NIL, fix);
+                    compile1void(fun, fixp, cep);
+                    node = add2prog(c_DOCALLN, NIL, fixp);
                     node->_.calln.narg = n;
-                    assert(fix->pp == &(node->_.calln.cdr)); // TODO assumption
+                    assert(fixp->pp == &(node->_.calln.cdr)); // TODO assumption
                 } else {
                     // see if known internal symbol
                     if (!compile2constant(fun, &def, cep)) {
                         // need to compile function ref, pushing on stack
-                        compilenc1void(fun, fix, cep);
+                        compilenc1void(fun, fixp, cep);
                     }
-                    add2prog(t, def, fix);
+                    add2prog(t, def, fixp);
                 }
 
                 return 1;
@@ -759,7 +733,7 @@ static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
                         ++(cep->ref_closure);
                     }
                     cell_unref(val);
-                    add2prog(c_DOLPUSH, item, fix);
+                    add2prog(c_DOLPUSH, item, fixp);
                     return 1;
                 }
                 // levels above
@@ -768,7 +742,7 @@ static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
 
             ++(cep->ref_global);
         }
-        add2prog(c_DOGPUSH, item, fix); // must be global
+        add2prog(c_DOGPUSH, item, fixp); // must be global
         return 1;
 
     case c_LABEL: // car is label, cdr is expr
@@ -776,12 +750,12 @@ static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
             cell *label;
             cell *val;
             label_split(item, &label, &val);
-            compile1void(val, fix, cep);
+            compile1void(val, fixp, cep);
             if (cell_is_symbol(label) || cell_is_number(label)) {
-                add2prog(c_DOLABEL, label, fix);
+                add2prog(c_DOLABEL, label, fixp);
             } else {
-                compile1void(label, fix, cep);
-                add2prog(c_DOLABEL, NIL, fix);
+                compile1void(label, fixp, cep);
+                add2prog(c_DOLABEL, NIL, fixp);
             }
         }
         return 1;
@@ -792,16 +766,16 @@ static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
             cell *upper;
             range_split(item, &lower, &upper);
             if (upper == NIL) {
-                add2prog(c_DOQPUSH, NIL, fix); // TODO can optimize..
+                add2prog(c_DOQPUSH, NIL, fixp); // TODO can optimize..
             } else {
-                compile1void(upper, fix, cep);
+                compile1void(upper, fixp, cep);
             }
             if (lower == NIL) {
-                add2prog(c_DOQPUSH, NIL, fix);
+                add2prog(c_DOQPUSH, NIL, fixp);
             } else {
-                compile1void(lower, fix, cep);
+                compile1void(lower, fixp, cep);
             }
-            add2prog(c_DORANGE, NIL, fix);
+            add2prog(c_DORANGE, NIL, fixp);
         }
         return 1;
 
@@ -809,7 +783,7 @@ static int compile1nc(cell *item, struct fixup *fix, struct compile_env *cep) {
     case c_CLOSURE:
     case c_CLOSURE0:
     case c_CLOSURE0T:
-        add2prog(c_DOQPUSH, item, fix);
+        add2prog(c_DOQPUSH, item, fixp);
         return 1;
 
  // case c_STRING: // compile2constant
@@ -897,12 +871,12 @@ cell *compile_thunk_n(cell *func, int nargs) {
 
 
 // push already evaluated arguments last to first, return count
-static int push_args(cell *args, struct fixup *fix) {
+static int push_args(cell *args, struct fixup *fixp) {
     int n = 0;
     cell *val;
     if (list_pop(&args, &val)) {
-        n = 1 + push_args(args, fix);
-        add2prog(c_DOQPUSH, val, fix);
+        n = 1 + push_args(args, fixp);
+        add2prog(c_DOQPUSH, val, fixp);
     }
     return n;
 }
