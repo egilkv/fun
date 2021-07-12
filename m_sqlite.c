@@ -174,12 +174,20 @@ static cell *select_column(cell *c, const char *select, int column) {
 
 static cell *csqlite_connect(cell *args) {
     sqlite3 *conn = NULL;
-    arg0(args); // for now, but args are database, username, password etc
+    cell *u;
+    char_t *uri = NULL; // filename or possibly a URI
+    index_t ulen = 0;
     int r;
 
-    r = sqlite3_open(SQLITE_FILE, &conn);
+    if (!list_pop(&args, &u)) return error_rt("missing database");
+    if (!peek_string(u, &uri, &ulen, args)) return cell_error();
+    arg0(args); // for now TODO more
+
+    // TODO create by default??
+    r = sqlite3_open_v2(uri, &conn, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
+    cell_unref(u);
     if (r != SQLITE_OK) {
-        cell *result = error_rts("cannot init sqlite", sqlite3_errmsg(conn));
+	cell *result = error_rts("cannot open sqlite database", sqlite3_errmsg(conn));
         sqlite3_close(conn);
         return result;
     }
