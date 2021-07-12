@@ -6,6 +6,8 @@
  *  TODO most functions return 1st argument, even on error??
  */
 
+#ifdef HAVE_GTK
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -2148,3 +2150,4 @@ cell *module_gtk() {
     return a;
 }
 
+#endif // HAVE_GTK

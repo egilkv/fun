@@ -2,6 +2,7 @@
  *
  *  module math
  */
+#ifdef HAVE_MATH
 
 #include <math.h>
 
@@ -207,3 +208,4 @@ cell *module_math() {
     return a;
 }
 
+#endif // HAVE_MATH
