@@ -208,6 +208,10 @@ static cell *csql_update(cell *args) {
     // UPDATE %s SET rst='%s' WHERE x=4;
 }
 
+// TODO
+//   version        SELECT VERSION():
+//   tables         SHOW TABLES;
+
 ////////////////////////////////////////////////////////////////
 //
 

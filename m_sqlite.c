@@ -1,6 +1,13 @@
 /*  TAB-P
  *
  *  module sqlite
+ *
+ *  https://sqlite.org/c3ref/intro.html
+ *
+ * replace snprintf with fancy strdup/cat thingy
+ *
+ * TODO:
+ *  int sqlite3_busy_handler(sqlite3*,int(*)(void*,int),void*);
  */
 #ifdef HAVE_SQLITE
 
@@ -8,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #include <sqlite3.h>
 
@@ -58,6 +66,109 @@ static int get_sqlite_conn(cell *arg, sqlite3 **connpp, cell *dump) {
 
 ////////////////////////////////////////////////////////////////
 //
+//  helper functions
+//
+
+// duplicate and catenate strings, terminated by NULL pointer
+static char *strdupcat(char *str1, ...) {
+    size_t strn = 0;
+    char *strp = str1;
+    char *result = NULL;
+    va_list argp;
+    va_start(argp, str1);
+    while (strp != NULL) {
+        int n = strlen(strp);
+        result = realloc(result, strn+n+1);
+        assert(result);
+        if (n > 0) memcpy(result+strn, strp, n);
+        result[strn+n] = '\0';
+        strn += n;
+        strp = va_arg(argp, char *);
+    }
+    return result;
+}
+
+static cell *select_list(cell *c, const char *select) {
+    sqlite3 *conn;
+    int r;
+    cell *result = NIL;
+    cell **nextp = &result;
+    sqlite3_stmt *res;
+
+    if (!get_sqlite_conn(c, &conn, NIL)) return cell_error();
+
+    r = sqlite3_prepare_v2(conn, select, -1, &res, 0);
+    if (r != SQLITE_OK) {
+        return error_rts("sqlite query failed", sqlite3_errmsg(conn));
+    }
+    for (;;) {
+        switch ((r = sqlite3_step(res))) {
+        case SQLITE_ROW:
+            {
+                const unsigned char *s = sqlite3_column_text(res, 0);
+                int n = sqlite3_column_bytes(res, 0);
+                *nextp = cell_list(cell_nastring((char *)s, n), NIL);
+                nextp = &((*nextp)->_.cons.cdr);
+            }
+            break;
+        default:
+            sqlite3_finalize(res);
+            cell_unref(result);
+            return error_rts("sqlite query error", sqlite3_errmsg(conn));
+
+        case SQLITE_DONE:
+            sqlite3_finalize(res);
+            return result;
+        }
+    }
+}
+
+static cell *select_column(cell *c, const char *select, int column) {
+    cell *result = NIL;
+    cell **nextp = &result;
+    sqlite3 *conn;
+    sqlite3_stmt *res;
+    int r;
+    cell *item;
+
+    if (!get_sqlite_conn(c, &conn, NIL)) return cell_error();
+
+    r = sqlite3_prepare_v2(conn, select, -1, &res, 0);
+    if (r != SQLITE_OK) {
+        return error_rts("sqlite query failed", sqlite3_errmsg(conn));
+    }
+    for (;;) {
+        switch ((r = sqlite3_step(res))) {
+        case SQLITE_ROW:
+            {
+                int cols;
+                if ((cols = sqlite3_column_count(res)) >= column) {
+                    const unsigned char *s = sqlite3_column_text(res, column); // UTF8
+                    int n = sqlite3_column_bytes(res, column);
+                    assert(s != NULL); // TODO better
+                    item = cell_nastring((char *)s, n);
+                }
+                *nextp = cell_list(item, NIL);
+                nextp = &((*nextp)->_.cons.cdr);
+            }
+            break;
+        case SQLITE_BUSY:
+            // TODO bug
+        case SQLITE_ERROR:
+        case SQLITE_MISUSE:
+            sqlite3_finalize(res);
+            cell_unref(result);
+            return error_rts("sqlite column query error", sqlite3_errmsg(conn));
+
+        case SQLITE_DONE:
+            sqlite3_finalize(res);
+            return result;
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////
+//
 //  connect to database
 //
 
@@ -88,7 +199,7 @@ static cell *csqlite_select(cell *args) {
     cell *result = NIL;
     cell **nextp = &result;
     int r;
-    char buf[100]; // TODO
+    char *select;
     sqlite3 *conn;
     sqlite3_stmt *res;
 
@@ -100,16 +211,16 @@ static cell *csqlite_select(cell *args) {
 
     // TODO SQL escape everything
     // TODO add WHERE and so on
-    snprintf(buf, sizeof(buf)-1, "SELECT * FROM '%s';", table);
+    select = strdupcat("SELECT * FROM '", table, "'", NULL);
     cell_unref(t);
 
-    r = sqlite3_prepare_v2(conn, buf, -1, &res, 0);
+    r = sqlite3_prepare_v2(conn, select, -1, &res, 0);
+    free(select);
     if (r != SQLITE_OK) {
         return error_rts("sqlite query failed", sqlite3_errmsg(conn));
     }
     for (;;) {
-        r = sqlite3_step(res);
-        switch (r) {
+        switch ((r = sqlite3_step(res))) {
         case SQLITE_ROW:
             {
                 int i;
@@ -173,35 +284,163 @@ static cell *csqlite_select(cell *args) {
 }
 
 static cell *csqlite_version(cell *c) {
-    int r;
-    cell *result;
-    sqlite3 *conn;
-    sqlite3_stmt *res;
-
-    if (!get_sqlite_conn(c, &conn, NIL)) return cell_error();
-
-    r = sqlite3_prepare_v2(conn, "SELECT SQLITE_VERSION()", -1, &res, 0);
-    if (r != SQLITE_OK) {
-        return error_rts("sqlite query failed", sqlite3_errmsg(conn));
+    cell *result = select_list(c, "SELECT SQLITE_VERSION()");
+    if (cell_is_list(result)) { // return single item
+        cell *r = cell_ref(cell_car(result));
+        cell_unref(result);
+        result = r;
     }
-
-    r = sqlite3_step(res);
-    if (r != SQLITE_ROW) {
-        sqlite3_finalize(res);
-        return error_rts("sqlite query no data", sqlite3_errmsg(conn));
-    }
-    // TODO
-    // int cols = sqlite3_column_count(res);
-    const unsigned char *s = sqlite3_column_text(res, 0);
-    int n = sqlite3_column_bytes(res, 0);
-    result = cell_nastring((char *)s, n);
-    sqlite3_finalize(res);
     return result;
 }
 
+static cell *csqlite_tables(cell *c) {
+    return select_list(c, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ");
+}
+
+// TODO should return a list of symbols not strings
+static cell *csqlite_columns(cell *c, cell *t) {
+    char_t *table = NULL;
+    index_t tlen = 0;
+    char *select;
+    cell *result;
+
+    if (!peek_string(t, &table, &tlen, c)) return cell_error();
+
+    // TODO SQL escape everything
+    select = strdupcat("SELECT * FROM pragma_table_info('", table, "')", NULL);
+    cell_unref(t);
+
+    // colunms are: cid|name|type|notnull|dflt_value|pk
+    // type can be TEXT, INTEGER, key
+    result = select_column(c, select, 1);
+    free(select);
+    return result;
+}
+
+// TODO if argument is a list or vector, insert those
 static cell *csqlite_insert(cell *args) {
-    return error_rt("missing sqlite connection");
-    // INSERT INTO table (a, b, c) VALUES('va', 'vb', 'vc');
+    cell *c;
+    cell *t = NIL;
+    cell *a = NIL;
+    char_t *table = NULL;
+    index_t tlen = 0;
+    struct assoc_i iter;
+    cell *item;
+    int i;
+    int r;
+    cell *err;
+    char *keys = NULL;
+    int keys_len = 0;
+    int nvals = 0;
+    char *binds = NULL;
+    char *select;
+    sqlite3 *conn;
+    sqlite3_stmt *stmt;
+
+    // TODO arg3()
+    if (!list_pop(&args, &c)) return error_rt("missing sqlite connection");
+    if (!get_sqlite_conn(c, &conn, args)) return cell_error();
+    if (!list_pop(&args, &t)) return error_rt("missing table name");
+    if (!peek_string(t, &table, &tlen, args)) return cell_error();
+    if (!list_pop(&args, &a)) {
+        cell_unref(t);
+        return error_rt("missing assoc table");
+    }
+    if (!cell_assoc(a)) {
+        cell_unref(t);
+        return error_rt1("not an assoc table", a);
+    }
+    arg0(args); // for now TODO more
+
+    // TODO this is really inelegant
+    // iterate through all keys in assoc
+    assoc_iter(&iter, a);
+    while ((item = assoc_next(&iter))) {
+        cell *key = assoc_key(item);
+        if (keys == NULL) {
+            keys = strdup(key->_.symbol.nam);
+            assert(keys);
+            keys_len = strlen(key->_.symbol.nam);
+        } else {
+            int n = strlen(key->_.symbol.nam);
+            keys = realloc(keys, keys_len+1+n+1);
+            assert(keys);
+            keys[keys_len] = ',';
+            memcpy(keys+keys_len+1, key->_.symbol.nam, n+1);
+        }
+        ++nvals;
+    }
+    binds = malloc(1+(nvals-1)*2+1);
+    for (i=0; i<nvals; ++i) {
+        binds[i*2] = '?';
+        binds[i*2+1] = ',';
+    }
+    binds[1+(nvals-1)*2] = '\0';
+
+    //http://www.adp-gmbh.ch/sqlite/bind_insert.html
+    //
+    // TODO sqlescape
+    select = strdupcat("INSERT INTO '", table, "' (", keys, ") VALUES (", binds, ")", NULL);
+    cell_unref(t);
+    r = sqlite3_prepare_v2(conn, select, -1, &stmt, 0);
+    free(select);
+    if (r != SQLITE_OK) {
+        cell_unref(a);
+        return error_rts("sqlite insert failed", sqlite3_errmsg(conn));
+    }
+    // TODO sqlite3_bind_parameter_count(stmt) == 3
+
+    // iterate throuch all values in assoc
+    i = 1;
+    assoc_iter(&iter, a);
+    while ((item = assoc_next(&iter))) {
+        cell *val = assoc_val(item);
+        if (val == NIL) {
+            r = sqlite3_bind_null(stmt, i);
+        } else switch (val->type) {
+        case c_NUMBER:
+            switch (val->_.n.divisor) {
+            case 1:
+                r = sqlite3_bind_int64(stmt, i, val->_.n.dividend.ival);
+                break;
+            default:
+                r = sqlite3_bind_double(stmt, i, (1.0 * val->_.n.dividend.ival) / val->_.n.divisor);
+                break;
+            case 0: r = sqlite3_bind_double(stmt, i, val->_.n.dividend.fval);
+                break;
+            }
+            break;
+        case c_STRING:
+            // TODO better, but tricky, to replace SQLITE_TRANSIENT with a pointer to a destructor
+            r = sqlite3_bind_text(stmt, i, val->_.string.ptr, val->_.string.len, SQLITE_TRANSIENT);
+            // r = sqlite3_bind_blob(stmt, i, const void*, int n, void(*)(void*));
+            break;
+            // TODO wait with unwinding
+        default:
+            err = error_rt1("cannot store as sqlite value", cell_ref(val));
+            cell_unref(t);
+            cell_unref(a);
+            sqlite3_finalize(stmt);
+            return err;
+        }
+        if (r != SQLITE_OK) {
+            err = error_rts("cannot bind sqlite value", sqlite3_errmsg(conn));
+            cell_unref(t);
+            cell_unref(a);
+            sqlite3_finalize(stmt);
+            return err;
+        }
+        ++i;
+    }
+
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        cell_unref(a);
+        return error_rts("sqlite insert step failed", sqlite3_errmsg(conn));
+    }
+    // sqlite3_reset(stmt);
+    sqlite3_finalize(stmt);
+
+    return cell_void();
 }
 
 static cell *csqlite_update(cell *args) {
@@ -218,6 +457,8 @@ cell *module_sqlite() {
 
     assoc_set(a, cell_symbol("connect"),    cell_cfunN(csqlite_connect));
     assoc_set(a, cell_symbol("version"),    cell_cfun1(csqlite_version));
+    assoc_set(a, cell_symbol("tables"),     cell_cfun1(csqlite_tables));
+    assoc_set(a, cell_symbol("columns"),    cell_cfun2(csqlite_columns)); // TODO fields
     assoc_set(a, cell_symbol("select"),     cell_cfunN(csqlite_select));
     assoc_set(a, cell_symbol("insert"),     cell_cfunN(csqlite_insert));
     assoc_set(a, cell_symbol("update"),     cell_cfunN(csqlite_update));
