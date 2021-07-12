@@ -5,7 +5,9 @@
 
 cell *error_rt0(const char *msg);
 cell *error_rti(const char *msg, integer_t val);
+cell *error_rts(const char *msg, const char *info);
 cell *error_rt1(const char *msg, cell *arg);
+cell *error_rt(const char *msg);
 
 void error_par(const char *info, const char *msg);
 void error_pat(const char *info, const char *msg, int type);

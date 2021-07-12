@@ -66,6 +66,22 @@ cell *error_rti(const char *msg, integer_t val) {
     return cell_error();
 }
 
+// runtime error, 1 string argument
+cell *error_rts(const char *msg, const char *info) {
+    fflush(stdout);
+    fprintf(stderr,"error; %s: %s\n", msg, info);
+    fflush(stderr);
+    return cell_error();
+}
+
+// runtime error, no argument
+cell *error_rt(const char *msg) {
+    fflush(stdout);
+    fprintf(stderr,"error; %s\n", msg);
+    fflush(stderr);
+    return cell_error();
+}
+
 // runtime error, 1 argument
 // arg is consumed, return void
 cell *error_rt1(const char *msg, cell *arg) {

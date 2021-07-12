@@ -22,6 +22,12 @@
 #if HAVE_GTK
 #include "m_gtk.h"
 #endif
+#if HAVE_MYSQL
+#include "m_mysql.h"
+#endif
+#if HAVE_SQLITE
+#include "m_sqlite.h"
+#endif
 #include "m_io.h"
 #include "m_bit.h"
 #include "m_string.h"
@@ -687,6 +693,18 @@ static cell *cfun1_use(cell *a) {
     if (strcmp(str, "math") == 0) {
 	cell_unref(a);
         return module_math();
+    }
+#endif
+#if HAVE_MYSQL
+    if (strcmp(str, "mysql") == 0) {
+	cell_unref(a);
+        return module_mysql();
+    }
+#endif
+#if HAVE_SQLITE
+    if (strcmp(str, "sqlite") == 0) {
+	cell_unref(a);
+        return module_sqlite();
     }
 #endif
     if (strcmp(str, "string") == 0) {
