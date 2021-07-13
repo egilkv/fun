@@ -437,11 +437,12 @@ static void docall1(struct current_run_env *rep, cell *fun, cell *arg) {
         break;
 
     case c_BIND:
-        docall2(rep,
-            cell_ref(fun->_.cons.cdr),
-            cell_ref(fun->_.cons.car),
-            arg);
-        cell_unref(fun);
+        {
+            cell *fun0 = cell_ref(fun->_.cons.cdr);
+            cell *arg0 = cell_ref(fun->_.cons.car);
+            cell_unref(fun);
+            docall2(rep, fun0, arg0, arg);
+        }
         break;
 
     default:
@@ -505,11 +506,13 @@ static void docall2(struct current_run_env *rep, cell *fun, cell *arg1, cell *ar
         break;
 
     case c_BIND:
-        docallN(rep,
-            cell_ref(fun->_.cons.cdr),
-            cell_list(cell_ref(fun->_.cons.car), 
-                cell_list(arg1, cell_list(arg2, NIL))));
-        cell_unref(fun);
+        {
+            cell *fun0 = cell_ref(fun->_.cons.cdr);
+            cell *arg0 = cell_ref(fun->_.cons.car);
+            cell_unref(fun);
+            docallN(rep, fun0,
+                cell_list(arg0, cell_list(arg1, cell_list(arg2, NIL))));
+        }
         break;
 
     default:
@@ -563,17 +566,21 @@ static void docallN(struct current_run_env *rep, cell *fun, cell *args) {
         break;
 
     case c_BIND:
-        if (args == NIL) {
-            docall1(rep,
-                cell_ref(fun->_.cons.cdr),
-                cell_ref(fun->_.cons.car));
-        } else {
-            assert(cell_cdr(args) != NIL); // cannot be 1 arg
-            docallN(rep,
-                cell_ref(fun->_.cons.cdr),
-                cell_list(cell_ref(fun->_.cons.car), args));
+        {
+            cell *fun0 = cell_ref(fun->_.cons.cdr);
+            cell *arg0 = cell_ref(fun->_.cons.car);
+            cell_unref(fun);
+            if (args == NIL) {
+                docall1(rep, fun0, arg0);
+            } else if (cell_cdr(args) == NIL) { // probably cannot be 1 arg
+                cell *arg1 = NIL;
+                list_pop(&args, &arg1);
+                assert(args == NIL);
+                docall2(rep, fun0, arg0, arg1);
+            } else {
+                docallN(rep, fun0, cell_list(arg0, args));
+            }
         }
-        cell_unref(fun);
         break;
 
     default:
