@@ -1,4 +1,9 @@
 
+SQL insert leaks memory:
+    s = #use("sqlite").open("sqlite.sql");
+    s.insert("t1", { a:1, b:"BB", c:"3", d:[] });
+cell is c_STOP
+
 GTK stopped working
 
 Revise syntaxm swop args, align with monads

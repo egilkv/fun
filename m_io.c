@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
+#include <errno.h>
 #include <assert.h>
 
 #include "cell.h"
@@ -15,6 +17,7 @@
 #include "number.h"
 #include "parse.h"
 #include "readline.h"
+#include "err.h"
 #include "opt.h"
 
 #define MULTILINE_VECTOR 0  // multiline vectors
@@ -22,6 +25,38 @@
 #define MAX_INDENT      40
 
 #define SHOW_PROG        0  // show prog of closures and environments
+
+static cell *bind_cfio_file();
+
+////////////////////////////////////////////////////////////////
+//
+//  magic types
+//
+
+static const char *magic_file(void *ptr) {
+    if (ptr) { // free up resource
+        fclose((FILE *) ptr);
+    }
+    return "file";
+}
+
+static cell *make_special_file(FILE *file) {
+    return cell_special(magic_file, (void *)file);
+}
+
+static int get_file(cell *arg, FILE **filep, cell *dump) {
+    if (!get_special(magic_file, arg, (void **)filep, dump)) return 0;
+    if (*filep == NULL) {
+        cell_unref(error_rt("file was closed"));
+        return 0;
+    }
+    return 1;
+}
+
+////////////////////////////////////////////////////////////////
+//
+//  helpers
+//
 
 static void show_list(FILE *out, cell *ct) {
     if (!ct) {
@@ -409,21 +444,86 @@ void cell_write(FILE *out, cell *ct) {
     cell_writei(out, ct, 0);
 }
 
+// mode = "r" "r+" "w" "w+" "a" "a+"
+static cell *file_open(cell *n, const char *mode) {
+    FILE *file;
+    char_t *name = NULL; // filename
+    index_t nlen = 0;
+
+    if (!peek_string(n, &name, &nlen, NIL)) return cell_error();
+
+    file = fopen(name, mode);
+    if (!file) {
+        int e = errno;
+        // TODO should also include filename
+        cell *result = error_rts("cannot open file", strerror(e));
+        cell_unref(n);
+        return result;
+    }
+    cell_unref(n);
+    return cell_bind(make_special_file(file), bind_cfio_file());
+}
+
+////////////////////////////////////////////////////////////////
+//
+//  functions
+//
+
+static cell *cfio_open(cell *a) {
+    return file_open(a, "r+");
+}
+
+static cell *cfio_file_close(cell *f) {
+    FILE *file = NULL;
+    if (!peek_special(magic_file, f, (void **)&file, f)) {
+        return cell_error();
+    }
+    if (file != NULL) { // not closed already?
+        // TODO check error status
+        fclose(file);
+        // set magic pointer to NULL to avoid further usage
+        assert(cell_is_special(f, magic_file));
+        f->_.special.ptr = NULL;
+    }
+    cell_unref(f);
+    return cell_void();
+}
+
+static cell *cfio_file_read(cell *f) {
+    FILE *file = NULL;
+    lxfile infile;
+    // TODO the magic think should be an lcfile instead!!!
+    if (!get_file(f, &file, NIL)) return cell_error();
+    lxfile_init(&infile, file, NULL);
+    return expression(&infile);
+}
+
+static cell *cfio_file_write(cell *args) {
+    cell *f;
+    FILE *file = NULL;
+    lxfile infile;
+    cell *a;
+    if (!list_pop(&args, &f)) return error_rt("missing file");
+    if (!get_file(f, &file, NIL)) return cell_error();
+    lxfile_init(&infile, file, NULL);
+
+    // TODO error handling for write
+    while (list_pop(&args, &a)) {
+        cell_write(file, a);
+	cell_unref(a);
+        fprintf(file, "\n");
+    }
+    return cell_void();
+}
+
 static cell *cfio_write(cell *args) {
     cell *a;
     while (list_pop(&args, &a)) {
         cell_write(stdout, a);
 	cell_unref(a);
-        if (args) fprintf(stdout, ", ");
+        fprintf(stdout, "\n");
     }
-    assert(args == NIL);
     return cell_void();
-}
-
-static cell *cfio_writeln(cell *args) {
-    cell *v = cfio_write(args);
-    fprintf(stdout, "\n");
-    return v;
 }
 
 static cell *cfio_print(cell *args) {
@@ -484,13 +584,24 @@ cell *module_io() {
     // these functions are impure
     // TODO introduce some monad thing
     // TODO file open/write/delete and slurp to read an entire file?
+    assoc_set(a, cell_symbol("open"),    cell_cfun1(cfio_open));
     assoc_set(a, cell_symbol("print"),   cell_cfunN(cfio_print)); // scheme: 'display'
     assoc_set(a, cell_symbol("println"), cell_cfunN(cfio_println));
     assoc_set(a, cell_symbol("write"),   cell_cfunN(cfio_write));
-    assoc_set(a, cell_symbol("writeln"), cell_cfunN(cfio_writeln));
     assoc_set(a, cell_symbol("read"),    cell_cfunN(cfio_read));
     assoc_set(a, cell_symbol("getline"), cell_cfunN(cfio_getline));
 
     return a;
 }
 
+static cell *bind_cfio_file() {
+    cell *a = cell_assoc();
+
+    // TODO print
+    // TODO readline
+    assoc_set(a, cell_symbol("read"),    cell_cfun1(cfio_file_read));
+    assoc_set(a, cell_symbol("write"),   cell_cfunN(cfio_file_write));
+    assoc_set(a, cell_symbol("close"),   cell_cfun1(cfio_file_close));
+
+    return a;
+}
