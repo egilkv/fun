@@ -722,6 +722,12 @@ static cell *cfun1_use(cell *a) {
     return error_rt1("module not found", a); // should
 }
 
+static cell *cfun2_bind(cell *a, cell *b) {
+    // TODO consider checking if binding is appropriate, should
+    // be either assoc or function
+    return cell_bind(a, b);
+}
+
 static cell *cfun1_type(cell *a) {
     const char *t = NULL;
     switch (a ? a->type : c_LIST) {
@@ -735,6 +741,10 @@ static cell *cfun1_type(cell *a) {
 
     case c_ASSOC:
         t = "assoc"; // TODO association list
+        break;
+
+    case c_BIND:
+        t = "bind";
         break;
 
     case c_RANGE:
@@ -1112,6 +1122,7 @@ void cfun_init() {
     // TODO #include and #exit is not pure, possibly also #use
     //      to keep symbols in play
     hash_assoc    = symbol_set("#assoc",    cell_cfunN_pure(cfunN_assoc));
+    hash_bind     = symbol_set("#bind",     cell_cfun2_pure(cfun2_bind));
     hash_cat      = symbol_set("#cat",      cell_cfunN_pure(cfunN_cat));
     hash_channel  = symbol_set("#channel",  cell_cfunN_pure(cfunN_channel));
                     symbol_set("#count",    cell_cfun1_pure(cfun1_count));

@@ -152,6 +152,14 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, ")");
         break;
 
+    case c_BIND:
+        fprintf(out, "#bind(");
+        cell_writei(out, ct->_.cons.car, indent);
+        fprintf(out, ", "); // TODO remove
+        cell_writei(out, ct->_.cons.cdr, indent);
+        fprintf(out, ")");
+        break;
+
 #if 1 // runtime
     case c_DOQPUSH:
         fprintf(out, "#doqpush(");
@@ -471,12 +479,12 @@ static cell *cfio_getline(cell *args) {
 }
 
 cell *module_io() {
-    // TODO consider cache
     cell *a = cell_assoc();
 
-    // TODO these functions are impure
+    // these functions are impure
+    // TODO introduce some monad thing
     // TODO file open/write/delete and slurp to read an entire file?
-    assoc_set(a, cell_symbol("print"),   cell_cfunN(cfio_print)); // scheme 'display'
+    assoc_set(a, cell_symbol("print"),   cell_cfunN(cfio_print)); // scheme: 'display'
     assoc_set(a, cell_symbol("println"), cell_cfunN(cfio_println));
     assoc_set(a, cell_symbol("write"),   cell_cfunN(cfio_write));
     assoc_set(a, cell_symbol("writeln"), cell_cfunN(cfio_writeln));

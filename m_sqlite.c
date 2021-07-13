@@ -37,6 +37,7 @@ mySQLITE_real_escape_string_quote(MYSQL *mysql,
                                 char quote)
 #endif
 
+static cell *bind_sqlite_conn();
 
 ////////////////////////////////////////////////////////////////
 //
@@ -86,6 +87,27 @@ static char *strdupcat(char *str1, ...) {
         strp = va_arg(argp, char *);
     }
     return result;
+}
+
+static cell *csqlite_connect(cell *args, int mode) {
+    sqlite3 *conn = NULL;
+    cell *u;
+    char_t *uri = NULL; // filename or possibly a URI
+    index_t ulen = 0;
+    int r;
+
+    if (!list_pop(&args, &u)) return error_rt("missing database");
+    if (!peek_string(u, &uri, &ulen, args)) return cell_error();
+    arg0(args); // for now TODO more
+
+    r = sqlite3_open_v2(uri, &conn, mode, NULL);
+    cell_unref(u);
+    if (r != SQLITE_OK) {
+	cell *result = error_rts("cannot open sqlite database", sqlite3_errmsg(conn));
+        sqlite3_close(conn);
+        return result;
+    }
+    return cell_bind(make_special_sqlite_conn(conn), bind_sqlite_conn());
 }
 
 static cell *select_list(cell *c, const char *select) {
@@ -172,26 +194,13 @@ static cell *select_column(cell *c, const char *select, int column) {
 //  connect to database
 //
 
-static cell *csqlite_connect(cell *args) {
-    sqlite3 *conn = NULL;
-    cell *u;
-    char_t *uri = NULL; // filename or possibly a URI
-    index_t ulen = 0;
-    int r;
+static cell *csqlite_open(cell *args) {
+    return csqlite_connect(args, SQLITE_OPEN_READWRITE);
+}
 
-    if (!list_pop(&args, &u)) return error_rt("missing database");
-    if (!peek_string(u, &uri, &ulen, args)) return cell_error();
-    arg0(args); // for now TODO more
-
-    // TODO create by default??
-    r = sqlite3_open_v2(uri, &conn, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
-    cell_unref(u);
-    if (r != SQLITE_OK) {
-	cell *result = error_rts("cannot open sqlite database", sqlite3_errmsg(conn));
-        sqlite3_close(conn);
-        return result;
-    }
-    return make_special_sqlite_conn(conn);
+static cell *csqlite_create(cell *args) {
+    // note: will not complain if file exists
+    return csqlite_connect(args, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -291,12 +300,24 @@ static cell *csqlite_select(cell *args) {
     }
 }
 
-static cell *csqlite_version(cell *c) {
-    cell *result = select_list(c, "SELECT SQLITE_VERSION()");
-    if (cell_is_list(result)) { // return single item
-        cell *r = cell_ref(cell_car(result));
-        cell_unref(result);
-        result = r;
+static cell *csqlite_version(cell *args) {
+    int r;
+    sqlite3 *conn = NULL;
+    cell *result;
+    arg0(args);
+    r = sqlite3_open_v2(":memory:", &conn, SQLITE_OPEN_READWRITE, NULL);
+    if (r != SQLITE_OK) {
+        result = error_rts("sqlite open failed", sqlite3_errmsg(conn));
+        sqlite3_close(conn);
+    } else {
+        cell *c = make_special_sqlite_conn(conn);
+        result = select_list(c, "SELECT SQLITE_VERSION()");
+        if (cell_is_list(result)) { // return single item
+            cell *r = cell_ref(cell_car(result));
+            cell_unref(result);
+            result = r;
+        }
+        cell_unref(c);
     }
     return result;
 }
@@ -375,7 +396,8 @@ static cell *csqlite_insert(cell *args) {
             assert(keys);
             keys[keys_len] = ',';
             memcpy(keys+keys_len+1, key->_.symbol.nam, n+1);
-        }
+            keys_len += 1+n;
+        }   
         ++nvals;
     }
     binds = malloc(1+(nvals-1)*2+1);
@@ -451,27 +473,38 @@ static cell *csqlite_insert(cell *args) {
     return cell_void();
 }
 
+#if 0
 static cell *csqlite_update(cell *args) {
     return error_rt("missing sqlite connection");
     // UPDATE %s SET rst='%s' WHERE x=4;
 }
+#endif
 
 ////////////////////////////////////////////////////////////////
 //
 
-
 cell *module_sqlite() {
     cell *a = cell_assoc();
 
-    assoc_set(a, cell_symbol("connect"),    cell_cfunN(csqlite_connect));
+    assoc_set(a, cell_symbol("open"),       cell_cfunN(csqlite_open));
+    assoc_set(a, cell_symbol("create"),     cell_cfunN(csqlite_create));
     assoc_set(a, cell_symbol("version"),    cell_cfun1(csqlite_version));
+
+    return a;
+}
+
+
+static cell *bind_sqlite_conn() {
+    cell *a = cell_assoc();
+
     assoc_set(a, cell_symbol("tables"),     cell_cfun1(csqlite_tables));
     assoc_set(a, cell_symbol("columns"),    cell_cfun2(csqlite_columns)); // TODO fields
     assoc_set(a, cell_symbol("select"),     cell_cfunN(csqlite_select));
     assoc_set(a, cell_symbol("insert"),     cell_cfunN(csqlite_insert));
-    assoc_set(a, cell_symbol("update"),     cell_cfunN(csqlite_update));
+//  assoc_set(a, cell_symbol("update"),     cell_cfunN(csqlite_update));
 
     return a;
 }
 
 #endif // HAVE_SQLILTE
+

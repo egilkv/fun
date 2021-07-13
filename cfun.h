@@ -7,6 +7,7 @@
 
 cell *hash_args;
 cell *hash_assoc;
+cell *hash_bind;
 cell *hash_cat;
 cell *hash_channel;
 cell *hash_do;

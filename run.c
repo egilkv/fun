@@ -382,6 +382,208 @@ void run_main_force(cell *prog, cell *env0, cell *stack) {
     UNLOCK(run_environment_lock);
 }
 
+static void docall2(struct current_run_env *rep, cell *fun, cell *arg1, cell *arg2);
+static void docallN(struct current_run_env *rep, cell *fun, cell *args);
+
+// call with 1 argument
+static void docall1(struct current_run_env *rep, cell *fun, cell *arg) {
+    switch (fun ? fun->type : c_LIST) {
+    case c_CFUN1:
+        {
+            cell *(*def)(cell *) = fun->_.cfun1.def;
+            cell **stackp = &(rep->stack);
+            cell *result;
+            cell_unref(fun);
+            advance_prog(rep);
+            result = (*def)(arg);
+            push_value_stackp(result, stackp); // use stackp in case re changed
+        }
+        break;
+
+    case c_CFUNN:
+        {
+            cell *(*def)(cell *) = fun->_.cfun1.def;
+            cell **stackp = &(rep->stack);
+            cell *result;
+            cell_unref(fun);
+            advance_prog(rep);
+            result = (*def)(cell_list(arg, NIL));
+            push_value_stackp(result, stackp);
+        }
+        break;
+
+    case c_CFUNR:
+        {
+            void (*def)(cell *) = fun->_.cfunR.def;
+            cell_unref(fun);
+            advance_prog(rep);
+            (*def)(cell_list(arg, NIL));
+        }
+        break;
+
+    case c_CLOSURE:
+        {
+            cell *lambda = cell_ref(fun->_.cons.car);
+            cell *contenv = cell_ref(fun->_.cons.cdr);
+            cell_unref(fun);
+            advance_prog(rep);
+            run_apply(lambda, cell_list(arg, NIL), contenv);
+        }
+        break;
+    case c_CLOSURE0:
+    case c_CLOSURE0T:
+        advance_prog(rep);
+        run_apply(fun, cell_list(arg, NIL), NIL);
+        break;
+
+    case c_BIND:
+        docall2(rep,
+            cell_ref(fun->_.cons.cdr),
+            cell_ref(fun->_.cons.car),
+            arg);
+        cell_unref(fun);
+        break;
+
+    default:
+        cell_unref(arg);
+        push_value(error_rt1("not a function with 1 arg", fun), rep);
+        advance_prog(rep);
+        break;
+    }
+}
+
+// call with 2 arguments
+static void docall2(struct current_run_env *rep, cell *fun, cell *arg1, cell *arg2) {
+    switch (fun ? fun->type : c_LIST) {
+    case c_CFUN2:
+        {
+            cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
+            cell **stackp = &(rep->stack);
+            cell *result;
+            cell_unref(fun);
+            advance_prog(rep);
+            result = (*def)(arg1, arg2);
+            push_value_stackp(result, stackp);
+        }
+        break;
+
+    case c_CFUNN:
+        {
+            cell *(*def)(cell *) = fun->_.cfun1.def;
+            cell **stackp = &(rep->stack);
+            cell *result;
+            cell_unref(fun);
+            advance_prog(rep);
+            result = (*def)(cell_list(arg1,cell_list(arg2,NIL)));
+            push_value_stackp(result, stackp);
+        }
+        break;
+
+    case c_CFUNR:
+        {
+            void (*def)(cell *) = fun->_.cfunR.def;
+            cell_unref(fun);
+            advance_prog(rep);
+            (*def)(cell_list(arg1,cell_list(arg2,NIL)));
+        }
+        break;
+
+    case c_CLOSURE:
+        {
+            cell *lambda = cell_ref(fun->_.cons.car);
+            cell *contenv = cell_ref(fun->_.cons.cdr);
+            cell_unref(fun);
+            advance_prog(rep);
+            run_apply(lambda, cell_list(arg1,cell_list(arg2, NIL)), contenv);
+        }
+        break;
+
+    case c_CLOSURE0:
+    case c_CLOSURE0T:
+        advance_prog(rep);
+        run_apply(fun, cell_list(arg1,cell_list(arg2, NIL)), NIL);
+        break;
+
+    case c_BIND:
+        docallN(rep,
+            cell_ref(fun->_.cons.cdr),
+            cell_list(cell_ref(fun->_.cons.car), 
+                cell_list(arg1, cell_list(arg2, NIL))));
+        cell_unref(fun);
+        break;
+
+    default:
+        cell_unref(arg1);
+        cell_unref(arg2);
+        push_value(error_rt1("not a function with 2 args", fun), rep);
+        advance_prog(rep);
+        break;
+    }
+}
+
+// call with N arguments
+static void docallN(struct current_run_env *rep, cell *fun, cell *args) {
+    switch (fun ? fun->type : c_LIST) {
+    case c_CFUNN:
+        {
+            cell *(*def)(cell *) = fun->_.cfun1.def;
+            cell **stackp = &(rep->stack);
+            cell *result;
+            cell_unref(fun);
+            // TODO there is also another OP using calln
+            advance_prog_where(rep->prog->_.calln.cdr, rep);
+            result = (*def)(args);
+            push_value_stackp(result, stackp);
+        }
+        break;
+
+    case c_CFUNR:
+        {
+            void (*def)(cell *) = fun->_.cfunR.def;
+            cell_unref(fun);
+            advance_prog_where(rep->prog->_.calln.cdr, rep);
+            (*def)(args);
+        }
+        break;
+
+    case c_CLOSURE:
+        {
+            cell *lambda = cell_ref(fun->_.cons.car);
+            cell *contenv = cell_ref(fun->_.cons.cdr);
+            cell_unref(fun);
+            advance_prog(rep);
+            run_apply(lambda, args, contenv);
+        }
+        break;
+
+    case c_CLOSURE0:
+    case c_CLOSURE0T:
+        advance_prog(rep);
+        run_apply(fun, args, NIL);
+        break;
+
+    case c_BIND:
+        if (args == NIL) {
+            docall1(rep,
+                cell_ref(fun->_.cons.cdr),
+                cell_ref(fun->_.cons.car));
+        } else {
+            assert(cell_cdr(args) != NIL); // cannot be 1 arg
+            docallN(rep,
+                cell_ref(fun->_.cons.cdr),
+                cell_list(cell_ref(fun->_.cons.car), args));
+        }
+        cell_unref(fun);
+        break;
+
+    default:
+        cell_unref(args);
+        push_value(error_rt1("not a function", fun), rep);
+        advance_prog_where(rep->prog->_.calln.cdr, rep);
+        break;
+    }
+}
+
 // main run program facility, return result
 void run_main(cell *prog, cell *env0, cell *stack) {
     struct current_run_env re;
@@ -470,128 +672,19 @@ void run_main(cell *prog, cell *env0, cell *stack) {
 
         case c_DOCALL1:   // car is closure or function, pop 1 arg, push result
             {
-                // function evaluated on stack?
                 cell *fun = re.prog->_.cons.car ? cell_ref(re.prog->_.cons.car) : pop_value(&re);
                 cell *arg = pop_value(&re);
-                cell *result;
-                switch (fun ? fun->type : c_LIST) {
-                case c_CFUN1:
-                    {
-                        cell *(*def)(cell *) = fun->_.cfun1.def;
-                        cell **stackp = &(re.stack);
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        result = (*def)(arg);
-                        push_value_stackp(result, stackp); // use stackp in case re changed
-                    }
-                    break;
-
-                case c_CFUNN:
-                    {
-                        cell *(*def)(cell *) = fun->_.cfun1.def;
-                        cell **stackp = &(re.stack);
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        result = (*def)(cell_list(arg, NIL));
-                        push_value_stackp(result, stackp);
-                    }
-                    break;
-
-                case c_CFUNR:
-                    {
-                        void (*def)(cell *) = fun->_.cfunR.def;
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        (*def)(cell_list(arg, NIL));
-                    }
-                    break;
-
-                case c_CLOSURE:
-                    {
-                        cell *lambda = cell_ref(fun->_.cons.car);
-                        cell *contenv = cell_ref(fun->_.cons.cdr);
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        run_apply(lambda, cell_list(arg, NIL), contenv);
-                    }
-                    break;
-                case c_CLOSURE0:
-                case c_CLOSURE0T:
-                    advance_prog(&re);
-                    run_apply(fun, cell_list(arg, NIL), NIL);
-                    break;
-
-                default:
-                    cell_unref(arg);
-                    push_value(error_rt1("not a function with 1 arg", fun), &re);
-                    advance_prog(&re);
-                    break;
-                }
+                docall1(&re, fun, arg);
             }
             break;
 
         case c_DOCALL2:   // car is closure or function, pop 2 args, push result
+            // function evaluated on stack?
             {
-                // function evaluated on stack?
                 cell *fun = re.prog->_.cons.car ? cell_ref(re.prog->_.cons.car) : pop_value(&re);
                 cell *arg1 = pop_value(&re);
                 cell *arg2 = pop_value(&re);
-                cell *result;
-                switch (fun ? fun->type : c_LIST) {
-                case c_CFUN2:
-                    {
-                        cell *(*def)(cell *, cell *) = fun->_.cfun2.def;
-                        cell **stackp = &(re.stack);
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        result = (*def)(arg1, arg2);
-                        push_value_stackp(result, stackp);
-                    }
-                    break;
-
-                case c_CFUNN:
-                    {
-                        cell *(*def)(cell *) = fun->_.cfun1.def;
-                        cell **stackp = &(re.stack);
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        result = (*def)(cell_list(arg1,cell_list(arg2,NIL)));
-                        push_value_stackp(result, stackp);
-                    }
-                    break;
-
-                case c_CFUNR:
-                    {
-                        void (*def)(cell *) = fun->_.cfunR.def;
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        (*def)(cell_list(arg1,cell_list(arg2,NIL)));
-                    }
-                    break;
-
-                case c_CLOSURE:
-                    {
-                        cell *lambda = cell_ref(fun->_.cons.car);
-                        cell *contenv = cell_ref(fun->_.cons.cdr);
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        run_apply(lambda, cell_list(arg1,cell_list(arg2, NIL)), contenv);
-                    }
-                    break;
-
-                case c_CLOSURE0:
-                case c_CLOSURE0T:
-                    advance_prog(&re);
-                    run_apply(fun, cell_list(arg1,cell_list(arg2, NIL)), NIL);
-                    break;
-
-                default:
-                    cell_unref(arg1);
-                    cell_unref(arg2);
-                    push_value(error_rt1("not a function with 2 args", fun), &re);
-                    advance_prog(&re);
-                    break;
-                }
+                docall2(&re, fun, arg1, arg2);
             }
             break;
 
@@ -601,57 +694,13 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                 cell *args = NIL;
                 cell **pp = &args;
                 cell *fun = pop_value(&re);
-                cell *result;
                 // function evaluated on stack
                 while (narg-- > 0) {
                     cell *a = pop_value(&re);
                     *pp = cell_list(a, NIL);
                     pp = &((*pp)->_.cons.cdr);
                 }
-                switch (fun ? fun->type : c_LIST) {
-                case c_CFUNN:
-                    {
-                        cell *(*def)(cell *) = fun->_.cfun1.def;
-                        cell **stackp = &(re.stack);
-                        cell_unref(fun);
-                        // TODO there is also another OP using calln
-                        advance_prog_where(re.prog->_.calln.cdr, &re);
-                        result = (*def)(args);
-                        push_value_stackp(result, stackp);
-                    }
-                    break;
-
-                case c_CFUNR:
-                    {
-                        void (*def)(cell *) = fun->_.cfunR.def;
-                        cell_unref(fun);
-                        advance_prog_where(re.prog->_.calln.cdr, &re);
-                        (*def)(args);
-                    }
-                    break;
-
-                case c_CLOSURE:
-                    {
-                        cell *lambda = cell_ref(fun->_.cons.car);
-                        cell *contenv = cell_ref(fun->_.cons.cdr);
-                        cell_unref(fun);
-                        advance_prog(&re);
-                        run_apply(lambda, args, contenv);
-                    }
-                    break;
-
-                case c_CLOSURE0:
-                case c_CLOSURE0T:
-                    advance_prog(&re);
-                    run_apply(fun, args, NIL);
-                    break;
-
-                default:
-                    cell_unref(args);
-                    push_value(error_rt1("not a function with N args", fun), &re);
-                    advance_prog_where(re.prog->_.calln.cdr, &re);
-                    break;
-                }
+                docallN(&re, fun, args);
             }
             break;
 

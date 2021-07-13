@@ -288,7 +288,6 @@ add() ==> 0
 add(1) ==> 1
 add(1, 2, 3) ==> 6
 #apply(#plus) ==> error; missing tail arguments: []
-error; not a function with N args: #cfun()
 #apply(#plus, 1, 2, #list(3, 4, 5)) ==> error; excess argument(s) ignored: [ 2, #list(3, 4, 5) ]
 error; apply argument not a list: 1
 #times(#quotient(35, 3), 1.0) ==> 11.6666666666667

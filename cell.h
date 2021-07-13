@@ -26,6 +26,7 @@ enum cell_t {
    c_NUMBER,
    c_VECTOR,
    c_ASSOC,
+   c_BIND,
    c_CHANNEL,   // regular non-buffered channel
    c_RCHANNEL,  // channel, sender is a C function
    c_SCHANNEL,  // channel, receiver is a C function
@@ -181,6 +182,7 @@ cell *cell_list(cell *car, cell *cdr);
 cell *cell_elist(cell *car, cell *cdr);
 cell *cell_func(cell *car, cell *cdr);
 cell *cell_pair(cell *car, cell *cdr);
+cell *cell_bind(cell *car, cell *cdr);
 cell *cell_keyval(cell *key, cell *val);
 cell *cell_keyweak(cell *key, cell *val);
 cell *cell_range(cell *car, cell *cdr);

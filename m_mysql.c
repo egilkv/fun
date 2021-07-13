@@ -31,6 +31,7 @@ mysql_real_escape_string_quote(MYSQL *mysql,
                                 char quote)
 #endif
 
+cell *bind_sql_conn();
 
 ////////////////////////////////////////////////////////////////
 //
@@ -60,10 +61,10 @@ static int get_sql_conn(cell *arg, MYSQL **connpp, cell *dump) {
 
 ////////////////////////////////////////////////////////////////
 //
-//  connect to database
+//  open connection to database
 //
 
-static cell *csql_connect(cell *args) {
+static cell *csql_open(cell *args) {
     MYSQL *conn;
     char *database = "database";
     char *user = "user";
@@ -79,7 +80,7 @@ static cell *csql_connect(cell *args) {
         mysql_close(conn);
         return result;
     }
-    return make_special_sql_conn(conn);
+    return cell_bind(make_special_sql_conn(conn), bind_sql_conn());
 }
 
 ////////////////////////////////////////////////////////////////
@@ -215,18 +216,17 @@ static cell *csql_update(cell *args) {
 ////////////////////////////////////////////////////////////////
 //
 
-#define DEFINE_CFUN1(gname) \
-    assoc_set(a, cell_symbol(#gname), cell_cfun1(cgtk_##gname));
-#define DEFINE_CFUN2(gname) \
-    assoc_set(a, cell_symbol(#gname), cell_cfun2(cgtk_##gname));
-#define DEFINE_CFUNN(gname) \
-    assoc_set(a, cell_symbol(#gname), cell_cfunN(cgtk_##gname));
-
-
 cell *module_mysql() {
     cell *a = cell_assoc();
 
-    assoc_set(a, cell_symbol("connect"),    cell_cfunN(csql_connect));
+    assoc_set(a, cell_symbol("open"),       cell_cfunN(csql_open));
+
+    return a;
+}
+
+cell *bind_sql_conn() {
+    cell *a = cell_assoc();
+
     assoc_set(a, cell_symbol("select"),     cell_cfunN(csql_select));
     assoc_set(a, cell_symbol("insert"),     cell_cfunN(csql_insert));
     assoc_set(a, cell_symbol("update"),     cell_cfunN(csql_update));

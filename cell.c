@@ -41,6 +41,13 @@ cell *cell_pair(cell *car, cell *cdr) {
     return node;
 }
 
+cell *cell_bind(cell *car, cell *cdr) {
+    cell *node = newnode(c_BIND);
+    node->_.cons.car = car;
+    node->_.cons.cdr = cdr;
+    return node;
+}
+
 cell *cell_keyval(cell *key, cell *val) {
     cell *node = newnode(c_KEYVAL);
     node->_.cons.car = key;
@@ -460,6 +467,7 @@ void cell_sweep(cell *node) {
     case c_ELIST:
     case c_FUNC:
     case c_PAIR:
+    case c_BIND:
     case c_KEYVAL:
     case c_RANGE:
     case c_LABEL:
@@ -546,6 +554,7 @@ void cell_free1(cell *node) {
     case c_ELIST:
     case c_FUNC:
     case c_PAIR:
+    case c_BIND:
     case c_KEYVAL:
     case c_RANGE:
     case c_LABEL:

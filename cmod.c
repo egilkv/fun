@@ -287,8 +287,21 @@ cell *cfun2_ref(cell *a, cell *b) {
     case c_ASSOC:
 	if (!assoc_get(a, b, &value)) {
 	    cell_unref(a);
-	    return error_rt1("assoc key does not exist", b);
+            return error_rt1("no such assoc key", b);
 	}
+        cell_unref(b);
+        break;
+
+    case c_BIND:
+        if (!cell_is_assoc(a->_.cons.cdr)) {
+            cell_unref(b);
+            return error_rt1("not assoc #bind", a); // TODO improve
+	}
+        if (!assoc_get(a->_.cons.cdr, b, &value)) {
+	    cell_unref(a);
+            return error_rt1("no such #bind assoc key", b);
+	}
+        value = cell_bind(cell_ref(a->_.cons.car), value);
         cell_unref(b);
         break;
 
