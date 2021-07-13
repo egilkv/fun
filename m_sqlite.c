@@ -8,6 +8,12 @@
  *
  * TODO:
  *  int sqlite3_busy_handler(sqlite3*,int(*)(void*,int),void*);
+ *  escaping 's
+ *  keys should be quoted in "" and of course escaped
+ *  string behaviour with NULs
+ *  should NULL be represented as [] or #void??
+ *  double quotes are for identifiers, like key names and such
+ *  single quotes are for strings
  */
 #ifdef HAVE_SQLITE
 
@@ -340,7 +346,8 @@ static cell *csqlite_columns(cell *c, cell *t) {
     cell_unref(t);
 
     // colunms are: cid|name|type|notnull|dflt_value|pk
-    // type can be TEXT, INTEGER, key
+    // type can be TEXT, INTEGER, key and also "" for undefined
+    // notnull is 0 or 1
     result = select_column(c, select, 1);
     free(select);
     return result;
@@ -371,13 +378,10 @@ static cell *csqlite_insert(cell *args) {
     if (!get_sqlite_conn(c, &conn, args)) return cell_error();
     if (!list_pop(&args, &t)) return error_rt("missing table name");
     if (!peek_string(t, &table, &tlen, args)) return cell_error();
-    if (!list_pop(&args, &a)) {
+    if (!list_pop(&args, &a) || !cell_assoc(a)) {
         cell_unref(t);
-        return error_rt("missing assoc table");
-    }
-    if (!cell_assoc(a)) {
-        cell_unref(t);
-        return error_rt1("not an assoc table", a);
+        cell_unref(args);
+        return error_rt("missing or not assoc table");
     }
     arg0(args); // for now TODO more
 
@@ -436,26 +440,25 @@ static cell *csqlite_insert(cell *args) {
             default:
                 r = sqlite3_bind_double(stmt, i, (1.0 * val->_.n.dividend.ival) / val->_.n.divisor);
                 break;
-            case 0: r = sqlite3_bind_double(stmt, i, val->_.n.dividend.fval);
+            case 0: 
+                r = sqlite3_bind_double(stmt, i, val->_.n.dividend.fval);
                 break;
             }
             break;
         case c_STRING:
             // TODO better, but tricky, to replace SQLITE_TRANSIENT with a pointer to a destructor
+            // TODO do we really need SQLITE_TRANSIENT when we keep a untill all done?
             r = sqlite3_bind_text(stmt, i, val->_.string.ptr, val->_.string.len, SQLITE_TRANSIENT);
             // r = sqlite3_bind_blob(stmt, i, const void*, int n, void(*)(void*));
             break;
-            // TODO wait with unwinding
         default:
             err = error_rt1("cannot store as sqlite value", cell_ref(val));
-            cell_unref(t);
             cell_unref(a);
             sqlite3_finalize(stmt);
             return err;
         }
         if (r != SQLITE_OK) {
             err = error_rts("cannot bind sqlite value", sqlite3_errmsg(conn));
-            cell_unref(t);
             cell_unref(a);
             sqlite3_finalize(stmt);
             return err;
@@ -469,7 +472,7 @@ static cell *csqlite_insert(cell *args) {
     }
     // sqlite3_reset(stmt);
     sqlite3_finalize(stmt);
-
+    cell_unref(a);
     return cell_void();
 }
 
