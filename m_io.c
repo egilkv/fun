@@ -439,6 +439,30 @@ void cell_write(FILE *out, cell *ct) {
     cell_writei(out, ct, 0);
 }
 
+static void cell_print(FILE *out, cell *args) {
+    cell *a;
+    while (list_pop(&args, &a)) {
+        if (a) switch (a->type) { // NIL prints as nothing
+        case c_STRING:
+            fwrite(a->_.string.ptr, sizeof(char_t), a->_.string.len, out);
+            break;
+        case c_NUMBER:
+        case c_SYMBOL:
+        case c_LIST: // TODO sure?
+        case c_VECTOR: // TODO sure?
+        case c_ASSOC: // TODO sure?
+            cell_write(out, a);
+            break;
+        default:
+            // TODO error message??
+            fprintf(out, "?");
+            break;
+        }
+        cell_unref(a);
+    }
+    assert(args == NIL);
+}
+
 // mode = "r" "r+" "w" "w+" "a" "a+"
 static cell *file_open(cell *n, const char *mode) {
     FILE *file;
@@ -493,14 +517,44 @@ static cell *cfio_file_read(cell *f) {
     return expression(&infile);
 }
 
+static cell *cfio_file_getline(cell *f) {
+    FILE *file = NULL;
+    ssize_t len = 0;
+    char *line;
+    if (!get_file(f, &file, NIL)) return cell_error();
+    line = line_from_file(file, &len);
+    if (!line || len < 0) {
+        return cell_void();
+    }
+    return cell_astring(line, len);
+}
+
+static cell *cfio_file_print(cell *args) {
+    cell *f;
+    FILE *file = NULL;
+    if (!list_pop(&args, &f)) return error_rt("missing file");
+    if (!get_file(f, &file, NIL)) return cell_error();
+    cell_print(file, args);
+    return cell_void();
+}
+
+static cell *cfio_file_println(cell *args) {
+    cell *f;
+    FILE *file = NULL;
+    if (!list_pop(&args, &f)) return error_rt("missing file");
+    if (!get_file(f, &file, NIL)) return cell_error();
+    cell_print(file, args);
+    fprintf(file, "\n");
+    return cell_void();
+}
+
+
 static cell *cfio_file_write(cell *args) {
     cell *f;
     FILE *file = NULL;
-    lxfile infile;
     cell *a;
     if (!list_pop(&args, &f)) return error_rt("missing file");
     if (!get_file(f, &file, NIL)) return cell_error();
-    lxfile_init(&infile, file, NULL);
 
     // TODO error handling for write
     while (list_pop(&args, &a)) {
@@ -522,34 +576,14 @@ static cell *cfio_write(cell *args) {
 }
 
 static cell *cfio_print(cell *args) {
-    cell *a;
-    while (list_pop(&args, &a)) {
-        if (a) switch (a->type) { // NIL prints as nothing
-        case c_STRING:
-            fwrite(a->_.string.ptr, sizeof(char_t), a->_.string.len, stdout);
-            break;
-        case c_NUMBER:
-        case c_SYMBOL:
-        case c_LIST: // TODO sure?
-        case c_VECTOR: // TODO sure?
-        case c_ASSOC: // TODO sure?
-            cell_write(stdout, a);
-            break;
-        default:
-            // TODO error message??
-            fprintf(stdout, "?");
-            break;
-        }
-        cell_unref(a);
-    }
-    assert(args == NIL);
+    cell_print(stdout, args);
     return cell_void();
 }
 
 static cell *cfio_println(cell *args) {
-    cell *v = cfio_print(args);
+    cell_print(stdout, args);
     fprintf(stdout, "\n");
-    return v;
+    return cell_void();
 }
 
 static cell *cfio_read(cell *args) {
@@ -592,10 +626,11 @@ cell *module_io() {
 static cell *bind_cfio_file() {
     cell *a = cell_assoc();
 
-    // TODO print
-    // TODO readline
-    assoc_set(a, cell_symbol("read"),    cell_cfun1(cfio_file_read));
     assoc_set(a, cell_symbol("write"),   cell_cfunN(cfio_file_write));
+    assoc_set(a, cell_symbol("print"),   cell_cfunN(cfio_file_print));
+    assoc_set(a, cell_symbol("println"), cell_cfunN(cfio_file_println));
+    assoc_set(a, cell_symbol("read"),    cell_cfun1(cfio_file_read));
+    assoc_set(a, cell_symbol("getline"), cell_cfun1(cfio_file_getline));
     assoc_set(a, cell_symbol("close"),   cell_cfun1(cfio_file_close));
 
     return a;
