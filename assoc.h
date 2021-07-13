@@ -19,6 +19,7 @@ int assoc_get(struct cell_s *anode, struct cell_s *key, struct cell_s **valuep);
 
 void assoc_iter(struct assoc_i *ip, struct cell_s *anode);
 void assoc_iter_sorted(struct assoc_i *ip, struct cell_s *anode);
+void assoc_iter_maybe(struct assoc_i *ip, struct cell_s *anode);
 struct cell_s *assoc_next(struct assoc_i *ip);
 
 struct cell_s *assoc_key(struct cell_s *p);

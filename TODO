@@ -4,6 +4,8 @@ SQL insert leaks memory:
     s.insert("t1", { a:1, b:"BB", c:"3", d:[] });
 cell is c_STOP
 
+open/write/close also leaks
+
 GTK stopped working
 
 Revise syntaxm swop args, align with monads

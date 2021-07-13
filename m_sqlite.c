@@ -4,9 +4,9 @@
  *
  *  https://sqlite.org/c3ref/intro.html
  *
- * replace snprintf with fancy strdup/cat thingy
  *
  * TODO:
+ *  add support for where in update and select
  *  int sqlite3_busy_handler(sqlite3*,int(*)(void*,int),void*);
  *  escaping 's
  *  keys should be quoted in "" and of course escaped
@@ -14,10 +14,11 @@
  *  should NULL be represented as [] or #void??
  *  double quotes are for identifiers, like key names and such
  *  single quotes are for strings
+ *
+ *  consider https://www.sqlite.org/json1.html
  */
 #ifdef HAVE_SQLITE
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -30,18 +31,6 @@
 #include "node.h" // newnode
 #include "err.h"
 #include "m_sqlite.h"
-
-#define SQLITE_FILE "sqlite.sql" // TODP
-
-// TODO
-#if 0
-unsigned long
-mySQLITE_real_escape_string_quote(MYSQL *mysql,
-                               char *to,
-                                const char *from,
-                                unsigned long length,
-                                char quote)
-#endif
 
 static cell *bind_sqlite_conn();
 
@@ -373,7 +362,7 @@ static cell *csqlite_insert(cell *args) {
     sqlite3 *conn;
     sqlite3_stmt *stmt;
 
-    // TODO arg3()
+    // TODO arg3()?
     if (!list_pop(&args, &c)) return error_rt("missing sqlite connection");
     if (!get_sqlite_conn(c, &conn, args)) return cell_error();
     if (!list_pop(&args, &t)) return error_rt("missing table name");
@@ -424,7 +413,7 @@ static cell *csqlite_insert(cell *args) {
     }
     // TODO sqlite3_bind_parameter_count(stmt) == 3
 
-    // iterate throuch all values in assoc
+    // iterate through all values in assoc
     i = 1;
     assoc_iter(&iter, a);
     while ((item = assoc_next(&iter))) {
@@ -479,7 +468,8 @@ static cell *csqlite_insert(cell *args) {
 #if 0
 static cell *csqlite_update(cell *args) {
     return error_rt("missing sqlite connection");
-    // UPDATE %s SET rst='%s' WHERE x=4;
+    // With bind:
+    // UPDATE %s SET rst=? ,xx=? WHERE x=4;
 }
 #endif
 
@@ -501,7 +491,7 @@ static cell *bind_sqlite_conn() {
     cell *a = cell_assoc();
 
     assoc_set(a, cell_symbol("tables"),     cell_cfun1(csqlite_tables));
-    assoc_set(a, cell_symbol("columns"),    cell_cfun2(csqlite_columns)); // TODO fields
+    assoc_set(a, cell_symbol("columns"),    cell_cfun2(csqlite_columns));
     assoc_set(a, cell_symbol("select"),     cell_cfunN(csqlite_select));
     assoc_set(a, cell_symbol("insert"),     cell_cfunN(csqlite_insert));
 //  assoc_set(a, cell_symbol("update"),     cell_cfunN(csqlite_update));

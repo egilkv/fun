@@ -257,6 +257,17 @@ integer_t ref_length(cell *a) {
             return length;
 	}
 
+    case c_ASSOC:
+        {
+            index_t length = 0;
+            struct assoc_i iter;
+            assoc_iter(&iter, a);
+            while (assoc_next(&iter)) {
+                ++length;
+            }
+            return length;
+        }
+
     default:
         return -1; // cannot find length
     }

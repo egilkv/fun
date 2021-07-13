@@ -11,6 +11,7 @@
 
 #include "cell.h"
 #include "cmod.h" // hash_undef
+#include "opt.h"
 
 // TODO inline
 cell *assoc_key(cell *cp) {
@@ -255,6 +256,10 @@ void assoc_iter_sorted(struct assoc_i *ip, cell *anode) {
     }
     ip->sorted = vector;
     ip->h = 0;
+}
+
+void assoc_iter_maybe(struct assoc_i *ip, cell *anode) {
+    return opt_assocsorted ? assoc_iter_sorted(ip, anode) : assoc_iter(ip, anode);
 }
 
 // clean up on unref, all but node itself

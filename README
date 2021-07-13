@@ -5,7 +5,7 @@ A list of command line arguments (not used by fun itself). #args[0] is the name 
 Compare operators of the same kind may be used N-ary, e.g. a < b < c. This does not work with 
 different operators, e.g. 1 < a <= 5.
 
-Restore end recursion  https://en.wikipedia.org/wiki/Tail_call
+Tail call optimization https://en.wikipedia.org/wiki/Tail_call
 
 && and || does lazy evaluation
 
@@ -15,7 +15,6 @@ always yields an error message (but what about Monads?) and the result is
 #void, neither #t nor #f. To test if a result is void, do:
 	#type(a) == 'void
 
-
 Send val to channel:
 ch <- v
 
@@ -24,3 +23,4 @@ Receive from channel
 
 ch := make(chan int)
 
+#keys() will return range for vectors, lists and strings

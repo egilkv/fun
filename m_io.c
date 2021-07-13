@@ -18,7 +18,6 @@
 #include "parse.h"
 #include "readline.h"
 #include "err.h"
-#include "opt.h"
 
 #define MULTILINE_VECTOR 0  // multiline vectors
 #define MULTILINE_ASSOC  1  // multiline assocs
@@ -143,11 +142,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
             struct assoc_i iter;
             cell *p;
             int more = 0;
-            if (opt_assocsorted) {
-                assoc_iter_sorted(&iter, ct);
-            } else {
-                assoc_iter(&iter, ct);
-            }
+            assoc_iter_maybe(&iter, ct);
             fprintf(out, "{ ");
             while ((p = assoc_next(&iter))) {
 #if MULTILINE_ASSOC

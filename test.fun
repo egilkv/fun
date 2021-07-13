@@ -327,3 +327,9 @@ cv() || ct();
 cv() || cf();
 
 // #gc();
+
+#keys(aa);
+#keys([]);
+#keys("hello");
+#keys(array1);
+#count(aa);

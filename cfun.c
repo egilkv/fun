@@ -668,7 +668,7 @@ static cell *cfun1_count(cell *a) {
 #endif
     integer_t length = ref_length(a);
     if (length < 0) {
-        return error_rt1("no length of", cell_ref(a));
+        return error_rt1("no length of", a);
     }
     cell_unref(a);
     return cell_integer(length);
@@ -726,6 +726,29 @@ static cell *cfun2_bind(cell *a, cell *b) {
     // TODO consider checking if binding is appropriate, should
     // be either assoc or function
     return cell_bind(a, b);
+}
+
+static cell *cfun1_keys(cell *a) {
+    cell *result = NIL;
+
+    if (cell_is_assoc(a)) {
+        cell *item;
+        struct assoc_i iter;
+        assoc_iter_maybe(&iter, a);
+        while ((item = assoc_next(&iter))) {
+            result = cell_list(cell_ref(assoc_key(item)), result);
+        }
+        cell_unref(a);
+    } else {
+        integer_t r = ref_length(a);
+        if (r >= 0) {
+            result = cell_range(NIL, cell_integer(r));
+            cell_unref(a);
+        } else {
+            result = error_rt1("not applicable", a);
+        }
+    }
+    return result;
 }
 
 static cell *cfun1_type(cell *a) {
@@ -1134,6 +1157,7 @@ void cfun_init() {
     hash_go       = symbol_set("#go",       cell_cfunN(cfun1_go));
     hash_gt       = symbol_set("#gt",       cell_cfunN_pure(cfunN_gt));
                     symbol_set("#include",  cell_cfun1(cfun1_include)); // TODO pure?
+                    symbol_set("#keys",     cell_cfun1(cfun1_keys));
     hash_le       = symbol_set("#le",       cell_cfunN_pure(cfunN_le));
     hash_lt       = symbol_set("#lt",       cell_cfunN_pure(cfunN_lt));
     hash_list     = symbol_set("#list",     cell_cfunN_pure(cfunN_list));
