@@ -1,4 +1,6 @@
 
+Names: associative array, map, or dictionary
+
 SQL insert leaks memory:
     s = #use("sqlite").open("sqlite.sql");
     s.insert("t1", { a:1, b:"BB", c:"3", d:[] });
@@ -400,5 +402,10 @@ Should this be possible?
     #apply(#plus, [1, 2, 3]);
     #apply(#plus, (1..3));
 
+Should be able to support:
+    mn <= x < mx
+
 Parsing error, check
      '+;
+
+run_main() is not guaranteed to return the correct result
