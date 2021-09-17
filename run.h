@@ -20,9 +20,9 @@ struct proc_run_env *suspend();
 
 void start_process(cell *prog, cell *env, cell *stack);
 
-void run_main(cell *prog, cell *env0, cell *stack);
+void run_main(cell *prog, cell *env0, cell *stack, cell **resultp);
 
-void run_main_force(cell *prog, cell *env0, cell *stack);
+void run_main_force(cell *prog, cell *env0, cell *stack, cell **resultp);
 
 void push_stack_current_run_env(cell *val);
 

@@ -1431,7 +1431,7 @@ static void cgtk_callback_wait(GtkWidget* gp, gpointer data) {
  // printf("\n***callback***\n");
 
  // TODO seems like this one needs to finish its job before we return
-    run_main_force(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+    run_main_force(cell_ref(prog), NIL /*env*/, NIL /*stack*/, NULL);
 }
 
 // callback, no extra argument provided
@@ -1441,7 +1441,7 @@ static void cgtk_callback_none(GtkWidget* gp, gpointer data) {
     cell *prog = (cell *)data;
 
 //  start_process(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
-    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/);
+    run_main(cell_ref(prog), NIL /*env*/, NIL /*stack*/, NULL);
 }
 
 // callback, argument provided is an int
@@ -1451,7 +1451,7 @@ static void cgtk_callback_int(GtkWidget* gp, gint extra, gpointer data) {
     cell *stack = cell_list(cell_integer(extra), NIL);
 
 //  start_process(cell_ref(prog), NIL /*env*/, stack);
-    run_main(cell_ref(prog), NIL /*env*/, stack);
+    run_main(cell_ref(prog), NIL /*env*/, stack, NULL);
 }
 
 // callback, argument provided is a GdkEvent
@@ -1461,7 +1461,7 @@ static void cgtk_callback_event(GtkWidget* gp, GdkEvent *extra, gpointer data) {
     cell *stack = cell_list(cell_gdkevent(extra), NIL);
 
 //  start_process(cell_ref(prog), NIL /*env*/, stack);
-    run_main(cell_ref(prog), NIL /*env*/, stack);
+    run_main(cell_ref(prog), NIL /*env*/, stack, NULL);
 }
 
 static cell *cgtk_signal_connect(cell *args) {

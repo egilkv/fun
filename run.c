@@ -365,7 +365,7 @@ static int dispatch() {
 
 // main run program facility, force running untill evaluated
 // TODO temporary kludge
-void run_main_force(cell *prog, cell *env0, cell *stack) {
+void run_main_force(cell *prog, cell *env0, cell *stack, cell **resultp) {
     struct current_run_env *save;
 
     // TODO needs some locking too
@@ -375,7 +375,7 @@ void run_main_force(cell *prog, cell *env0, cell *stack) {
     UNLOCK(run_environment_lock);
 
     // this will then be the run_main for this task
-    run_main(prog, env0, stack);
+    run_main(prog, env0, stack, resultp);
 
     LOCK(run_environment_lock);
     run_environment = save;
@@ -592,7 +592,7 @@ static void docallN(struct current_run_env *rep, cell *fun, cell *args) {
 }
 
 // main run program facility, return result
-void run_main(cell *prog, cell *env0, cell *stack) {
+void run_main(cell *prog, cell *env0, cell *stack, cell **resultp) {
     struct current_run_env re;
 
     LOCK(run_environment_lock);
@@ -626,8 +626,14 @@ void run_main(cell *prog, cell *env0, cell *stack) {
                 re.prog = contprog;
             } else {
                 // a thread stopped
+                // TODO result may not be what we think it is!!!!!
                 assert(re.prog == NIL && re.env == NIL);
-                cell_unref(re.stack); // throw away any results
+                if (resultp) {
+                    cell_unref(*resultp);
+                    *resultp = re.stack;
+                } else {
+                    cell_unref(re.stack); // throw away any results
+                }
                 re.stack = NIL;
                 if (!dispatch()) { // TODO logic is shaky
                     //fprintf(stdout, "*no more threads*\n"); // TODO only in debug mode something

@@ -898,7 +898,7 @@ static cell *cfunN_error(cell *args) {
 static cell *cfun1_include(cell *a) {
     char_t *name;
     index_t len;
-    cell *result = NIL;
+    cell *result = cell_void(); // default to void if nothing there
     if (!peek_string(a, &name, &len, a)) return cell_error();
     if (!chomp_file(name, &result)) {
         return error_rt1("cannot find include-file", a);

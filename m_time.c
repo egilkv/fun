@@ -206,7 +206,7 @@ static cell *ctime_time(cell *args) {
     secs.dividend.fval = tv.tv_sec + tv.tv_usec / 1000000.0;
     secs.divisor = 0;
 
-    run_main_force(prog, NIL, NIL);
+    run_main_force(prog, NIL, NIL, NULL);
 
     gettimeofday(&tv, (struct timezone *)0);
     secs.dividend.fval = (tv.tv_sec + tv.tv_usec / 1000000.0) - secs.dividend.fval;

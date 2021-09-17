@@ -20,7 +20,7 @@
 
 #include "oblist.h"
 
-static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0);
+static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0, cell **resultp);
 static cell *expr(precedence lv, lxfile *in);
 static cell *getlist(item *op, token sep_token, token end_token, 
                      precedence blv, lxfile *in);
@@ -38,11 +38,11 @@ void interactive_mode(const char *greeting, const char *prompt, cell *env0) {
     if (infile.is_terminal) {
         fprintf(stdout, "%s", greeting);
     }
-    chomp_lx(&infile, prompt, env0);
+    chomp_lx(&infile, prompt, env0, NULL);
 }
 
 // chomp contents of entire file
-static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
+static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0, cell **resultp) {
     cell *ct;
 
     for (;;) {
@@ -71,7 +71,7 @@ static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0) {
 
         // TODO must have some way of ensuring the previous statements in the
         //      include file have been executed already
-        run_main_force(ct, cell_ref(env0), NIL);
+        run_main_force(ct, cell_ref(env0), NIL, resultp);
     }
     if (lxf->is_terminal) {
         printf("\n");
@@ -86,12 +86,8 @@ int chomp_file(const char *name, cell **resultp) {
         return 0;
     }
     lxfile_init(&cfile, f, name);
-    chomp_lx(&cfile, NULL, NIL);
+    chomp_lx(&cfile, NULL, NIL, resultp);
     fclose(cfile.f);
-    if (resultp) {
-        // TODO most implement
-        *resultp = cell_void();
-    }
     return 1;
 }
 
