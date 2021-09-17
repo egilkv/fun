@@ -26,12 +26,15 @@ int main(int argc, char * const argv[]) {
     debug_init();
 
     opterr = 0;
-    while ((opt = getopt(argc, argv, "+:CGOPRS")) >= 0) switch (opt) {
+    while ((opt = getopt(argc, argv, "+:CGKOPRS")) >= 0) switch (opt) {
         case 'C': // debug compiler
             opt_showcode = 1;
             break;
         case 'G': // debug gc
             opt_showgc = 1;
+            break;
+        case 'K': // keys must be symbols, strings not tolerated
+            opt_nostringkey = 1;
             break;
         case 'O': // debug oblist
             opt_showoblist = 1;

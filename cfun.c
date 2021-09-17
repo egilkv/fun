@@ -15,6 +15,7 @@
 #include "err.h"
 #include "parse.h" // chomp_file
 #include "run.h"
+#include "opt.h"
 #include "compile.h"
 #if HAVE_MATH
 #include "m_math.h"
@@ -386,6 +387,12 @@ static cell *cfunN_assoc(cell *args) {
 	    cell_unref(error_rt1("initialization item not in form of key: value", a));
         } else {
 	    label_split(a, &a, &b);
+            if (cell_is_string(a) && !opt_nostringkey && a->_.string.ptr != NULL) {
+                // we tolerate keys that are strings (for compatibility with jason)
+                cell *newa = cell_ref(symbol_peek(a->_.string.ptr));
+                cell_unref(a);
+                a = newa;
+            }
             if (!cell_is_symbol(a)) {
                 cell_unref(error_rt1("key must be a symbol", a));
 		cell_unref(b);

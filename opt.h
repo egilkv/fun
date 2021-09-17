@@ -14,4 +14,5 @@ int opt_showcode;
 int opt_showgc;
 int opt_assocsorted;
 int opt_noreadline;
+int opt_nostringkey;
 
