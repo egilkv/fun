@@ -185,12 +185,12 @@ int peek_cstring(cell *a, char **valuep, cell *dump) {
 }
 
 // a in never unreffed, and no errors
-int peek_boolean(cell *a, int *boolp) {
+int peek_boolean(cell *a, int *booleanp) {
     if (a == hash_t) {
-        *boolp = 1;
+        *booleanp = 1;
         return 1;
     } else if (a == hash_f) {
-        *boolp = 0;
+        *booleanp = 0;
         return 1;
     }
     return 0;
@@ -198,8 +198,8 @@ int peek_boolean(cell *a, int *boolp) {
 
 // a in always unreffed
 // dump is unreffed only if error
-int get_boolean(cell *a, int *boolp, cell *dump) {
-    if (!peek_boolean(a, boolp)) {
+int get_boolean(cell *a, int *booleanp, cell *dump) {
+    if (!peek_boolean(a, booleanp)) {
         cell_unref(dump);
         cell_unref(error_rt1("not a boolean", a));
         return 0;
@@ -629,6 +629,6 @@ cell *defq(cell *nam, cell *val, cell **envp) {
     return val;
 }
 
-cell *cell_boolean(int bool) {
-    return cell_ref(bool ? hash_t : hash_f);
+cell *cell_boolean(int boolean) {
+    return cell_ref(boolean ? hash_t : hash_f);
 }
