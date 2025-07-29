@@ -151,9 +151,6 @@ static cell *csql_select(cell *args) {
                 case MYSQL_TYPE_NULL:
                     item = NIL;
                     break;
-              //case MYSQL_TYPE_INVALID:
-              // item = cell_void();
-              // break;
                 case MYSQL_TYPE_DECIMAL:
                 case MYSQL_TYPE_NEWDECIMAL:
                 case MYSQL_TYPE_FLOAT:
@@ -180,11 +177,12 @@ static cell *csql_select(cell *args) {
                  // break;
 
                 case MYSQL_TYPE_BIT: // up to 4096 bits
-             // case MYSQL_TYPE_TYPED_ARRAY: // Used for replication only.
-             // case MYSQL_TYPE_BOOL: // Currently just a placeholder.
+                case MYSQL_TYPE_TYPED_ARRAY: // TODO used for replication only.
+                case MYSQL_TYPE_BOOL: // TODO implement...
                 case MYSQL_TYPE_JSON:
                 case MYSQL_TYPE_SET: // TODO implement...
                 case MYSQL_TYPE_GEOMETRY:
+                case MYSQL_TYPE_INVALID: // TODO sure?
                     // TODO
                     item = cell_void();
                     break;
