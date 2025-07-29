@@ -576,7 +576,7 @@ static cell *cgtk_##gname(cell *str) { \
 static cell *cgtk_application_new(cell *args) {
     char_t *id = NULL;
     cell *aname = NIL;
-    int flags = G_APPLICATION_FLAGS_NONE;
+    int flags = G_APPLICATION_DEFAULT_FLAGS; // TODO old versions use G_APPLICATION_FLAGS_NONE
     GtkApplication *gp;
 
     if (list_pop(&args, &aname)) {
