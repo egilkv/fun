@@ -1,4 +1,18 @@
 
+
+
+
+
+# #include <readline/readline.h>
 sudo apt-get install  libreadline-dev
 
-Also optionally requires gtk3+
+# #include <mysql/mysql.h>
+sudo apt install libmysqlclient-dev
+
+# #include <sqlite3.h>
+sudo apt install libsqlite3-dev
+
+# #include <gtk/gtk.h>
+sudo apt install libgtk-3-dev
+
+
