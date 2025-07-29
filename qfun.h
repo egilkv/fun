@@ -2,13 +2,17 @@
  *
  */
 
-cell *hash_and;
-cell *hash_apply;
-cell *hash_defq;
-cell *hash_if;
-cell *hash_lambda;
-cell *hash_or;
-cell *hash_quote;
-cell *hash_refq;
+#ifndef EXTDEF
+#define EXTDEF extern
+#endif
+
+EXTDEF cell *hash_and;
+EXTDEF cell *hash_apply;
+EXTDEF cell *hash_defq;
+EXTDEF cell *hash_if;
+EXTDEF cell *hash_lambda;
+EXTDEF cell *hash_or;
+EXTDEF cell *hash_quote;
+EXTDEF cell *hash_refq;
 
 void qfun_init();

@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <assert.h>
 
+#define EXTDEF
+
 #include "opt.h"
 #include "parse.h"
 #include "oblist.h"

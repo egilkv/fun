@@ -8,11 +8,15 @@ struct {
 } opt;
 */
 
-int opt_showoblist;
-int opt_showparse;
-int opt_showcode;
-int opt_showgc;
-int opt_assocsorted;
-int opt_noreadline;
-int opt_nostringkey;
+#ifndef EXTDEF
+#define EXTDEF extern
+#endif
+
+EXTDEF int opt_showoblist;
+EXTDEF int opt_showparse;
+EXTDEF int opt_showcode;
+EXTDEF int opt_showgc;
+EXTDEF int opt_assocsorted;
+EXTDEF int opt_noreadline;
+EXTDEF int opt_nostringkey;
 

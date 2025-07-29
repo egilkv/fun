@@ -5,32 +5,36 @@
 #include "cell.h"
 #include "cmod.h"
 
-cell *hash_args;
-cell *hash_assoc;
-cell *hash_bind;
-cell *hash_cat;
-cell *hash_channel;
-cell *hash_do;
-cell *hash_eq;
-cell *hash_ge;
-cell *hash_go;
-cell *hash_gt;
-cell *hash_le;
-cell *hash_lt;
-cell *hash_list;
-cell *hash_minus;
-cell *hash_not;
-cell *hash_noteq;
-cell *hash_plus;
-cell *hash_quotient;
-cell *hash_receive;
-cell *hash_result;
-cell *hash_ref;
-cell *hash_send;
-cell *hash_times;
+#ifndef EXTDEF
+#define EXTDEF extern
+#endif
 
-cell *hash_stdin;
-cell *hash_stdout;
+EXTDEF cell *hash_args;
+EXTDEF cell *hash_assoc;
+EXTDEF cell *hash_bind;
+EXTDEF cell *hash_cat;
+EXTDEF cell *hash_channel;
+EXTDEF cell *hash_do;
+EXTDEF cell *hash_eq;
+EXTDEF cell *hash_ge;
+EXTDEF cell *hash_go;
+EXTDEF cell *hash_gt;
+EXTDEF cell *hash_le;
+EXTDEF cell *hash_lt;
+EXTDEF cell *hash_list;
+EXTDEF cell *hash_minus;
+EXTDEF cell *hash_not;
+EXTDEF cell *hash_noteq;
+EXTDEF cell *hash_plus;
+EXTDEF cell *hash_quotient;
+EXTDEF cell *hash_receive;
+EXTDEF cell *hash_result;
+EXTDEF cell *hash_ref;
+EXTDEF cell *hash_send;
+EXTDEF cell *hash_times;
+
+EXTDEF cell *hash_stdin;
+EXTDEF cell *hash_stdout;
 
 void cfun_init();
 void cfun_args(int argc, char * const argv[]);
