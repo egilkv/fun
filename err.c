@@ -38,13 +38,15 @@ static const char *it_name[] = {
    "^",         // it_CIRC,
    "~",         // it_TILDE,   // 25
    "...",       // it_ELLIP,
+   "<-",        // it_LARROW,
+   "!!",        // it_GO,
    "(",         // it_LPAR,
-   ")",         // it_RPAR,
+   ")",         // it_RPAR,    // 30
    "[",         // it_LBRK,
-   "]",         // it_RBRK,    // 30
+   "]",         // it_RBRK,
    "{",         // it_LBRC,
    "}",         // it_RBRC,
-   "number",    // it_NUMBER,
+   "number",    // it_NUMBER,  // 35
    "string",    // it_STRING,
    "symbol"     // it_SYMBOL
 } ;
