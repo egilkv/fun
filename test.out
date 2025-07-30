@@ -343,7 +343,7 @@ h() ==> 240
 #or(cv(), cf()) ==> error; not a boolean: #void
 #f
 #keys(aa) ==> [ two, three, one ]
-#keys(#list()) ==>  .. 0
-#keys("hello") ==>  .. 5
-#keys(array1) ==>  .. 6
+#keys(#list()) ==> []
+#keys("hello") ==> 0 .. 4
+#keys(array1) ==> 0 .. 5
 #count(aa) ==> 3

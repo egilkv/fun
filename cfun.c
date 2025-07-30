@@ -735,6 +735,7 @@ static cell *cfun2_bind(cell *a, cell *b) {
     return cell_bind(a, b);
 }
 
+// return list of keys for assoc, or range for array
 static cell *cfun1_keys(cell *a) {
     cell *result = NIL;
 
@@ -748,8 +749,13 @@ static cell *cfun1_keys(cell *a) {
         cell_unref(a);
     } else {
         integer_t r = ref_length(a);
-        if (r >= 0) {
-            result = cell_range(NIL, cell_integer(r));
+        if (r == 0) {
+            result = NIL;
+            cell_unref(a);
+        } else if (r > 0) {
+            // TODO reuse zero for efficiency
+            result = cell_range(cell_integer(0), cell_integer(r-1));
+            // result = cell_range(NIL, cell_integer(r-1));
             cell_unref(a);
         } else {
             result = error_rt1("not applicable", a);
