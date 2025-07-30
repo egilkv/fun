@@ -387,7 +387,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);
 
     case it_GT:
-        return binary_l2rN(left, l_REL,  cell_ref(hash_lt), op, lv, in);
+        return binary_l2rN(left, l_REL,  cell_ref(hash_gt), op, lv, in);
 
     case it_LTEQ:
         return binary_l2rN(left, l_REL,  cell_ref(hash_le), op, lv, in);
