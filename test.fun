@@ -333,3 +333,5 @@ cv() || cf();
 #keys("hello");
 #keys(array1);
 #count(aa);
+
+lambda = \(a){2*a};

@@ -46,7 +46,8 @@ static const char *it_name[] = {
    "]",         // it_RBRK,
    "{",         // it_LBRC,
    "}",         // it_RBRC,
-   "number",    // it_NUMBER,  // 35
+   "\\",        // it_BSLASH,  // 35
+   "number",    // it_NUMBER,
    "string",    // it_STRING,
    "symbol"     // it_SYMBOL
 } ;

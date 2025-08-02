@@ -40,6 +40,7 @@ enum it_ {
    it_RBRK,
    it_LBRC,
    it_RBRC,
+   it_BSLASH,  // 35
    it_NUMBER,
    it_STRING,
    it_SYMBOL

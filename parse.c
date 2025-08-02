@@ -270,6 +270,7 @@ static cell *expr(precedence lv, lxfile *in) {
     case it_COMMA:
     case it_QUEST: // ternary
     case it_COLON:
+    case it_BSLASH:
         error_pat(lxfile_info(in), "misplaced item, ignored", it->type);
         dropitem(it);
         return expr(lv, in);

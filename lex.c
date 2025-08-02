@@ -367,6 +367,18 @@ static item *gotbar(char c, item *it, lxfile *in) {
     return it;
 }
 
+static item *gotbslash(char c, item *it, lxfile *in) {
+    if (it) {
+        if (it->type == it_STRING) {
+            return gotstring(c, it, in);
+        }
+        lxungetc(c, in);
+    } else {
+        it = nextchar(newitem(it_BSLASH), in);
+    }
+    return it;
+}
+
 static item *gotstop(char c, item *it, lxfile *in) {
     if (it) {
         if (it->type == it_NUMBER) {
@@ -549,7 +561,7 @@ static item *gotchar(int c, item *it, lxfile *in) {
     case '[':
         return gotlbrk(c, it, in);
     case '\\':
-        return gotstring(c, it, in);
+        return gotbslash(c, it, in);
     case ']':
         return gotrbrk(c, it, in);
     case '^':
