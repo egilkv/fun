@@ -1,10 +1,10 @@
 
-abc = (a, b, c) {
+abc(a, b, c) {
 	a+b*(c+10)
 };
 
 // should detect this
-aba = (a, b, a) {
+aba(a, b, a) {
 	a+b*(a+5)
 };
 
@@ -18,15 +18,15 @@ abc(c:3, a:1, 2);
 // argument must match
 abc(1, x:3, b:2);
 
-abc0 = (a:10, b:20, c:30) {
+abc0(a:10, b:20, c:30) {
 	a+b*(c+10)
 };
 
-aba0 = (a:10, b:20, a:30) {
+aba0(a:10, b:20, a:30) {
 	a+b*(a+10)
 };
 
-ab0 = (a, b, 30) {
+ab0(a, b, 30) {
 	a+b*(a+10)
 };
 

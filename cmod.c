@@ -13,12 +13,6 @@
 #include "number.h"
 #include "err.h"
 
-cell *hash_f;
-cell *hash_t;
-cell *hash_void;
-cell *hash_undef;
-cell *hash_ellip;
-
 // like list_pop() but complain if no argument and set arg to void
 int at_least_one(cell **argsp, cell **argp) {
     if (!list_pop(argsp, argp)) {

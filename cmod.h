@@ -5,11 +5,16 @@
 
 #include "cell.h"
 
-extern cell *hash_f;
-extern cell *hash_t;
-extern cell *hash_void;
-extern cell *hash_undef;
-extern cell *hash_ellip;
+#ifndef EXTDEF
+#define EXTDEF extern
+#endif
+
+EXTDEF cell *hash_f;
+EXTDEF cell *hash_t;
+EXTDEF cell *hash_void;
+EXTDEF cell *hash_undef;
+EXTDEF cell *hash_lambda;
+EXTDEF cell *hash_ellip;
 
 int at_least_one(cell **argsp, cell **argp);
 void arg0(cell *args);

@@ -2,6 +2,8 @@
 //
 //  functions to support debugging
 //
+//  debug_writeln(cell_tree)
+//
 
 #include <stdio.h>
 
@@ -41,7 +43,7 @@ void debug_trace(cell *a) {
 // enable trace for function
 // TODO later, also for other things
 int debug_traceon(cell *a) {
-#if 0 // TODO
+#if 0 // TODO lambda, was disabled
     if (a && a->type == c_FUNC) {
         // trace being used inline, presumably
         if ((cell_car(a) == hash_lambda)) {

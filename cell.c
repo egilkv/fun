@@ -539,6 +539,7 @@ void cell_sweep(cell *node) {
     case c_CFUNR:
     case c_SPECIAL:
     case c_STOP:
+    case c_SEMI:
         break;
     case c_FREE:
         assert(0); // shall not happen
@@ -632,6 +633,7 @@ void cell_free1(cell *node) {
         node->_.special.magicf(node->_.special.ptr);
         break;
     case c_STOP:
+    case c_SEMI:
         break;
     case c_FREE:
         assert(0); // shall not happen
@@ -650,5 +652,9 @@ cell *cell_oblist_item(char_t *asym) {
     }
     node->_.symbol.nam = asym; // allocated already
     return node;
+}
+
+cell *cell_semi() {
+    return newnode(c_SEMI);
 }
 

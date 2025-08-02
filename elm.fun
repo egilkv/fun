@@ -1,6 +1,6 @@
 
 // simple ELM stuff
-greet = (name){ "Hello " & name & "!" };
+greet(name){ "Hello " & name & "!" };
 greet("Alice");
 greet("Bob");
 
@@ -15,7 +15,7 @@ numbers = [4,3,2,1];
 
 //list.sort(numbers);
 
-increment = (n){ n + 1 };
+increment(n){ n + 1 };
 
 //list.map(numbers,increment); --> [5,4,3,2];
 
@@ -42,14 +42,14 @@ john.last;
     last = "Adams"
 };
 
-birthday = (person) {
+birthday(person) {
     { person | age : person.age + 1 }
 };
 
 //
 // type annotations:
 // half : Float -> Float
-// half = (n) { n/2 };
+// half(n) { n/2 };
 //
 // type alias same as typedef
 // a type alias also constructs a function that builds a record

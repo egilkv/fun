@@ -3,8 +3,8 @@
 
 
 
-fib = (n) {
-    fibi = (n, a, b) {
+fib(n) {
+    fibi(n, a, b) {
 	n == 1 ? b : fibi(n-1, b, a+b)
     };
     n == 0 ? 0 : fibi(n, 0, 1)

@@ -50,7 +50,7 @@ app = gtk_application("org.gtk.demo", // unique ID
     }
 );
 
-popup_dialog = (){
+popup_dialog() {
 
     // TODO parent where/how
     // TODO where is response
@@ -66,7 +66,7 @@ popup_dialog = (){
     gtk.widget_show_all(dialog)
 };
 
-demo_events = (w) {
+demo_events(w) {
     gtk.widget_add_events(w, ['exposure, 'leave_notify, 'button_press, 'key_press, 'key_release, 'pointer_motion]);
     io.println("events are ", gtk.widget_get_events(w));
 //  gtk.signal_connect(w,      'expose_event,        (e){ io.println("Expose:", e) });

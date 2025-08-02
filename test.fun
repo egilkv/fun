@@ -7,10 +7,10 @@ a + b;
 #plus(a, b);
 c ? a : b;
 
-factorial = (n){ n<2 ? 1 : n*factorial(n-1) };
+factorial(n){ n<2 ? 1 : n*factorial(n-1) };
 factorial(10);
 
-ft = (a, b) {
+ft(a, b) {
     c = a;
     d = b;
     c + d
@@ -76,7 +76,7 @@ io = #use("io");
 text1 = "ECHO";
 text2 = "DELTA";
 
-invoke = (fn){
+invoke(fn){
     text1 = "BOB";
     text2 = "CAROLINE";
     fn();
@@ -85,7 +85,7 @@ invoke = (fn){
 
 invoke( (){ io.println("case 1 is ", text1, " and ", text2) } );
 
-func = (){
+func(){
     text1 = "ALICE";
     invoke( (){ io.println("case 2 is ", text1, " and ", text2) } )
 };
@@ -192,7 +192,7 @@ qsort([0:5, 2, 7, 6, 3, 9, 12, 99, 1]);
 [ 0: 1.23, 2.34, 3:3.14, 0: 2];
 
 // closures https://clojure.org/guides/learn/functions
-messenger_builder = (greeting) {
+messenger_builder(greeting) {
   (who) { io.println(greeting, " ", who) } }; // closes over greeting
 
 // greeting provided here, then goes out of scope
@@ -218,12 +218,12 @@ time.utctime(1622447459.9024);
 lt = time.localtime(1622447459.9024);
 time.mktime(lt);
 
-abc = (a, b, c) {
+abc = \(a, b, c) {
 	a+b*(c+10)
 };
 
 // should detect this
-aba = (a, b, a) {
+aba(a, b, a) {
 	a+b*(a+5)
 };
 
@@ -237,15 +237,15 @@ abc(c:3, a:1, 2);
 // argument must match
 abc(1, x:3, b:2);
 
-abc0 = (a:10, b:20, c:30) {
+abc0(a:10, b:20, c:30) {
 	a+b*(c+10)
 };
 
-aba0 = (a:10, b:20, a:30) {
+aba0(a:10, b:20, a:30) {
 	a+b*(a+10)
 };
 
-ab0 = (a, b, 30) {
+ab0(a, b, 30) {
 	a+b*(a+10)
 };
 
@@ -255,14 +255,14 @@ abc0(1000);
 abc0(1000, c:300);
 
 // variadic functions:
-average = ( ... ) {
+average( ... ) {
     #apply(#plus, ...) / #count(...)
 };
 
 average(11, 12, 12);
 average(11, 12, 12.0);
 
-add = ( ... ) {
+add( ... ) {
     ... == [] ? 0 : ...[0] + #apply(add, ...[1..])
 };
 
@@ -275,7 +275,7 @@ add(1,2,3);
 
 35/3 * 1.0;
 
-g = (a, ...) { [a] ++ [99] ++ ... };
+g(a, ...) { [a] ++ [99] ++ ... };
 g(2, a:3, 4);
 
 A = 1;
@@ -296,13 +296,13 @@ A2 > B2;
 A2 < 1;
 
 // tail-call two levels
-fc = (a) {
+fc(a) {
     b = 2*a;
-    g = (){ b };
+    g(){ b };
     g()
 };
 
-h = () {
+h() {
     10*fc(12)
 };
 
@@ -313,10 +313,10 @@ h();
 (1..2)[1..];
 (1..2)[2..];
 
-ct = (){#t};
-cf = (){#f};
-cv = (){#void};
-ff = (n){n};
+ct(){#t};
+cf(){#f};
+cv(){#void};
+ff(n){n};
 
 ct() ? ff(1):ff(0);
 cf() ? ff(1):ff(0);
@@ -334,4 +334,4 @@ cv() || cf();
 #keys(array1);
 #count(aa);
 
-lambda = \(a){2*a};
+// lambda = \(a){2*a};

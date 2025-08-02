@@ -1,7 +1,8 @@
 // factorial, with tail call
 
-factorial = (n) {
-    (iter = (product, n){
+factorial(n) {
+    // TODO use lambda, are parenthesis needed?
+    (iter(product, n){
 	 n < 2 ? product
 	       : iter(product * n, n - 1)
     })(1, n)

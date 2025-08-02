@@ -51,7 +51,8 @@ enum cell_t {
    c_DORANGE,   // pop lower, pop upper, push result, cdr is next
    c_DOAPPLY,   // pop fun, pop tailarg, push result, cdr is next
    c_DOPOP,     // cdr is next
-   c_DONOOP     // cdr is next
+   c_DONOOP,    // cdr is next
+   c_SEMI       // for parse phase only
 } ;
 
 struct cell_s {
@@ -244,6 +245,8 @@ int cell_is_number(cell *cp);
 int cell_is_integer(cell *cp);
 
 void cell_sweep(cell *node);
+
+cell *cell_semi();
 
 #endif
 

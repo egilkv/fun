@@ -347,3 +347,7 @@ h() ==> 240
 #keys("hello") ==> 0 .. 4
 #keys(array1) ==> 0 .. 5
 #count(aa) ==> 3
+error at 337:10; misplaced item, ignored: operator is "\"
+#defq(lambda, #lambda([ a ], #times(2, a))) ==> #closure0(
+  args: [ a ]
+)

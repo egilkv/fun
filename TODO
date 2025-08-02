@@ -10,6 +10,8 @@ open/write/close also leaks
 
 GTK stopped working
 
+Review #lambda and #deflambda
+
 Revise syntaxm swop args, align with monads
 	a = #bind(value, assoc-of-functions)
     means that
@@ -409,3 +411,5 @@ Parsing error, check
      '+;
 
 run_main() is not guaranteed to return the correct result
+
+Make integer and other types be #integer

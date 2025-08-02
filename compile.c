@@ -698,7 +698,8 @@ static int compile1nc(cell *item, struct fixup *fixp, struct compile_env *cep) {
                 cell_unref(fun);
                 return compile1_or(args, fixp, cep);
 
-            } else if (fun == hash_lambda) { // #lambda is special case
+            } else if (fun == hash_deflambda) { // #lambda is special case
+                // TODO verify this..
                 cell_unref(fun);
                 return compile1_lambda(args, fixp, cep);
 

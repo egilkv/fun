@@ -295,6 +295,10 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "#donoop() -> ");
         cell_writei(out, ct->_.cons.cdr, indent);
         break;
+
+    case c_SEMI:
+        fprintf(out, "#semi() ");
+        break;
 #endif
 
     case c_RANGE:

@@ -10,9 +10,9 @@ qsort([Pivot|Rest]) ->
 
 */
 
-qsort = (list) {
+qsort(list) {
     pivot = list != [] ? list[0];
-    q = (list, first, last) {
+    q(list, first, last) {
         list == [] ? qsort(first) ++ [pivot] ++ qsort(last)
                    : list[0] < pivot ? q(list[1..], list[0..0] ++ first, last)
                                      : q(list[1..], first, list[0..0] ++ last)
@@ -22,7 +22,7 @@ qsort = (list) {
 };
 
 /*
-qsort = (list, first: [], last: []) {
+qsort(list, first: [], last: []) {
     list == []
         ? first ++ last
         : list[1..] == []

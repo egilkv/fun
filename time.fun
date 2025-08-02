@@ -24,7 +24,7 @@ t3 = time.time(fib, 92);
 t3 = time.time((){fib(92)}); // this is the same
 
 // non end recursion, inefficient
-fib2 = (n) {
+fib2(n) {
     n <= 1 ? n : fib2(n-1) + fib2(n-2)
 };
 

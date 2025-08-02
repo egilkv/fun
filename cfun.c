@@ -867,6 +867,7 @@ static cell *cfun1_type(cell *a) {
     case c_DOAPPLY:
     case c_DOPOP:
     case c_DONOOP:
+    case c_SEMI:
         t = "internal"; // TODO should not happen
         break;
     case c_FREE:
@@ -1148,6 +1149,9 @@ void cfun_init() {
     hash_f       = symbol_self("#f");
     hash_t       = symbol_self("#t");
     hash_void    = symbol_self("#void");
+
+    // special symbol
+    hash_lambda  = symbol_set("#lambda", cell_ref(hash_void));
 
     // TODO remove...
     hash_ellip   = symbol_set("...",   cell_ref(hash_void));

@@ -1,10 +1,10 @@
 
-f1 = (a){
+f1(a){
     b = 99;
     f3( (){ cc = b+2; #bp(); a })
 };
 
-f3 = (thunk){
+f3(thunk){
     b = 9;
     thunk();
     12
@@ -23,7 +23,7 @@ io = #use("io");
 c1 = #channel();
 c2 = #channel();
 
-cr = () {
+cr() {
 	io.println("read");
 	v = <- c1;
 	io.println("write");
@@ -38,7 +38,7 @@ c1 <- 99;
 io = #use("io");
 c1 = #channel();
 
-cr = () {
+cr() {
 	io.println("value", <- c1);
 	cr()
 };

@@ -50,28 +50,36 @@ static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0, cell **resultp
         ct = expression(lxf);
 	if (!ct) break; // eof
 
-        if (lxf->f == stdin) {
-            if (lxf->show_parse & 1) {
-                cell_write(stdout, ct);
-                printf(" ==> ");
-	    }
+        if (ct->type == c_SEMI) {
+            // semicolon at outer level; forget previous value
+            cell_unref(ct);
+            ct = NULL;
 
-            // print result if stdin
-            ct = cell_func(cell_ref(hash_result), cell_list(ct, NIL));
+        } else {
+
+            if (lxf->f == stdin) {
+                if (lxf->show_parse & 1) {
+                    cell_write(stdout, ct);
+                    printf(" ==> ");
+                }
+
+                // print result if stdin
+                ct = cell_func(cell_ref(hash_result), cell_list(ct, NIL));
+            }
+
+            // TODO should also provide env0 to compile
+            ct = compile(ct, env0);
+            if (lxf->f == stdin) {
+                if (lxf->show_parse & 2) {
+                    cell_write(stdout, ct);
+                    printf("\n ==> ");
+                }
+            }
+
+            // TODO must have some way of ensuring the previous statements in the
+            //      include file have been executed already
+            run_main_force(ct, cell_ref(env0), NIL, resultp);
         }
-
-        // TODO should also provide env0 to compile
-        ct = compile(ct, env0);
-        if (lxf->f == stdin) {
-            if (lxf->show_parse & 2) {
-                cell_write(stdout, ct);
-                printf("\n ==> ");
-	    }
-	}
-
-        // TODO must have some way of ensuring the previous statements in the
-        //      include file have been executed already
-        run_main_force(ct, cell_ref(env0), NIL, resultp);
     }
     if (lxf->is_terminal) {
         printf("\n");
@@ -92,6 +100,7 @@ int chomp_file(const char *name, cell **resultp) {
 }
 
 // get expression at the outer level, where semicolon is separator
+// return NULL if end of file
 cell *expression(lxfile *in) {
     return expr(l_SEMI, in);
 }
@@ -136,6 +145,11 @@ static cell *expr(precedence lv, lxfile *in) {
         dropitem(it);
         return binary(pt, lv, in);
 
+    case it_BSLASH: // lambda, behaves as symbol
+        pt = cell_ref(hash_lambda);
+        dropitem(it);
+        return binary(pt, lv, in);
+
     case it_ELLIP:
         pt = cell_ref(hash_ellip);
         dropitem(it);
@@ -148,12 +162,12 @@ static cell *expr(precedence lv, lxfile *in) {
         pt = cell_func(cell_ref(hash_not), cell_list(pt, NIL));
         return binary(pt, lv, in);
 
-    case it_GO: // unary only
+    case it_GO: // !! unary only TODO do more...
         dropitem(it);
         pt = expr(l_UNARY, in);
         if (!pt) return badeof();
         // #go(#lambda([], ...whatever...))
-        pt = cell_func(cell_ref(hash_go), cell_list(cell_func(cell_ref(hash_lambda), 
+        pt = cell_func(cell_ref(hash_go), cell_list(cell_func(cell_ref(hash_deflambda), // TODO lambda
                                           cell_list(NIL, cell_list(pt, NIL))), NIL));
         return binary(pt, lv, in);
 
@@ -207,18 +221,19 @@ static cell *expr(precedence lv, lxfile *in) {
                 return binary(p2, lv, in);
             }
         } else {
-            // must be an anomymous function defintion
+            // TODO must be an anomymous function defintion
+            // TODO lambda obsolete
             if (!it || it->type != it_LBRC) {
 		error_par(lxfile_info(in), "expected function body (left curly bracket)");
                 if (it) pushitem(it);
                 // assume empty function body
-                return cell_func(cell_ref(hash_lambda), cell_list(pt, NIL));
+                return cell_func(cell_ref(hash_deflambda), cell_list(pt, NIL));
             }
         }
         // get function body
         {
             cell *body = getlist(it, it_SEMI, it_RBRC, l_BASE, in);
-            pt = cell_func(cell_ref(hash_lambda), cell_list(pt, body));
+            pt = cell_func(cell_ref(hash_deflambda), cell_list(pt, body));
         }
         return binary(pt, lv, in);
 
@@ -241,9 +256,11 @@ static cell *expr(precedence lv, lxfile *in) {
         if (lv < l_SEMI) {
             // TODO sure???
 	    error_pat(lxfile_info(in), "misplaced semicolon", it->type);
+            dropitem(it);
+            return expr(lv, in);
         }
         dropitem(it);
-        return expr(lv, in);
+        return cell_semi();
 
     case it_RPAR: // cannot be used
     case it_RBRK:
@@ -270,7 +287,6 @@ static cell *expr(precedence lv, lxfile *in) {
     case it_COMMA:
     case it_QUEST: // ternary
     case it_COLON:
-    case it_BSLASH:
         error_pat(lxfile_info(in), "misplaced item, ignored", it->type);
         dropitem(it);
         return expr(lv, in);
@@ -460,13 +476,43 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
 	    }
 	}
 
-    case it_LPAR: // function invocation
+    case it_LPAR: // function invocation, or function definition
 	if (lv >= l_POST) { // left-to-right
             // look no further
             pushitem(op);
             return left;
         }
-        return binary(cell_func(left, getlist(op, it_COMMA, it_RPAR, l_LABEL, in)), lv, in);
+        {
+            /* function call or def: parse up to matching right parenthesis */
+            cell *paren = getlist(op, it_COMMA, it_RPAR, l_LABEL, in);
+            cell *body, *fdef;
+            op = lexical(in);
+            if (!op || op->type != it_LBRC) {
+                // no '{', so must be a function invocation
+                if (op) pushitem(op);
+                return binary(cell_func(left, paren), lv, in);
+            }
+            if (!cell_is_symbol(left)) {
+                error_pa1(lxfile_info(in), "bad function definition, must be defined as a symbol", left);
+                left = NIL;
+            }
+            // must be a definition, get function body
+            body = getlist(op, it_SEMI, it_RBRC, l_BASE, in);
+            if (!left) { // error reported above
+                cell_unref(paren);
+                cell_unref(body);
+                return cell_void(); // TODO do something smarter...
+            }
+            fdef = cell_func(cell_ref(hash_deflambda), cell_list(paren, body));
+            if (left->_.symbol.val == hash_lambda) {
+                cell_unref(left);
+                left = fdef;
+            } else {
+                // make function defintion
+                left = cell_func(cell_ref(hash_defq), cell_list(left, cell_list(fdef, NIL))); // TODO more efficient?
+            }
+        }
+        return binary(left, lv, in);
 
     case it_LBRK: // array/assoc index
 	if (lv >= l_POST) { // left-to-right
@@ -535,7 +581,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         }
 
     case it_SEMI:
-#if 0 // TODO review for later
+#if 0 // TODO lambda, review for later
         if (lv >= l_SEMI) { // TODO left-to-right?
             // look no further
             pushitem(op);
@@ -552,7 +598,8 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         // return binary(cell_func(cell_ref(hash_do), cell_list(left, cell_list(right, NIL))), lv, in);
         // return binary(cell_list(left, cell_list(right, NIL)), lv, in);
         // this is a lambda with empty argument list
-        return cell_func(cell_ref(hash_lambda), cell_list(NIL, cell_list(left, cell_list(right, NIL))));
+        // TODO obsolete
+        return cell_func(cell_ref(hash_deflambda), cell_list(NIL, cell_list(left, cell_list(right, NIL))));
 #endif
     case it_RPAR:
     case it_RBRK:
