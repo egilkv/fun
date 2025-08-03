@@ -25,9 +25,15 @@ Operators for comparing numbers are `<`, `>`, `<=`, `>=` and `==`, and yield a B
 Parenthesises can be used for grouping in the normal manner.
 The conditional operator is also like in C, e.g. `a >= 0 ? 1 : -1`.
 
-**String** are arrays of characters, and are written using within double quotation marks, like `"this"`.
+**Strings** are written using within double quotation marks, like `"this"`.
+Strings are arrays of characters, and can be indexed like arrays. TODO described where
+
+**Functions** are defined as in this example: `add(a,b) { a+b }` The function body, within curly brackets, may contain
+multiple expressions, separated by semicolons. The last expression defines the value. Ideally, functions should have no
+side effects, which means that as long as they are invoked with the same arguments, they always yield the same value.
+Unnamed functions can be defined by replacing the function name by '\', for *lambda*.
 
 ...
 
-Arrays as well as lists can be concatenated using the `++` operator.
+Arrays, strings as well as lists can be concatenated using the `&` operator.
 

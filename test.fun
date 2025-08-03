@@ -83,16 +83,16 @@ invoke(fn){
     text2 // value is local text
 };
 
-invoke( (){ io.println("case 1 is ", text1, " and ", text2) } );
+invoke( \(){ io.println("case 1 is ", text1, " and ", text2) } );
 
 func(){
     text1 = "ALICE";
-    invoke( (){ io.println("case 2 is ", text1, " and ", text2) } )
+    invoke( \(){ io.println("case 2 is ", text1, " and ", text2) } )
 };
 
 func();
 
-((text2){ invoke( (){ io.println("case 3 is ", text1, " and ", text2) } ) })("ZZZ");
+(\(text2){ invoke( \(){ io.println("case 3 is ", text1, " and ", text2) } ) })("ZZZ");
 
 12 / - 4;
 12345678.901234 * 100000;
@@ -193,7 +193,7 @@ qsort([0:5, 2, 7, 6, 3, 9, 12, 99, 1]);
 
 // closures https://clojure.org/guides/learn/functions
 messenger_builder(greeting) {
-  (who) { io.println(greeting, " ", who) } }; // closes over greeting
+  \(who) { io.println(greeting, " ", who) } }; // closes over greeting
 
 // greeting provided here, then goes out of scope
 hello_er = messenger_builder("Hello");

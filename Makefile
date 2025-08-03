@@ -35,6 +35,7 @@ test: fun test.fun
 		--log-file=out.txt \
 		./fun -PS <test.fun >out 2>&1
 	diff -u test.out out
+	@echo Review out.txt for memory leakages
 
 grind: fun
 	valgrind --leak-check=full \

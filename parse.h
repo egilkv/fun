@@ -14,7 +14,7 @@ enum prec_ {
     l_PERHAPS,  // labels perhaps allowed (TODO ugly, I know)
     l_LABEL,    // labels allowed here
     l_BASE,     // base expression, no labels allowed
-    l_SEMI,     // ;            TODO new, same as ',' in C
+    l_SEMI,     // ;            TODO new, somewhat like ',' in C
     l_RANGE,    // ..           TODO new
     l_DEF,      // =            right-to-left
     l_COND,     // ?            TODO right-to-left, in C ? : are same

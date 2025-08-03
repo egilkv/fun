@@ -206,34 +206,15 @@ static cell *expr(precedence lv, lxfile *in) {
         pt = cell_func(cell_ref(hash_quote), cell_list(pt, NIL));
         return binary(pt, lv, in);
 
-    case it_LPAR:
-        // read as list
-        pt = getlist(it, it_COMMA, it_RPAR, l_LABEL, in); // colon allowed
+    case it_LPAR: // basic parenthesis for expression grouping
+        dropitem(it);
+        pt = expr(l_SEMI, in);        // TODO is semicolon really allowed here? l_BASE?
         it = lexical(in);
-        if (cell_is_list(pt)) {
-            // single item on list, not sure what it is
-            if (!it || it->type != it_LBRC) {
-                // not a function definition
-                cell *p2 = pt->_.cons.car; // pick 1st item on list
-                pt->_.cons.car = 0;
-		cell_unref(pt);
-                if (it) pushitem(it);
-                return binary(p2, lv, in);
-            }
+        if (it && it->type == it_RPAR) {
+            dropitem(it);
         } else {
-            // TODO must be an anomymous function defintion
-            // TODO lambda obsolete
-            if (!it || it->type != it_LBRC) {
-		error_par(lxfile_info(in), "expected function body (left curly bracket)");
-                if (it) pushitem(it);
-                // assume empty function body
-                return cell_func(cell_ref(hash_deflambda), cell_list(pt, NIL));
-            }
-        }
-        // get function body
-        {
-            cell *body = getlist(it, it_SEMI, it_RBRC, l_BASE, in);
-            pt = cell_func(cell_ref(hash_deflambda), cell_list(pt, body));
+            if (it) pushitem(it);
+            error_par(lxfile_info(in), "expected matching right parenthesis");
         }
         return binary(pt, lv, in);
 
