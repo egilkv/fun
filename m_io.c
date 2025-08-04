@@ -376,7 +376,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 #endif
         fprintf(out, "\n%*scont: ", indent+2,"");
         cell_writei(out, ct->_.cons.cdr, indent);
-        fprintf(out, "\n%*s) ", indent,"");
+        fprintf(out, "\n%*s)", indent,"");
         break;
 
     case c_CLOSURE0:
@@ -387,7 +387,7 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         fprintf(out, "\n%*sprog: ", indent+2,"");
         cell_writei(out, ct->_.cons.cdr, indent);
 #endif
-        fprintf(out, "\n%*s) ", indent,"");
+        fprintf(out, "\n%*s)", indent,"");
         break;
 
     case c_CFUN1:

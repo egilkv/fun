@@ -65,9 +65,9 @@ g + f + 12 - 30;
 // TODO parsing does not stop at semicolon
 2^;
 
-// '/' associates left-to-right
+// '/' associates left-to-right, also note that '100 / 2' is read as the integer 50
 100 / 2 / 2;
-
+100.0 / 2.0 / 2.0;
 undefined;
 
 // continuation
@@ -334,4 +334,12 @@ cv() || cf();
 #keys(array1);
 #count(aa);
 
-// lambda = \(a){2*a};
+"a" < "b";
+"a" > "b";
+
+"abc" & "def";
+"abc" ++ "def";
+123 + "456";
+
+lambda = \(a){2*a};
+lambda(5);
