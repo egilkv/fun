@@ -1,5 +1,36 @@
 
+Make expr() return thing for ';' so that e.g. #include() yields #void if last thing is a semicolon (same for functions)
+
+f = (a){a+1}
+should be
+f(a){a+1}
+Value is void
+
+Also
+(a){a+1}
+should be
+\(a){a+1}
+Advantage: Gives a way of invoking itself
+
+Stupid error message:
+    --> f = (a){a+1;}
+    error at 1:14; misplaced item, ignored: operator is "}"
+
+Non-pure functions should show !
+
+Is ++ the best operator for concatenation? 
+Python, Javascript etc uses +
+Visual Basic uses &
+C(++) preprocessor
+uses ##
+PHP uses .
+SQL uses ||
+Elm uses ++
+
 Names: associative array, map, or dictionary
+array instead of vector
+
+Remove README
 
 SQL insert leaks memory:
     s = #use("sqlite").open("sqlite.sql");
@@ -413,3 +444,5 @@ Parsing error, check
 run_main() is not guaranteed to return the correct result
 
 Make integer and other types be #integer
+
+Since < = > etc also works for strings, + should also work (for strings)

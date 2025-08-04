@@ -735,7 +735,7 @@ static cell *cfun2_bind(cell *a, cell *b) {
     return cell_bind(a, b);
 }
 
-// return list of keys for assoc, or range for array
+// return list of keys for assoc, or range for vector
 static cell *cfun1_keys(cell *a) {
     cell *result = NIL;
 
@@ -1174,7 +1174,7 @@ void cfun_init() {
     hash_go       = symbol_set("#go",       cell_cfunN(cfun1_go));
     hash_gt       = symbol_set("#gt",       cell_cfunN_pure(cfunN_gt));
                     symbol_set("#include",  cell_cfun1(cfun1_include)); // TODO pure?
-                    symbol_set("#keys",     cell_cfun1(cfun1_keys));
+                    symbol_set("#keys",     cell_cfun1(cfun1_keys));    // TODO pure?
     hash_le       = symbol_set("#le",       cell_cfunN_pure(cfunN_le));
     hash_lt       = symbol_set("#lt",       cell_cfunN_pure(cfunN_lt));
     hash_list     = symbol_set("#list",     cell_cfunN_pure(cfunN_list));

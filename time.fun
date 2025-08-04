@@ -20,8 +20,8 @@ t1 = time.time(qsort, [6,5,9,12,67,99,12,5,9,6,8,7,0,23,51,23,59,63,61,12,73,
 t2 = time.time(factorial, 170.0);
 
 #include("fib.fun");
-t3 = time.time(fib, 92);
-t3 = time.time((){fib(92)}); // this is the same
+t3a = time.time(fib, 92);
+t3b = time.time((){fib(92)}); // this is the same
 
 // non end recursion, inefficient
 fib2(n) {
@@ -33,6 +33,7 @@ t4 = time.time(fib2, 27);
 							//              -O
 io.println("qsort time is ", t1*1000, " ms");           // 21           14
 io.println("factorial time is ", t2*1000, " ms");       // 0.5          0.7
-io.println("fib time is ", t3*1000, " ms");             // 0.3          0.4
+io.println("fib time is ", t3a*1000, " ms");            // 0.3          0.4
+io.println("fib time is ", t3b*1000, " ms");            // 0.3          0.4
 io.println("fib2 time is ", t4*1000, " ms");            // 1470         600
 

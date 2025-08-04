@@ -48,13 +48,25 @@ static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0, cell **resultp
     for (;;) {
         lxf->show_prompt = prompt;
         ct = expression(lxf);
+
+        // TODO debug
+        if (resultp && !ct) {
+                printf("EOF\n");
+        }
+
 	if (!ct) break; // eof
+
+#if 0 // TODO debug
+        if (resultp) {
+                cell_write(stdout, ct);
+                printf(" --> ");
+        }
+#endif
 
         if (ct->type == c_SEMI) {
             // semicolon at outer level; forget previous value
             cell_unref(ct);
             ct = NULL;
-
         } else {
 
             if (lxf->f == stdin) {
@@ -75,11 +87,24 @@ static void chomp_lx(lxfile *lxf, const char *prompt, cell *env0, cell **resultp
                     printf("\n ==> ");
                 }
             }
+#if 0 // TODO debug
+            if (resultp) {
+                cell_write(stdout, ct);
+                printf(" --> ");
+            }
+#endif
 
             // TODO must have some way of ensuring the previous statements in the
             //      include file have been executed already
             run_main_force(ct, cell_ref(env0), NIL, resultp);
         }
+
+#if 0 // TODO debug
+        if (resultp) {
+                cell_write(stdout, *resultp);
+                printf("\n");
+        }
+#endif
     }
     if (lxf->is_terminal) {
         printf("\n");
@@ -107,10 +132,8 @@ cell *expression(lxfile *in) {
 
 static cell *expr(precedence lv, lxfile *in) {
     cell *pt = 0;
-    item *it;
-    it = lexical(in);
-    if (!it) return 0; // end of file
-
+    item *it = lexical(in);
+    if (!it) return NULL; // end of file
     switch (it->type) {
 
     case it_NUMBER:
@@ -403,13 +426,7 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
         return binary_l2rN(left, l_CAT,  cell_ref(hash_cat), op, lv, in);
 
     case it_AMP:
-        return binary_l2rN(left, l_AMP,  cell_symbol("#bitand"), op, lv, in); // TODO remove
-
-    case it_BAR:
-        return binary_l2rN(left, l_BAR,  cell_symbol("#bitor"), op, lv, in); // TODO remove
-
-    case it_CIRC:
-        return binary_l2rN(left, l_BAR,  cell_symbol("#bitxor"), op, lv, in); // TODO remove l_BAR?
+        return binary_l2rN(left, l_AMP,  cell_ref(hash_cat), op, lv, in); // TODO ++ and & are the same
 
     case it_AND:
         return binary_l2rN(left, l_AND,  cell_ref(hash_and), op, lv, in);
@@ -599,7 +616,10 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
     case it_STRING:
     case it_SYMBOL:
     case it_ELLIP:
+    case it_BAR: // '|' not used
+    case it_CIRC: // '^' not used TODO could be used for exponent
         break;
+
     default:
 	error_pat(lxfile_info(in), "ASSERT operator", op->type); // TODO
         assert(0);

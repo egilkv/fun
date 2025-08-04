@@ -21,17 +21,21 @@ These symbols evaluate to themselves, so they need not be quoted.
 
 Basic arithmetic **operators**, `+`, `-`, `*` and `/`, work much like in C.
 Dividing two integers or quotients will yield a quotient or an integer.
-Operators for comparing numbers are `<`, `>`, `<=`, `>=` and `==`, and yield a Boolean value.
+Operators for comparing numbers are `<`, `>`, `<=`, `>=`, `==` and `!=`, and yield a Boolean value.
 Parenthesises can be used for grouping in the normal manner.
 The conditional operator is also like in C, e.g. `a >= 0 ? 1 : -1`.
 
 **Strings** are written using within double quotation marks, like `"this"`.
+The backslash introduces special characters, as in C.
 Strings are arrays of characters, and can be indexed like arrays. TODO described where
+Operators for comparing numbers also work for alphabetic comparison of strings.
 
 **Functions** are defined as in this example: `add(a,b) { a+b }` The function body, within curly brackets, may contain
 multiple expressions, separated by semicolons. The last expression defines the value. Ideally, functions should have no
 side effects, which means that as long as they are invoked with the same arguments, they always yield the same value.
 Unnamed functions can be defined by replacing the function name by '\', for *lambda*.
+
+**Lists** ...
 
 ...
 
