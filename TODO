@@ -4,18 +4,13 @@ parse.c 504
 
 Immediately optimize any variable with known value
 
+Optimize function call self ref, including support for \.
+
+Review #lambda and #deflambda
+
 Make expr() return thing for ';' so that e.g. #include() yields #void if last thing is a semicolon (same for functions)
 
-f = (a){a+1}
-should be
-f(a){a+1}
-Value is void
-
-Also
-(a){a+1}
-should be
-\(a){a+1}
-Advantage: Gives a way of invoking itself
+EOF return EOF for #include, should be #void
 
 Stupid error message:
     --> f = (a){a+1;}
@@ -46,9 +41,7 @@ open/write/close also leaks
 
 GTK stopped working
 
-Review #lambda and #deflambda
-
-Revise syntaxm swop args, align with monads
+Revise syntax, swop args, align with monads
 	a = #bind(value, assoc-of-functions)
     means that
 	a.func(b,c); same as func(a,b,c)
