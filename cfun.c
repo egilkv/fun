@@ -1151,7 +1151,7 @@ void cfun_init() {
     hash_void    = symbol_self("#void");
 
     // special symbol
-    hash_lambda  = symbol_set("#lambda", cell_ref(hash_void));
+    hash_lambda  = symbol_set("#lambda", cell_ref(hash_undef));
 
     // TODO remove...
     hash_ellip   = symbol_set("...",   cell_ref(hash_void));

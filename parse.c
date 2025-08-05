@@ -502,8 +502,8 @@ static cell *binary(cell *left, precedence lv, lxfile *in) {
                 return cell_void(); // TODO do something smarter...
             }
             fdef = cell_func(cell_ref(hash_deflambda), cell_list(paren, body));
-            if (left->_.symbol.val == hash_lambda) {
-                cell_unref(left);
+            if (left == hash_lambda) {
+                cell_unref(left); // do not set value here for an anonymous lambda
                 left = fdef;
             } else {
                 // make function defintion
