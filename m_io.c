@@ -26,6 +26,7 @@
 #define SHOW_PROG        0  // show prog of closures and environments
 
 static cell *bind_cfio_file();
+static void cell_car_cdr(const char *fn, FILE *out, cell *ct, int indent);
 
 ////////////////////////////////////////////////////////////////
 //
@@ -192,32 +193,23 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
 
 #if 1 // runtime
     case c_DOQPUSH:
-        fprintf(out, "#doqpush(");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr("#doqpush", out, ct, indent);
         break;
 
     case c_DOLPUSH:
-        fprintf(out, "#dolpush(");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr("#dolpush", out, ct, indent);
         break;
 
     case c_DOGPUSH:
-        fprintf(out, "#dogpush(");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr("#dogpush", out, ct, indent);
         break;
 
     case c_DOCALL1:
+        cell_car_cdr( "#docall1", out, ct, indent);
+        break;
+
     case c_DOCALL2:
-        fprintf(out, "#docall%d(", ct->type == c_DOCALL1 ? 1:2);
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr( "#docall2", out, ct, indent);
         break;
 
     case c_DOCALLN:
@@ -247,31 +239,19 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         break;
 
     case c_DODEFQ:
-        fprintf(out, "#dodefq(");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr("#dodefq", out, ct, indent);
         break;
 
     case c_DOREFQ:
-        fprintf(out, "#dorefq(");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr("#dorefq", out, ct, indent);
         break;
 
     case c_DOLAMB:
-        fprintf(out, "#dolamb(");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr("#dolamb", out, ct, indent);
         break;
 
     case c_DOLABEL:
-        fprintf(out, "#dolabel(");
-        cell_writei(out, ct->_.cons.car, indent);
-        fprintf(out, ") -> ");
-        cell_writei(out, ct->_.cons.cdr, indent);
+        cell_car_cdr("#dolabel", out, ct, indent);
         break;
 
     case c_DORANGE:
@@ -436,6 +416,13 @@ static void cell_writei(FILE *out, cell *ct, int indent) {
         break;
     }
     ct->pmark = 0;
+}
+
+static void cell_car_cdr(const char *fn, FILE *out, cell *ct, int indent) {
+    fprintf(out, "%s(", fn);
+    cell_writei(out, ct->_.cons.car, indent);
+    fprintf(out, ") -> ");
+    cell_writei(out, ct->_.cons.cdr, indent);
 }
 
 // does not consume cell
