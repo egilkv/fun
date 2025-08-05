@@ -341,5 +341,5 @@ cv() || cf();
 "abc" ++ "def";
 123 + "456";
 
-lambda = \(a){2*a};
-lambda(5);
+lam = \(a){a <= 1 ? a : a*lam(a-1)};
+lam(5);

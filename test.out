@@ -356,7 +356,7 @@ h() ==> 240
 #cat("abc", "def") ==> "abcdef"
 #cat("abc", "def") ==> "abcdef"
 #plus(123, "456") ==> error; not a number: "456"
-#defq(lambda, #lambda([ a ], #times(2, a))) ==> #closure0(
+#defq(lam, #lambda([ a ], #if(#le(a, 1), a, #times(a, lam(#minus(a, 1)))))) ==> #closure0(
   args: [ a ]
 )
-lambda(5) ==> 10
+lam(5) ==> 120

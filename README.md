@@ -33,7 +33,7 @@ Operators for comparing numbers also work for alphabetic comparison of strings.
 **Functions** are defined as in this example: `add(a,b) { a+b }` The function body, within curly brackets, may contain
 multiple expressions, separated by semicolons. The last expression defines the value. Ideally, functions should have no
 side effects, which means that as long as they are invoked with the same arguments, they always yield the same value.
-Unnamed functions can be defined by replacing the function name by '\', for *lambda*.
+Unnamed functions can be defined by replacing the function name by '\\', for *lambda*.
 
 **Lists** ...
 
