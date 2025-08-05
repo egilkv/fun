@@ -1,4 +1,9 @@
 
+Make a new deflambda cell which resembles defq?
+parse.c 504
+
+Immediately optimize any variable with known value
+
 Make expr() return thing for ';' so that e.g. #include() yields #void if last thing is a semicolon (same for functions)
 
 f = (a){a+1}

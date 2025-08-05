@@ -17,7 +17,7 @@ void qfun_init() {
     hash_apply    = symbol_self("#apply");
     hash_defq     = symbol_self("#defq");
     hash_if       = symbol_self("#if");
-    hash_deflambda = symbol_self("#lambda"); // TODO lambda
+    hash_deflambda = symbol_self("#deflambda"); // TODO lambda dummy thingy for definitions
     hash_or       = symbol_self("#or");
     hash_quote    = symbol_self("#quote");
     hash_refq     = symbol_self("#refq");
